@@ -9,25 +9,22 @@ import { PILFlavors } from "@story-protocol/protocol-core/contracts/lib/PILFlavo
 
 /// @title CreatorDAO
 /// @notice Manager for a specific IP Asset.
-contract CreatorIPManager is Ownable, ERC721Holder {
+contract IPManager is Ownable, ERC721Holder {
     ILicensingModule public immutable LICENSING_MODULE;
     IPILicenseTemplate public immutable PIL_TEMPLATE;
 
     address public immutable ipId;
     address public immutable revenueToken;
-    address public immutable governanceToken;
 
     constructor(
         address _initialOwner,
         address _ipId,
         address _licensingModule,
         address _pilTemplate,
-        address _revenueToken,
-        address _governanceToken
+        address _revenueToken
     ) Ownable(_initialOwner) {
         ipId = _ipId;
         revenueToken = _revenueToken;
-        governanceToken = _governanceToken;
         LICENSING_MODULE = ILicensingModule(_licensingModule);
         PIL_TEMPLATE = IPILicenseTemplate(_pilTemplate);
     }

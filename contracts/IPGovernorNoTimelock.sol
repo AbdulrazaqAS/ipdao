@@ -10,9 +10,9 @@ import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/ex
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
 // Without timelock
-contract MyGovernor is Governor, GovernorSettings, GovernorCountingSimple, GovernorVotes, GovernorVotesQuorumFraction {
+contract IPGovernanceNoTimelock is Governor, GovernorSettings, GovernorCountingSimple, GovernorVotes, GovernorVotesQuorumFraction {
     constructor(IVotes _token)
-        Governor("MyGovernor")
+        Governor("CreatorDAO")
         GovernorSettings(5 /* 1 minutes */, 15 /* 3 minutes */, 100e18)
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(4)
