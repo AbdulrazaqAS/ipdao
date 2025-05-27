@@ -11,14 +11,14 @@ import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
 // Without timelock
 contract IPGovernanceNoTimelock is Governor, GovernorSettings, GovernorCountingSimple, GovernorVotes, GovernorVotesQuorumFraction {
-    constructor(IVotes _token)
-        Governor("CreatorDAO")
-        GovernorSettings(5 /* 1 minutes */, 15 /* 3 minutes */, 100e18)
+    constructor(string memory name, uint48 initialVotingDelay, uint32 initialVotingPeriod, uint256 initialProposalThreshold, uint256 quorumNumeratorValue, IVotes _token)
+        Governor(name)
+        GovernorSettings(initialVotingDelay, initialVotingPeriod, initialProposalThreshold)
         GovernorVotes(_token)
-        GovernorVotesQuorumFraction(4)
+        GovernorVotesQuorumFraction(quorumNumeratorValue)
     {}
 
-    // The following functions are overrides required by Solidity.
+    // The following functions are overrides required by Solidity
 
     function proposalThreshold()
         public

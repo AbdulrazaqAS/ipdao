@@ -5,7 +5,15 @@ import 'dotenv/config';
 const {WALLET_PRIVATE_KEY} = process.env;
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.26",
+  solidity: {
+    version: "0.8.26",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 175 // lower means smaller size, higher means cheaper runtime. Default: 200
+      }
+    }
+  },
   networks: {
     aeneid: {
       url: 'https://aeneid.storyrpc.io',
