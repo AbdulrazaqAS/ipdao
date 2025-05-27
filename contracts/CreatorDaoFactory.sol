@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {CreatorIPManager} from "./CreatorDao.sol";
+import {CreatorIPManager} from "./CreatorIPManager.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title CreatorDAOFactory
@@ -9,28 +9,30 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 contract CreatorDaoFactory is Ownable {
 
     /// @notice Emitted when a new CreatorDAO is created.
-    event DaoCreated(address indexed daoAddress, address indexed creator);
+    event DaoCreated(address indexed managerAddress, address indexed owner);
 
     constructor(address _initialOwner) Ownable(_initialOwner) {}
 
     function createDao(
-        address _ipAsset,
+        address _initialOwner,
+        address _ipId,
         address _licensingModule,
         address _pilTemplate,
-        address _royaltyPolicyLAP,
-        address _token
+        address _revenueToken,
+        address _governanceToken
     ) external onlyOwner {
         CreatorIPManager manager = new CreatorIPManager(
-            _ipAsset,
+            _initialOwner,
+            _ipId,
             _licensingModule,
             _pilTemplate,
-            _royaltyPolicyLAP,
-            _token
+            _revenueToken,
+            _governanceToken
         );
 
         emit DaoCreated(
-            address(dao),
-            msg.sender
+            address(manager),
+            _initialOwner
         );
     }
 }
