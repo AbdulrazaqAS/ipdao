@@ -2,19 +2,21 @@
 
 ```bash
 # Deploy IPDaoFactory
+
 # Deploy Token
+yarn hardhat run scripts/deployToken.ts --network aeneid
+```
+Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `governanceToken` inside **deployIPGovernorNoTimelock.ts**.
+
+```bash
 # Deploy IPGovernorNoTimelock and make it token owner
-# Deploy IPManager with governor as owner
+yarn hardhat run scripts/deployIPGovernorNoTimeLock.ts --network aeneid
 ```
+Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `initialOwner` inside **createDao.ts**.
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
-
-Try running some of the following tasks:
-
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.ts
+```bash
+# Create an IPManager instance through factory with governor as owner
+yarn hardhat run scripts/createDao.ts --network aeneid
 ```
+Now this is the contract that will be governed. Save its address for making executing proposals through the governor. Start by sending it the IPA NFT.
+
