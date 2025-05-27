@@ -10,7 +10,7 @@ import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/ex
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
 // Without timelock
-contract IPGovernanceNoTimelock is Governor, GovernorSettings, GovernorCountingSimple, GovernorVotes, GovernorVotesQuorumFraction {
+contract IPGovernorNoTimelock is Governor, GovernorSettings, GovernorCountingSimple, GovernorVotes, GovernorVotesQuorumFraction {
     constructor(string memory name, uint48 initialVotingDelay, uint32 initialVotingPeriod, uint256 initialProposalThreshold, uint256 quorumNumeratorValue, IVotes _token)
         Governor(name)
         GovernorSettings(initialVotingDelay, initialVotingPeriod, initialProposalThreshold)

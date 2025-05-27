@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {IPAManager} from "./IPAManager.sol";
-import {IPGovernanceNoTimelock} from "./IPGovernorNoTimelock.sol";
+import {IPGovernorNoTimelock} from "./IPGovernorNoTimelock.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
