@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {IPManager} from "./IPManager.sol";
+import {IPAManager} from "./IPAManager.sol";
 import {IPGovernanceNoTimelock} from "./IPGovernorNoTimelock.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
@@ -22,7 +22,7 @@ contract IPDaoFactory is Ownable {
         address _revenueToken,
         address _governor
     ) external onlyOwner {
-        IPManager manager = new IPManager(
+        IPAManager manager = new IPAManager(
             _governor,
             _ipId,
             _licensingModule,

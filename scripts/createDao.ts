@@ -1,0 +1,47 @@
+import { ethers } from "hardhat";
+import "dotenv/config";
+import { IPDaoFactoryInterface } from "../typechain-types/contracts/IPDaoFactory";
+
+async function main() {
+  const initialOwner = "0x2C97dad05673B95fB94d94057571B9D5a6aaC7C8"; // Governor contract address
+  const ipId = "0x5D4B4986582D9C0cFCeaC247FE84Ae71421eeAeA"; // Asset to be managed Ip id
+  const licensingModule = "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f"; // Licensing module address
+  const pilTemplate = "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316"; // PIL template address
+  const revenueToken = "0x1514000000000000000000000000000000000000"; // WIP
+
+  const daoFactory = await ethers.getContractAt(
+    "IPDaoFactory",
+    process.env.IP_DAO_FACTORY_ADDRESS!,
+  );
+  const tx = await daoFactory.createDao(
+    ipId,
+    licensingModule,
+    pilTemplate,
+    revenueToken,
+    initialOwner,
+  );
+
+  const txReceipt = await tx.wait();
+  const managerAddress = getManagerAddress(
+    txReceipt!.logs,
+    daoFactory.interface,
+  );
+
+  console.log("Manager address:", managerAddress);
+}
+
+function getManagerAddress(
+  logs: any,
+  daoInterface: IPDaoFactoryInterface,
+): string | null {
+  for (const log of logs) {
+    const parsed = daoInterface.parseLog(log);
+    if (parsed?.name === "DaoCreated") {
+      return parsed.args.managerAddress;
+    }
+  }
+
+  return null;
+}
+
+main().catch(console.error);

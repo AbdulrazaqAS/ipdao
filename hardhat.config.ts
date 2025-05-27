@@ -1,8 +1,8 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import 'dotenv/config';
+import "dotenv/config";
 
-const {WALLET_PRIVATE_KEY} = process.env;
+const { WALLET_PRIVATE_KEY } = process.env;
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -10,16 +10,16 @@ const config: HardhatUserConfig = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 175 // lower means smaller size, higher means cheaper runtime. Default: 200
-      }
-    }
+        runs: 200, // lower means smaller size, higher means cheaper runtime. Default: 200
+      },
+    },
   },
   networks: {
     aeneid: {
-      url: 'https://aeneid.storyrpc.io',
+      url: "https://aeneid.storyrpc.io",
       accounts: [WALLET_PRIVATE_KEY!],
-    }
-  }
+    },
+  },
 };
 
 export default config;

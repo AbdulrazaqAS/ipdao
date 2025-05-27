@@ -7,9 +7,8 @@ import { ILicensingModule } from "@story-protocol/protocol-core/contracts/interf
 import { IPILicenseTemplate } from "@story-protocol/protocol-core/contracts/interfaces/modules/licensing/IPILicenseTemplate.sol";
 import { PILFlavors } from "@story-protocol/protocol-core/contracts/lib/PILFlavors.sol";
 
-/// @title CreatorDAO
 /// @notice Manager for a specific IP Asset.
-contract IPManager is Ownable, ERC721Holder {
+contract IPAManager is Ownable, ERC721Holder {
     ILicensingModule public immutable LICENSING_MODULE;
     IPILicenseTemplate public immutable PIL_TEMPLATE;
 
