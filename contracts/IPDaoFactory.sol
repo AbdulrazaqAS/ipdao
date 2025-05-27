@@ -8,7 +8,7 @@ import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
 /// @title CreatorDAOFactory
 /// @notice Deploys new CreatorDAO instances linked to a specific IP Asset.
-contract CreatorDaoFactory is Ownable {
+contract IPDaoFactory is Ownable {
 
     /// @notice Emitted when a new CreatorDAO is created.
     event DaoCreated(address indexed governorAddress, address indexed managerAddress);
