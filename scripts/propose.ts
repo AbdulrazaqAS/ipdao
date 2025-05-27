@@ -13,10 +13,10 @@ async function main() {
     const grantAmount = ethers.parseEther("100");
     const transferCalldata = token.interface.encodeFunctionData('transfer', [receiver, grantAmount]);
 
-    const proposalId = 2;
+    const proposalNum = 4;
     const governorAddress = "0x1bc88526BC2932E8Ad321FAc878C1161aa6d983A";
     const governor = await ethers.getContractAt("IPGovernorNoTimelock", governorAddress);
-    const description = `Proposal #${proposalId}: Grant ${ethers.formatEther(grantAmount)} to ${receiver}`;
+    const description = `Proposal #${proposalNum}: Grant ${ethers.formatEther(grantAmount)} to ${receiver}`;
     const tx = await governor.propose(
       [tokenAddress],
       [0],
@@ -25,17 +25,21 @@ async function main() {
     );
     const txReceipt = await tx.wait();
 
-    console.log("Proposal created. Id:", getProposalEventArgs(txReceipt!.logs, governor.interface)![0]);
+    console.log("Proposal created. Id:", getProposalEventArgs(txReceipt!.logs, governor.interface));
 }
 
 function getProposalEventArgs(
   logs: any,
   daoInterface: IPGovernorNoTimelockInterface,
-): Result | null {
+): { proposalId: any; voteStart: any; voteEnd: any; } | null {
   for (const log of logs) {
     const parsed = daoInterface.parseLog(log);
     if (parsed?.name === "ProposalCreated") {
-      return parsed.args;
+      return {
+        proposalId: parsed.args.proposalId,
+        voteStart: parsed.args.voteStart,
+        voteEnd: parsed.args.voteEnd
+      };
     }
   }
 
