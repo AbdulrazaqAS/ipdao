@@ -1,9 +1,11 @@
-import React from "react";
+import { useState } from "react";
 import { Users, CheckCircle, PieChart } from "lucide-react";
+import NewProposalForm from "./NewProposalForm";
 
 export default function HomePage() {
+  const [showNewProposalForm, setShowNewProposalForm] = useState(false);
   return (
-    <div className="p-6 max-w-6xl mx-auto text-text">
+    <div className="p-6 max-w-6xl bg-background mx-auto text-text">
       {/* DAO Header */}
       <div className="mb-10">
         <h1 className="text-4xl font-bold">🛡 IPDAO Governance</h1>
@@ -37,12 +39,15 @@ export default function HomePage() {
 
       {/* CTA */}
       <div className="text-center">
-        <button
-          onClick={() => {}}
-          className="bg-primary text-white px-6 py-3 rounded-xl text-lg font-medium hover:bg-primary/90 transition"
-        >
-          ➕ Create Proposal
-        </button>
+        {showNewProposalForm ?
+          <NewProposalForm setShowNewProposalForm={setShowNewProposalForm}/>
+          :
+          <button
+            onClick={() => {setShowNewProposalForm(true)}}
+            className="bg-primary text-white px-6 py-3 rounded-xl text-lg font-medium hover:bg-primary/90 transition"
+          >
+            ➕ Create Proposal
+          </button>}
       </div>
     </div>
   );

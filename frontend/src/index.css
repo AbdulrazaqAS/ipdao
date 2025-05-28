@@ -8,4 +8,11 @@
     --color-accent: #1FCAC5;
     --color-text: #E2E8F0;
     --color-muted: #94A3B8;
+	--color-danger: #EB5757;
+}
+
+@layer base {
+  body {
+    @apply bg-background;
+  }
 }
