@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { NavItems } from "../utils/utils";
 
-export default function Navbar() {
+interface Props {
+  currentPage: string;
+  setCurrentPage: Function;
+}
+
+export default function Navbar({currentPage, setCurrentPage} : Props) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState("Home");
-
-  const navItems = ["Home", "Proposals", "Create", "Docs"];
 
   return (
     <nav className="bg-background text-text shadow-md">
@@ -15,7 +18,7 @@ export default function Navbar() {
 
         {/* Desktop Menu */}
         <div className="hidden md:flex space-x-6">
-          {navItems.map((item) => (
+          {NavItems.map((item) => (
             <button
               key={item}
               onClick={() => setCurrentPage(item)}
@@ -46,7 +49,7 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden px-4 pb-4 space-y-2">
-          {navItems.map((item) => (
+          {NavItems.map((item) => (
             <button
               key={item}
               onClick={() => {
