@@ -1,1 +1,1 @@
-export const NavItems = ["Home", "Proposals", "Create", "Docs"];
+export const NavItems = ["Dashboard", "Proposals", "Profile"];

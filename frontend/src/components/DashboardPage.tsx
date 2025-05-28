@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Users, CheckCircle, PieChart } from "lucide-react";
 import NewProposalForm from "./NewProposalForm";
 
-export default function HomePage() {
+export default function Dashboard() {
   const [showNewProposalForm, setShowNewProposalForm] = useState(false);
   return (
     <div className="p-6 max-w-6xl bg-background mx-auto text-text">
