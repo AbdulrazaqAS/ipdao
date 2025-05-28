@@ -1,18 +1,23 @@
 # Sample Hardhat Project
 
+Create an IP asset (customize asset data from *scripts/registration/registerCustom*)
+```bash
+yarn register-custom
+```
+
 ```bash
 # Deploy IPDaoFactory
 
 # Deploy ERC20Token
 yarn hardhat run scripts/deployERC20Token.ts --network aeneid
 ```
-Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `governanceToken` inside **deployIPGovernorNoTimelock.ts**.
+Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `governanceToken` inside *deployIPGovernorNoTimelock.ts*.
 
 ```bash
 # Deploy IPGovernorNoTimelock and make it token owner
 yarn hardhat run scripts/deployIPGovernorNoTimeLock.ts --network aeneid
 ```
-Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `initialOwner` inside **createDao.ts**.
+Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `initialOwner` inside *createDao.ts*.
 
 ```bash
 # Create an IPManager instance through factory with governor as owner

@@ -5,7 +5,7 @@ import { IPDaoFactoryInterface } from "../typechain-types/contracts/IPDaoFactory
 async function main() {
   const initialOwner = "0xB1C6fDA5E79A4E8e102CEc5Dec6F78eF1d90d285"; // Governor contract address
 
-  const ipId = "0x93D2CacDe9D6Cc7AD873e4AF1F5825DD0f1B999d"; // Asset to be managed Ip id
+  const ipId = "0xA380a515c94648665c8620C2c9f016867a95B33b"; // Asset to be managed Ip id
   const licensingModule = "0x04fbd8a2e56dd85CFD5500A4A4DfA955B9f1dE6f"; // Licensing module address
   const pilTemplate = "0x2E896b0b2Fdb7457499B56AAaA4AE55BCB4Cd316"; // PIL template address
   const revenueToken = "0x1514000000000000000000000000000000000000"; // WIP

@@ -6,7 +6,8 @@
     "test": "hardhat test",
     "compile": "hardhat compile",
     "pretty": "prettier --write .",
-    "prettysol": "prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'"
+    "prettysol": "prettier --write --plugin=prettier-plugin-solidity 'contracts/**/*.sol'",
+    "register-custom": "npx ts-node ./scripts/registration/registerCustom.ts"
   },
   "keywords": [],
   "author": "AbdulrazaqAS",
@@ -43,6 +44,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "5.2.0",
     "@openzeppelin/contracts-upgradeable": "5.2.0",
+    "@story-protocol/core-sdk": "^1.3.1",
     "@story-protocol/protocol-core": "github:storyprotocol/protocol-core-v1",
     "@story-protocol/protocol-periphery": "github:storyprotocol/protocol-periphery-v1",
     "dotenv": "^16.5.0",
