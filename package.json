@@ -46,6 +46,7 @@
     "@story-protocol/protocol-core": "github:storyprotocol/protocol-core-v1",
     "@story-protocol/protocol-periphery": "github:storyprotocol/protocol-periphery-v1",
     "dotenv": "^16.5.0",
+    "pinata-web3": "^0.5.4",
     "solady": "^0.0.281"
   }
 }
