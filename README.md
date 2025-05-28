@@ -3,8 +3,8 @@
 ```bash
 # Deploy IPDaoFactory
 
-# Deploy Token
-yarn hardhat run scripts/deployToken.ts --network aeneid
+# Deploy ERC20Token
+yarn hardhat run scripts/deployERC20Token.ts --network aeneid
 ```
 Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `governanceToken` inside **deployIPGovernorNoTimelock.ts**.
 

@@ -1,14 +1,15 @@
 import { ethers } from "hardhat";
 
+// This is for deployment with ERC20 token for voting
 async function main() {
-  const governanceToken = "0x26d67A01A09ab63960bdD9A1d815c52e9BB2d93E";
+  const governanceToken = "0x84E13D0d7396f881F3f78505e14af04AE987cBE9";
   const name = "CreatorDao"; // governor contract name
-  const votingDelay = 15; // 3 minutes
-  const votingPeriod = 30; // 6 minutes
+  const votingDelay = 5 * 60; // 5 minutes
+  const votingPeriod = 15 * 60; // 15 minutes
   const proposalThreshold = ethers.parseEther("100"); // 100 tokens minimum to create a proposal
   const quorum = 4; // 4% of total supply
 
-  const Governor = await ethers.getContractFactory("IPGovernanceNoTimelock");
+  const Governor = await ethers.getContractFactory("IPGovernorNoTimelock");
   const governor = await Governor.deploy(
     name,
     votingDelay,
@@ -24,7 +25,7 @@ async function main() {
   const governorAddress = deploymentReceipt?.contractAddress;
   console.log("Deployment Receipt:", deploymentReceipt);
 
-  const tokenContract = await ethers.getContractAt("Token", governanceToken);
+  const tokenContract = await ethers.getContractAt("ERC20Token", governanceToken);
 
   // Important: Make sure tokens are minted to even one address before changing ownership
   const initialTokensReceiver = await tokenContract.owner();

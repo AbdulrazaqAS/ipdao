@@ -8,7 +8,7 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Token is ERC20, Ownable, ERC20Permit, ERC20Votes {
+contract ERC20Token is ERC20, Ownable, ERC20Permit, ERC20Votes {
     constructor(string memory _name, string memory _symbol, address _initialOwner)
         ERC20(_name, _symbol)
         Ownable(_initialOwner)
@@ -17,6 +17,15 @@ contract Token is ERC20, Ownable, ERC20Permit, ERC20Votes {
 
     function mint(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
+    }
+
+    function clock() public view override returns (uint48) {
+        return uint48(block.timestamp);
+    }
+
+    // solhint-disable-next-line func-name-mixedcase
+    function CLOCK_MODE() public pure override returns (string memory) {
+        return "mode=timestamp";
     }
 
     // The following functions are overrides required by Solidity.

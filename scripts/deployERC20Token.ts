@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 
 async function main() {
   const [initialOwner] = await ethers.getSigners();
-  const Token = await ethers.getContractFactory("Token");
+  const Token = await ethers.getContractFactory("ERC20Token");
   const token = await Token.deploy("Creator", "CRT", initialOwner.address);
 
   await token.waitForDeployment();
