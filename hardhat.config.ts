@@ -1,4 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config";
+import "@nomicfoundation/hardhat-verify";
 import "@nomicfoundation/hardhat-toolbox";
 import "dotenv/config";
 
@@ -19,6 +20,21 @@ const config: HardhatUserConfig = {
       url: "https://aeneid.storyrpc.io",
       accounts: [WALLET_PRIVATE_KEY!],
     },
+  },
+  etherscan: {
+    apiKey: {
+      'aeneid': 'empty'
+    },
+    customChains: [
+      {
+        network: "aeneid",
+        chainId: 1315,
+        urls: {
+          apiURL: "https://aeneid.storyscan.io/api",
+          browserURL: "https://aeneid.storyscan.io"
+        }
+      }
+    ]
   },
 };
 

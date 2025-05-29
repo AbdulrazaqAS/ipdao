@@ -25,3 +25,6 @@ yarn hardhat run scripts/createDao.ts --network aeneid
 ```
 Now this is the contract that will be governed. Save its address for making executing proposals through the governor. Start by sending it the IPA NFT.
 
+npx hardhat verify --network aeneid 0xB1C6fDA5E79A4E8e102CEc5Dec6F78eF1d90d285 ["CreatorDao",300,900,100000000000000000000,4,"0x84E13D0d7396f881F3f78505e14af04AE987cBE9"]
+
+npx hardhat verify --constructor-args utils/ipaManagerArgs.ts 0x2A21048B3EFE59aF16CfB4b72576FDBf1258b657

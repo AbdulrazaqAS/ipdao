@@ -4,8 +4,8 @@ import { IPGovernorNoTimelockInterface } from "../typechain-types/contracts/IPGo
 import { Result } from "ethers";
 
 async function main() {
-    const tokenAddress = "0x26d67A01A09ab63960bdD9A1d815c52e9BB2d93E";
-    const token = await ethers.getContractAt('Token', tokenAddress);
+    const tokenAddress = "0x84E13D0d7396f881F3f78505e14af04AE987cBE9";
+    const token = await ethers.getContractAt('ERC20Token', tokenAddress);
     
     await token.delegate("0xE09b13f723f586bc2D98aa4B0F2C27A0320D20AB");  // delegate votes to self so as to propose
 

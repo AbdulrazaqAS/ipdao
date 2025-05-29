@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Clock3, CheckCircle, Hourglass, XCircle, Zap } from "lucide-react";
 

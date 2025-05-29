@@ -1,5 +1,10 @@
-import { useState } from "react";
-import { encodeFunctionData } from "viem";
+import { useState, useEffect } from "react";
+import { encodeFunctionData, parseEther } from "viem";
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI'
+import IPAGovernorABI from '../assets/abis/IPAGovernorABI'
+
+const IPAGovernorAddress = import.meta.env.VITE_IPA_GOVERNOR!;
 
 interface Props {
   setShowNewProposalForm: Function;
@@ -7,9 +12,15 @@ interface Props {
 
 export default function NewProposalForm({setShowNewProposalForm}: Props) {
   const [calls, setCalls] = useState([
-    { contract: "", functionName: "", abi: "", args: "", value: "0" }
+    {
+      contract: "0x84E13D0d7396f881F3f78505e14af04AE987cBE9",
+      functionName: "mint",
+      abi: "",
+      args: '["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", 25000000000000000000]',
+      value: "0"
+    }
   ]);
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState("Minting 25 tokens to Hardhat0");
 
   const addCall = () => {
     setCalls([...calls, { contract: "", functionName: "", abi: "", args: "", value: "0" }]);
@@ -21,14 +32,18 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
     setCalls(updated);
   };
 
-  const submitProposal = async () => {
+  const {data: hash, error: txError, isPending, writeContract} = useWriteContract();
+  const {isLoading: isIndexing, isSuccess: isIndexed} = useWaitForTransactionReceipt({hash});
+
+  const generateProposalArgs = () => {
     const targets: string[] = [];
     const values: bigint[] = [];
     const calldatas: string[] = [];
 
     for (const call of calls) {
       try {
-        const abiJson = JSON.parse(call.abi);
+        // const abiJson = JSON.parse(call.abi);
+        const abiJson = VotesERC20TokenABI;
         const argsParsed = JSON.parse(call.args);
         const calldata = encodeFunctionData({
           abi: abiJson,
@@ -45,9 +60,24 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
     }
 
     console.log({ targets, values, calldatas, description });
-
-    // Submit to Governor.propose(...)
+    return [targets, values, calldatas, description];
   };
+
+  const handleSubmit = () => {
+    writeContract({
+      abi: IPAGovernorABI,
+      address: IPAGovernorAddress,
+      functionName: "propose",
+      args: generateProposalArgs()
+    });
+  }
+
+  useEffect(() => {
+    if (hash) console.log("Hash:", hash);
+    if (isIndexing) console.log("Indexing tx");
+    if (isIndexed) console.log("Tx Indexed");
+    console.log({txError, hash, isIndexing, isIndexed});
+  }, [isIndexing, isIndexed, hash, txError]);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
@@ -69,13 +99,13 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
             value={call.functionName}
             onChange={(e) => updateCall(index, "functionName", e.target.value)}
           />
-          <textarea
+          {/*<textarea
             placeholder='ABI (JSON format: [{"inputs":[],"name":"myFn",...}])'
             className="w-full border p-2 rounded text-sm"
             rows={3}
             value={call.abi}
             onChange={(e) => updateCall(index, "abi", e.target.value)}
-          />
+          />*/}
           <input
             type="text"
             placeholder='Arguments (e.g., ["0xabc", 42])'
@@ -110,14 +140,16 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
 
       <div className="flex gap-x-3">
         <button
-          className="w-full bg-primary text-white py-2 rounded hover:bg-primary/90"
-          onClick={submitProposal}
+          className="w-full bg-primary text-white py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
+          onClick={handleSubmit}
+          disabled={isPending}
         >
-          Submit Proposal
+          {isPending ? "Submitting..." : "Submit Proposal"}
         </button>
         <button
-          className="w-full bg-danger text-white py-2 rounded hover:bg-danger/90"
+          className="w-full bg-danger text-white py-2 rounded hover:bg-danger/90 disabled:cursor-not-allowed"
           onClick={() => setShowNewProposalForm(false)}
+          disabled={isPending}
         >
           Close Proposal
       </button>
