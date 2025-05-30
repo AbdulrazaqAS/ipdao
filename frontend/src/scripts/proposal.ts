@@ -5,6 +5,17 @@ import { type ProposalDetails, type ProposalVotes } from '../utils/utils';
 const IPAGovernorAddress: Address = import.meta.env.VITE_IPA_GOVERNOR!;
 
 
+export async function getProposalsCount(client: PublicClient): Promise<bigint> {
+    const contract = getContract({
+        address: IPAGovernorAddress,
+        abi: IPAGovernorABI,
+        client
+    });
+
+    const count = await contract.read.proposalCount();
+    return count as bigint;
+}
+
 export async function getProposalByIndex(index: number, client: PublicClient): Promise<ProposalDetails> {
     const details = await client.readContract({
         address: IPAGovernorAddress,
@@ -22,21 +33,17 @@ export async function getProposalByIndex(index: number, client: PublicClient): P
     } as ProposalDetails;
 }
 
-export async function getProposals(minIndex: number, maxIndex: number, client: PublicClient): Promise<ProposalDetails[]> {
-    if (maxIndex <= minIndex) throw new Error("Invalid range");
+export async function getProposals(indices: Array<number>, client: PublicClient): Promise<ProposalDetails[]> {
     const contract = getContract({
         address: IPAGovernorAddress,
         abi: IPAGovernorABI,
         client
     });
 
-    const length = maxIndex - minIndex;
-    const range = Array.from({ length }, (_, i) => minIndex + i);
-
     // Leveraging batching configured on the client.
     // TODO: Limit the range so as not to exceed provider limits
     const details = await Promise.all(
-        range.map((i) => contract.read.proposalDetailsAt([i]))
+        indices.map((i) => contract.read.proposalDetailsAt([i]))
     ) as { 0: bigint, 1: Array<`0x${string}`>, 2: Array<bigint>, 3: Array<`0x${string}`>, 4: `0x${string}` }[];
 
     const proposals = details.map((proposal): ProposalDetails => {

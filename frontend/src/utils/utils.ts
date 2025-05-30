@@ -14,10 +14,26 @@ export interface ProposalVotes {
     abstain: bigint;
 }
 
+export enum Vote {
+    Against,
+    For,
+    Abstain
+}
+
 export type ProposalData = ProposalDetails & ProposalVotes & {
     proposer: `0x${string}`;
     deadline: bigint;
     state: number;
-    timeleft: string;
-    status: string;
+    status: ProposalState;
+}
+
+export enum ProposalState {
+    Pending,
+    Active,
+    Canceled,
+    Defeated,
+    Succeeded,
+    Queued,
+    Expired,
+    Executed
 }
