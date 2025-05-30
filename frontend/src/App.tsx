@@ -3,15 +3,17 @@ import Navbar from './components/Navbar';
 import DashboardPage from './components/DashboardPage';
 import ProposalsPage from "./components/ProposalsPage";
 import { NavItems } from "./utils/utils";
+import ProfilePage from './components/ProfilePage';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState(NavItems[0]);
+  const [currentPage, setCurrentPage] = useState(NavItems.Dashboard);
 
   return (
     <>
       <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-      {currentPage === "Dashboard" && <DashboardPage />}
-      {currentPage === "Proposals" && <ProposalsPage />}
+      {currentPage === NavItems.Dashboard && <DashboardPage />}
+      {currentPage === NavItems.Proposals && <ProposalsPage />}
+      {currentPage === NavItems.Profile && <ProfilePage />}
     </>
   )
 }

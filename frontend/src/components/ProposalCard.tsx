@@ -1,6 +1,8 @@
 import { Hourglass, Zap, XCircle, CheckCircle, Clock3 } from "lucide-react";
 import { useState, useEffect, type JSX } from "react";
-import { ProposalState, Vote, type ProposalData } from "../utils/utils";
+import { usePublicClient, useWalletClient } from 'wagmi'
+import { ProposalState, VoteChoice, type ProposalData } from "../utils/utils";
+import { executeProposal } from "../scripts/action";
 
 const StatusColor: Record<ProposalState, string> = {
     [ProposalState.Pending]: "bg-yellow-100 text-yellow-800",
@@ -31,13 +33,21 @@ interface Props {
     setShowModal: Function;
 }
 
+// TODOS:
+// Hides votes btn if already voted. Show "Voted For".
+// Refetch state after every few mins and after actions
+
 export default function ProposalCard({ proposal, setVoteChoice, setSelectedProposal, setShowModal }: Props) {
     const [timeleft, setTimeleft] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
     
     const totalVotes = Number(proposal.for + proposal.against + proposal.abstain) || 1; // Avoid division by zero
     const forPct = Math.round((Number(proposal.for) / totalVotes) * 100);
     const againstPct = Math.round((Number(proposal.against) / totalVotes) * 100);
     const abstainPct = Math.round((Number(proposal.abstain) / totalVotes) * 100);
+
+    const {data: walletClient} = useWalletClient();
+    const publicClient = usePublicClient();
 
     useEffect(() => {
         const updateTime = setInterval(() => {
@@ -58,7 +68,30 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
             const timeleft = `${days}d ${hours}h ${minutes}m ${seconds}s`;
             setTimeleft(timeleft);
         }, 1000)
+
+        // const updateStatus = setInterval(() => {}, 1000 * 60); // after every min
+        // const updateVotes = setInterval(() => {}, 1000 * 60); // after every min
     }, []);
+
+    async function handleExecute() {
+        if (!walletClient) {
+            console.error("Wallet not connected");
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            const txHash = await executeProposal(proposal.id, walletClient);
+            console.log("Execution tx sent. TxHash:", txHash);
+              
+            publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => console.log("Execution mined"));
+            // TODO: update state
+        } catch (error) {
+            console.error("Error executing proposal:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
 
     return (
         <div
@@ -119,7 +152,7 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
                     <button
                         className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                         onClick={() => {
-                            setVoteChoice(Vote.Abstain);
+                            setVoteChoice(VoteChoice.For);
                             setSelectedProposal(proposal);
                             setShowModal(true);
                         }}
@@ -129,7 +162,7 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
                     <button
                         className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
                         onClick={() => {
-                            setVoteChoice(Vote.Against);
+                            setVoteChoice(VoteChoice.Against);
                             setSelectedProposal(proposal);
                             setShowModal(true);
                         }}
@@ -139,12 +172,25 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
                     <button
                         className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600"
                         onClick={() => {
-                            setVoteChoice(Vote.Abstain);
+                            setVoteChoice(VoteChoice.Abstain);
                             setSelectedProposal(proposal);
                             setShowModal(true);
                         }}
                     >
                         Abstain
+                    </button>
+                </div>
+            )}
+
+            {/* Show execute button if succeeded */}
+            {proposal.status === ProposalState.Succeeded && (
+                <div className="flex gap-3 flex-wrap">
+                    <button
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:cursor-not-allowed"
+                        onClick={handleExecute}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? "Sending..." : "Execute"}
                     </button>
                 </div>
             )}

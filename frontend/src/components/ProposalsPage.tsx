@@ -1,23 +1,49 @@
 import { useEffect, useState } from "react";
-import { usePublicClient } from "wagmi";
+import { usePublicClient, useWalletClient } from "wagmi";
 import { getProposals, getProposalsCount, getProposalsDeadlines, getProposalsProposers, getProposalsStates, getProposalsVotes } from "../scripts/proposal";
-import { ProposalState, type ProposalData } from "../utils/utils";
+import { ProposalState, type ProposalData, VoteChoice } from "../utils/utils";
 import ProposalCard from "./ProposalCard";
+import { castVote } from "../scripts/action";
 
 export default function ProposalsPage() {
   const [selectedTab, setSelectedTab] = useState("All");
   const [proposals, setProposals] = useState<ProposalData[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [voteChoice, setVoteChoice] = useState<"For" | "Against" | "Abstain" | null>(null);
+  const [voteChoice, setVoteChoice] = useState<VoteChoice>();
   const [selectedProposal, setSelectedProposal] = useState<ProposalData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // FIlter out number keys from tabs.
   const tabs = ["All", ...Object.keys(ProposalState).filter((e) => e.length > 1)];
+
+  const {data: walletClient} = useWalletClient();
   const publicClient = usePublicClient();
 
   const filteredProposals = proposals.filter((p) =>
     selectedTab === "All" ? true : ProposalState[p.status] === selectedTab
   );
+
+  async function handleCastVote(){
+    if (!walletClient){
+      console.error("Wallet not connected");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const txHash = await castVote(selectedProposal!.id, voteChoice!, walletClient);
+      console.log(`Voted ${voteChoice} on proposal ${selectedProposal!.id}`);
+
+      publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => {
+        console.log("Vote minted");
+      });
+    } catch (error) {
+      console.error("Error sending vote:", error);
+    } finally {
+      setShowModal(false);
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
     async function fetchProposals() {
@@ -89,36 +115,37 @@ export default function ProposalsPage() {
           <div className="text-center text-gray-500 py-6">No proposals found.</div>
         )}
       </div>
-      {showModal && selectedProposal && voteChoice && (
+
+      {/* voteChoice !== undefined and not just voteChoice bcoz "against" is zero which will make voteChoice false */}
+      {showModal && selectedProposal && voteChoice !== undefined && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 px-4">
           <div className="bg-white p-6 rounded-xl max-w-sm w-full shadow-xl text-center">
             <h2 className="text-xl font-semibold mb-2">Confirm Vote</h2>
             <p className="text-gray-700 mb-4">
-              Are you sure you want to vote <span className="font-bold">{voteChoice}</span> on:
+              Are you sure you want to vote <span className="font-bold">{VoteChoice[voteChoice]}</span> on:
               <br />
               <span className="italic text-gray-900">"{selectedProposal.descriptionHash}"</span>?
             </p>
             <div className="flex justify-center gap-4">
               <button
-                className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
+                className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 disabled:cursor-not-allowed"
                 onClick={() => setShowModal(false)}
+                disabled={isLoading}
               >
                 Cancel
               </button>
               <button
-                className={`px-4 py-2 rounded text-white ${
-                  voteChoice === "For"
+                className={`px-4 py-2 rounded text-white disabled:cursor-not-allowed ${
+                  voteChoice === VoteChoice.For
                     ? "bg-green-600 hover:bg-green-700"
-                    : voteChoice === "Against"
+                    : voteChoice === VoteChoice.Against
                     ? "bg-red-600 hover:bg-red-700"
                     : "bg-yellow-500 hover:bg-yellow-600"
                 }`}
-                onClick={() => {
-                  console.log(`Voted ${voteChoice} on proposal ${selectedProposal.id}`);
-                  setShowModal(false);
-                }}
+                onClick={handleCastVote}
+                disabled={isLoading}
               >
-                Confirm
+                {isLoading ? "Sending..." : "Confirm"}
               </button>
             </div>
           </div>

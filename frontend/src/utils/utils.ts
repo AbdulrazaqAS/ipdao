@@ -1,4 +1,8 @@
-export const NavItems = ["Dashboard", "Proposals", "Profile"];
+export enum NavItems {
+    Dashboard = "Dashboard", 
+    Proposals = "Proposals",
+    Profile = "Profile",
+}
 
 export interface ProposalDetails {
     id: bigint;
@@ -14,7 +18,7 @@ export interface ProposalVotes {
     abstain: bigint;
 }
 
-export enum Vote {
+export enum VoteChoice {
     Against,
     For,
     Abstain
@@ -36,4 +40,11 @@ export enum ProposalState {
     Queued,
     Expired,
     Executed
+}
+
+export interface ProposalArgs {
+    targets: Array<`0x${string}`>;
+    values: Array<bigint>;
+    calldatas: Array<`0x${string}`>;
+    description: string;
 }

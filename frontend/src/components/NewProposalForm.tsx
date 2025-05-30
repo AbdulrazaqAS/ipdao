@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { encodeFunctionData, parseEther } from "viem";
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { usePublicClient, useWalletClient } from 'wagmi'
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json'
-import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
-
-const IPAGovernorAddress = import.meta.env.VITE_IPA_GOVERNOR!;
+import type { ProposalArgs } from "../utils/utils";
+import { propose } from "../scripts/action";
+import { getProposalsCount } from "../scripts/proposal";
+import { X } from "lucide-react";
 
 interface Props {
   setShowNewProposalForm: Function;
 }
 
 interface Call {
-  contract: string;
+  target: string;
   functionName: string;
   abi: string;
   args: string;
@@ -19,20 +20,31 @@ interface Call {
 }
 
 export default function NewProposalForm({setShowNewProposalForm}: Props) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [proposalIndex, setProposalIndex] = useState<bigint>();
+  const [description, setDescription] = useState("Minting 25 tokens to Hardhat0");
   const [calls, setCalls] = useState<Array<Call>>([
     {
-      contract: "0x84E13D0d7396f881F3f78505e14af04AE987cBE9",
+      target: "0x84E13D0d7396f881F3f78505e14af04AE987cBE9",
       functionName: "mint",
       abi: "",
       args: '["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", 25000000000000000000]',
       value: "0"
     }
   ]);
-  const [description, setDescription] = useState("Minting 25 tokens to Hardhat0");
+
+  const {data: walletClient} = useWalletClient();
+  const publicClient = usePublicClient();
 
   const addCall = () => {
-    setCalls([...calls, { contract: "", functionName: "", abi: "", args: "", value: "0" }]);
+    setCalls([...calls, { target: "", functionName: "", abi: "", args: "", value: "0" }]);
   };
+
+  const removeCall = (index: number) => {
+    const filteredCalls = calls.filter((_, i) => i !== index);
+    if (filteredCalls.length === 0) setShowNewProposalForm(false);
+    setCalls(filteredCalls);
+  }
 
   const updateCall = (index: number, field: string, value: string) => {
     const updated = [...calls];
@@ -40,13 +52,10 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
     setCalls(updated);
   };
 
-  const {data: hash, error: txError, isPending, writeContract} = useWriteContract();
-  const {isLoading: isIndexing, isSuccess: isIndexed} = useWaitForTransactionReceipt({hash});
-
-  const generateProposalArgs = () => {
-    const targets: string[] = [];
+  const generateProposalArgs = () : ProposalArgs => {
+    const targets: Array<`0x${string}`> = [];
     const values: bigint[] = [];
-    const calldatas: string[] = [];
+    const calldatas: Array<`0x${string}`> = [];
 
     for (const call of calls) {
       try {
@@ -58,47 +67,71 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
           functionName: call.functionName,
           args: argsParsed
         });
-        targets.push(call.contract);
-        values.push(BigInt(call.value));
+
+        targets.push(call.target as `0x${string}`);
+        values.push(parseEther(call.value));
         calldatas.push(calldata);
       } catch (err: any) {
-        alert(`Encoding error: ${err.message}`);
-        return;
+        throw err;
       }
     }
 
-    console.log({ targets, values, calldatas, description });
-    return [targets, values, calldatas, description];
+    // Added # for splitting the value when in use
+    const indexedDescription = proposalIndex!.toString() + "#" + description;
+
+    console.log({ targets, values, calldatas, description: indexedDescription });
+    return {targets, values, calldatas, description: indexedDescription};
   };
 
-  const handleSubmit = () => {
-    writeContract({
-      abi: IPAGovernorABI,
-      address: IPAGovernorAddress,
-      functionName: "propose",
-      args: generateProposalArgs()
-    });
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!walletClient) {
+      console.error("Wallet not connected");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const args = generateProposalArgs();
+      const txHash = await propose(args, walletClient);
+      console.log("Proposal successful. TxHash:", txHash);
+      
+      publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => console.log("Proposal mined"));
+      setShowNewProposalForm(false);
+    } catch (err: any) {
+      console.error(`Encoding error: ${err.message}`)
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   useEffect(() => {
-    if (hash) console.log("Hash:", hash);
-    if (isIndexing) console.log("Indexing tx");
-    if (isIndexed) console.log("Tx Indexed");
-    console.log({txError, hash, isIndexing, isIndexed});
-  }, [isIndexing, isIndexed, hash, txError]);
+    if (!publicClient) return;
+    getProposalsCount(publicClient).then(setProposalIndex).catch(console.error);
+  }, [publicClient]);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-6">Create New Proposal</h1>
+    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 py-6">
+      <h1 className="text-2xl font-bold mb-6">
+        Create New Proposal #{proposalIndex !== undefined ? Number(proposalIndex): " Loading index..."}
+      </h1>
 
       {calls.map((call, index) => (
         <div key={index} className="border rounded-lg p-4 mb-4 space-y-3">
+          <div className="flex justify-between">
+            <p className="text-2xl">Contract call #{index + 1}</p>
+            <X color="red" size={30} onClick={() => removeCall(index)} className="hover:cursor-pointer" />
+          </div>
           <input
             type="text"
-            placeholder="Contract Address"
+            placeholder="Target Address"
             className="w-full border p-2 rounded"
-            value={call.contract}
-            onChange={(e) => updateCall(index, "contract", e.target.value)}
+            value={call.target}
+            minLength={42}
+            maxLength={42}
+            onChange={(e) => updateCall(index, "target", e.target.value)}
+            required
           />
           <input
             type="text"
@@ -106,6 +139,7 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
             className="w-full border p-2 rounded"
             value={call.functionName}
             onChange={(e) => updateCall(index, "functionName", e.target.value)}
+            required
           />
           {/*<textarea
             placeholder='ABI (JSON format: [{"inputs":[],"name":"myFn",...}])'
@@ -123,10 +157,11 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
           />
           <input
             type="text"
-            placeholder="ETH value (in wei)"
+            placeholder="ETH value"
             className="w-full border p-2 rounded"
             value={call.value}
             onChange={(e) => updateCall(index, "value", e.target.value)}
+            required
           />
         </div>
       ))}
@@ -148,20 +183,20 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
 
       <div className="flex gap-x-3">
         <button
+          type="submit"
           className="w-full bg-primary text-white py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
-          onClick={handleSubmit}
-          disabled={isPending}
+          disabled={isLoading || proposalIndex === undefined}
         >
-          {isPending ? "Submitting..." : "Submit Proposal"}
+          {isLoading ? "Submitting..." : "Submit Proposal"}
         </button>
         <button
           className="w-full bg-danger text-white py-2 rounded hover:bg-danger/90 disabled:cursor-not-allowed"
           onClick={() => setShowNewProposalForm(false)}
-          disabled={isPending}
+          disabled={isLoading}
         >
           Close Proposal
-      </button>
+        </button>
       </div>
-    </div>
+    </form>
   );
 }

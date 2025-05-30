@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NavItems } from "../utils/utils";
 
-import { Account } from './account';
+import { Account } from './Account';
 import { WalletOptions } from './WalletOptions';
 import { useAccount } from 'wagmi'
 
@@ -28,7 +28,7 @@ export default function Navbar({currentPage, setCurrentPage} : Props) {
 
         {/* Desktop Menu */}
         <div className="hidden md:flex space-x-6">
-          {NavItems.map((item) => (
+          {Object.values(NavItems).map((item) => (
             <button
               key={item}
               onClick={() => setCurrentPage(item)}
@@ -60,7 +60,7 @@ export default function Navbar({currentPage, setCurrentPage} : Props) {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden px-4 pb-4 space-y-2">
-          {NavItems.map((item) => (
+          {Object.values(NavItems).map((item) => (
             <button
               key={item}
               onClick={() => {
