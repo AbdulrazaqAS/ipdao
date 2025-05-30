@@ -13,3 +13,11 @@ export interface ProposalVotes {
     for: bigint;
     abstain: bigint;
 }
+
+export type ProposalData = ProposalDetails & ProposalVotes & {
+    proposer: `0x${string}`;
+    deadline: bigint;
+    state: number;
+    timeleft: string;
+    status: string;
+}

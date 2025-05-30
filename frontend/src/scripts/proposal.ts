@@ -1,22 +1,28 @@
-import { type Address, type PublicClient, type WalletClient, getContract } from 'viem'
+import { type Address, type PublicClient, getContract } from 'viem'
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 import { type ProposalDetails, type ProposalVotes } from '../utils/utils';
 
 const IPAGovernorAddress: Address = import.meta.env.VITE_IPA_GOVERNOR!;
 
 
-export async function getProposalByIndex(index: number, client: PublicClient) {
+export async function getProposalByIndex(index: number, client: PublicClient): Promise<ProposalDetails> {
     const details = await client.readContract({
         address: IPAGovernorAddress,
         functionName: 'proposalDetailsAt',
         args: [index],
         abi: IPAGovernorABI
-    })
+    }) as [bigint, Array<`0x${string}`>, Array<bigint>, Array<`0x${string}`>, `0x${string}`];
 
-    console.log(details);
+    return {
+        id: details[0],
+        targets: details[1],
+        values: details[2],
+        calldatas: details[3],
+        descriptionHash: details[4]
+    } as ProposalDetails;
 }
 
-export async function getProposals(minIndex: number, maxIndex: number, client: PublicClient) {
+export async function getProposals(minIndex: number, maxIndex: number, client: PublicClient): Promise<ProposalDetails[]> {
     if (maxIndex <= minIndex) throw new Error("Invalid range");
     const contract = getContract({
         address: IPAGovernorAddress,
@@ -43,11 +49,10 @@ export async function getProposals(minIndex: number, maxIndex: number, client: P
         }
     });
 
-    console.log("proposals", proposals);
     return proposals;
 }
 
-export async function getProposalsVotes(proposalIds: Array<string>, client: PublicClient) {
+export async function getProposalsVotes(proposalIds: Array<bigint>, client: PublicClient): Promise<ProposalVotes[]> {
     const contract = getContract({
         address: IPAGovernorAddress,
         abi: IPAGovernorABI,
@@ -68,11 +73,10 @@ export async function getProposalsVotes(proposalIds: Array<string>, client: Publ
         }
     });
 
-    console.log("refinedProposalsVotes", refinedProposalsVotes);
     return refinedProposalsVotes;
 }
 
-export async function getProposalsDeadlines(proposalIds: Array<string>, client: PublicClient) {
+export async function getProposalsDeadlines(proposalIds: Array<bigint>, client: PublicClient): Promise<bigint[]> {
     const contract = getContract({
         address: IPAGovernorAddress,
         abi: IPAGovernorABI,
@@ -83,13 +87,12 @@ export async function getProposalsDeadlines(proposalIds: Array<string>, client: 
     // TODO: Limit the range so as not to exceed provider limits
     const deadlines = await Promise.all(
         proposalIds.map((id) => contract.read.proposalDeadline([id]))
-    );
+    ) as bigint[];
     
-    console.log("deadlines", deadlines);
     return deadlines;
 }
 
-export async function getProposalsStates(proposalIds: Array<string>, client: PublicClient) {
+export async function getProposalsStates(proposalIds: Array<bigint>, client: PublicClient): Promise<number[]> {
     const contract = getContract({
         address: IPAGovernorAddress,
         abi: IPAGovernorABI,
@@ -100,13 +103,12 @@ export async function getProposalsStates(proposalIds: Array<string>, client: Pub
     // TODO: Limit the range so as not to exceed provider limits
     const statuses = await Promise.all(
         proposalIds.map((id) => contract.read.state([id]))
-    );
-    
-    console.log("statuses", statuses);
+    ) as number[];
+
     return statuses;
 }
 
-export async function getProposalsProposers(proposalIds: Array<string>, client: PublicClient) {
+export async function getProposalsProposers(proposalIds: Array<bigint>, client: PublicClient): Promise<Array<`0x${string}`>> {
     const contract = getContract({
         address: IPAGovernorAddress,
         abi: IPAGovernorABI,
@@ -117,8 +119,7 @@ export async function getProposalsProposers(proposalIds: Array<string>, client: 
     // TODO: Limit the range so as not to exceed provider limits
     const proposers = await Promise.all(
         proposalIds.map((id) => contract.read.proposalProposer([id]))
-    );
+    ) as Array<`0x${string}`>;
     
-    console.log("proposers", proposers);
     return proposers;
 }

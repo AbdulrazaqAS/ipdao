@@ -3,48 +3,9 @@ import { Clock3, CheckCircle, Hourglass, XCircle, Zap } from "lucide-react";
 import { usePublicClient, useReadContract } from "wagmi";
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 import { getProposalByIndex, getProposals, getProposalsDeadlines, getProposalsProposers, getProposalsStates, getProposalsVotes } from "../scripts/proposal";
+import type { ProposalData } from "../utils/utils";
 
 const IPAGovernorAddress = import.meta.env.VITE_IPA_GOVERNOR!;
-
-type Proposal = {
-  id: number;
-  title: string;
-  status: "Pending" | "Active" | "Succeeded" | "Executed" | "Failed";
-  forVotes: number;
-  againstVotes: number;
-  abstainVotes: number;
-  timeLeft: string;
-};
-
-const proposalsData: Proposal[] = [
-  {
-    id: 1,
-    title: "Fund Research Grant",
-    status: "Active",
-    forVotes: 72,
-    againstVotes: 20,
-    abstainVotes: 8,
-    timeLeft: "2d 4h",
-  },
-  {
-    id: 2,
-    title: "Upgrade Treasury Module",
-    status: "Succeeded",
-    forVotes: 90,
-    againstVotes: 5,
-    abstainVotes: 5,
-    timeLeft: "Ended",
-  },
-  {
-    id: 3,
-    title: "Terminate Risky Partner",
-    status: "Failed",
-    forVotes: 25,
-    againstVotes: 70,
-    abstainVotes: 5,
-    timeLeft: "Ended",
-  },
-];
 
 const statusColor = {
   Pending: "bg-yellow-100 text-yellow-800",
@@ -64,14 +25,15 @@ const statusIcon = {
 
 export default function ProposalsPage() {
   const [selectedTab, setSelectedTab] = useState("All");
+  const [proposals, setProposals] = useState<ProposalData[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [voteChoice, setVoteChoice] = useState<"For" | "Against" | "Abstain" | null>(null);
-  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
+  const [selectedProposal, setSelectedProposal] = useState<ProposalData | null>(null);
 
 
   const tabs = ["All", "Active", "Succeeded", "Failed"];
 
-  const filtered = proposalsData.filter((p) =>
+  const filteredProposals = proposals.filter((p) =>
     selectedTab === "All" ? true : p.status === selectedTab
   );
 
@@ -96,14 +58,41 @@ export default function ProposalsPage() {
 
     async function fetchProposals() {
       try {
-        const proposals = await getProposals(0, 3, publicClient!);
-        const proposalIds = proposals.map((p) => p.id);
+        const proposalsDetails = await getProposals(0, 3, publicClient!);
+        const proposalIds = proposalsDetails.map((p) => p.id);
         console.log("proposalIds:", proposalIds);
 
         const proposalsVotes = await getProposalsVotes(proposalIds, publicClient!);
         const proposalsDeadline = await getProposalsDeadlines(proposalIds, publicClient!);
         const proposalsProposer = await getProposalsProposers(proposalIds, publicClient!);
-        const proposalsStatus = await getProposalsStates(proposalIds, publicClient!);
+        const proposalsStates = await getProposalsStates(proposalIds, publicClient!);
+
+        const proposals = proposalsDetails.map((details, index) => {
+          const votes = proposalsVotes[index];
+          const deadline = proposalsDeadline[index];
+          const proposer = proposalsProposer[index];
+          const state = proposalsStates[index];
+
+          // Calculate time left
+          const now = Date.now() / 1000; // Current time in seconds
+          const timeLeftSeconds = Number(deadline) - now;
+          const days = Math.floor(timeLeftSeconds / (24 * 3600));
+          const hours = Math.floor((timeLeftSeconds % (24 * 3600)) / 3600);
+          const minutes = Math.floor((timeLeftSeconds % 3600) / 60);
+          const seconds = Math.floor(timeLeftSeconds % 60);
+
+          return {
+            ...details,
+            ...votes,
+            deadline,
+            state,
+            timeleft: `${days}d ${hours}h ${minutes}m ${seconds}s`,
+            status: state === 0 ? "Pending" : state === 1 ? "Active" : state === 2 ? "Succeeded" : state === 3 ? "Executed" : "Failed",
+            proposer: proposer,
+          } as ProposalData
+        });
+        setProposals(proposals);
+        console.log("Proposals fetched:", proposals);
       } catch (error) {
         console.error("Error fetching proposals:", error);
       }
@@ -136,10 +125,10 @@ export default function ProposalsPage() {
 
       {/* Proposal cards */}
       <div className="grid gap-6">
-        {filtered.map((proposal) => {
-          const totalVotes = proposal.forVotes + proposal.againstVotes + proposal.abstainVotes;
-          const forPct = Math.round((proposal.forVotes / totalVotes) * 100);
-          const againstPct = Math.round((proposal.againstVotes / totalVotes) * 100);
+        {filteredProposals.map((proposal) => {
+          const totalVotes = Number(proposal.for + proposal.against + proposal.abstain) || 1; // Avoid division by zero
+          const forPct = Math.round((Number(proposal.for) / totalVotes) * 100);
+          const againstPct = Math.round((Number(proposal.against) / totalVotes) * 100);
           const abstainPct = 100 - forPct - againstPct;
 
           return (
@@ -148,11 +137,11 @@ export default function ProposalsPage() {
               className="bg-white border border-gray-200 rounded-xl shadow p-5"
             >
               <div className="flex flex-col sm:flex-row sm:justify-between gap-2 mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">{proposal.title}</h2>
+                <h2 className="text-xl font-semibold text-gray-800">Description Hash: {proposal.descriptionHash}</h2>
                 <span
-                  className={`text-sm px-3 py-1 rounded-full inline-flex items-center ${statusColor[proposal.status]}`}
+                  className={`text-sm px-3 py-1 rounded-full inline-flex items-center ${statusColor[proposal.status as keyof typeof statusColor]}`}
                 >
-                  {statusIcon[proposal.status]} {proposal.status}
+                  {statusIcon[proposal.status as keyof typeof statusIcon]} {proposal.status}
                 </span>
               </div>
 
@@ -193,7 +182,7 @@ export default function ProposalsPage() {
 
               <div className="text-sm text-gray-600 flex items-center mb-4">
                 <Clock3 className="w-4 h-4 mr-1" />
-                {proposal.timeLeft}
+                {proposal.timeleft}
               </div>
 
               {proposal.status === "Active" && (
@@ -245,7 +234,7 @@ export default function ProposalsPage() {
           );
         })}
 
-        {filtered.length === 0 && (
+        {filteredProposals.length === 0 && (
           <div className="text-center text-gray-500 py-6">No proposals found.</div>
         )}
       </div>
@@ -256,7 +245,7 @@ export default function ProposalsPage() {
             <p className="text-gray-700 mb-4">
               Are you sure you want to vote <span className="font-bold">{voteChoice}</span> on:
               <br />
-              <span className="italic text-gray-900">"{selectedProposal.title}"</span>?
+              <span className="italic text-gray-900">"{selectedProposal.descriptionHash}"</span>?
             </p>
             <div className="flex justify-center gap-4">
               <button
@@ -274,7 +263,6 @@ export default function ProposalsPage() {
                     : "bg-yellow-500 hover:bg-yellow-600"
                 }`}
                 onClick={() => {
-                  // Replace with actual vote logic
                   console.log(`Voted ${voteChoice} on proposal ${selectedProposal.id}`);
                   setShowModal(false);
                 }}
