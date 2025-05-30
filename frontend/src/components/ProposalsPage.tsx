@@ -1,5 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Clock3, CheckCircle, Hourglass, XCircle, Zap } from "lucide-react";
+import { usePublicClient, useReadContract } from "wagmi";
+import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
+import { getProposalByIndex, getProposals, getProposalsDeadlines, getProposalsProposers, getProposalsStates, getProposalsVotes } from "../scripts/proposal";
+
+const IPAGovernorAddress = import.meta.env.VITE_IPA_GOVERNOR!;
 
 type Proposal = {
   id: number;
@@ -69,6 +74,44 @@ export default function ProposalsPage() {
   const filtered = proposalsData.filter((p) =>
     selectedTab === "All" ? true : p.status === selectedTab
   );
+
+  // const {
+  //   data: proposalData,
+  //   isLoading: isLoadingProposal,
+  //   error: errorFetchingProposal,
+  // } = useReadContract({
+  //   abi: IPAGovernorABI,
+  //   address: IPAGovernorAddress,
+  //   functionName: "proposalDetailsAt",
+  //   args: [0],
+  //   query: {
+  //     enabled: true, // only run if expanded is not null
+  //   },
+  // });
+
+  const publicClient = usePublicClient();
+
+  useEffect(() => {
+    console.log("Batching:", publicClient?.batch);
+
+    async function fetchProposals() {
+      try {
+        const proposals = await getProposals(0, 3, publicClient!);
+        const proposalIds = proposals.map((p) => p.id);
+        console.log("proposalIds:", proposalIds);
+
+        const proposalsVotes = await getProposalsVotes(proposalIds, publicClient!);
+        const proposalsDeadline = await getProposalsDeadlines(proposalIds, publicClient!);
+        const proposalsProposer = await getProposalsProposers(proposalIds, publicClient!);
+        const proposalsStatus = await getProposalsStates(proposalIds, publicClient!);
+      } catch (error) {
+        console.error("Error fetching proposals:", error);
+      }
+    }
+
+    fetchProposals();
+
+  }, []);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">

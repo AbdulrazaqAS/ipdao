@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { encodeFunctionData, parseEther } from "viem";
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
-import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI'
-import IPAGovernorABI from '../assets/abis/IPAGovernorABI'
+import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json'
+import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 
 const IPAGovernorAddress = import.meta.env.VITE_IPA_GOVERNOR!;
 
@@ -10,8 +10,16 @@ interface Props {
   setShowNewProposalForm: Function;
 }
 
+interface Call {
+  contract: string;
+  functionName: string;
+  abi: string;
+  args: string;
+  value: string;
+}
+
 export default function NewProposalForm({setShowNewProposalForm}: Props) {
-  const [calls, setCalls] = useState([
+  const [calls, setCalls] = useState<Array<Call>>([
     {
       contract: "0x84E13D0d7396f881F3f78505e14af04AE987cBE9",
       functionName: "mint",
@@ -28,7 +36,7 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
 
   const updateCall = (index: number, field: string, value: string) => {
     const updated = [...calls];
-    updated[index][field] = value;
+    updated[index][field as keyof Call] = value;
     setCalls(updated);
   };
 

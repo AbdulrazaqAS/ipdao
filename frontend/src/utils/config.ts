@@ -13,4 +13,7 @@ export const config = createConfig({
   transports: {
     [storyAeneid.id]: http(),
   },
+  batch: {
+    multicall: true, // TODO: Add batchsize limit to avoid exceeding provider limits
+  }
 })
