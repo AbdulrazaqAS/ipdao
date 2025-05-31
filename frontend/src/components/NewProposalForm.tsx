@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { encodeFunctionData, parseEther } from "viem";
 import { usePublicClient, useWalletClient } from 'wagmi'
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json'
+import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import type { ProposalArgs } from "../utils/utils";
 import { propose } from "../scripts/action";
 import { getProposalsCount } from "../scripts/proposal";
@@ -19,16 +20,30 @@ interface Call {
   value: string;
 }
 
+const ABIS = [
+  {
+    name: "Governance Token",
+    abi: VotesERC20TokenABI
+  },
+  {
+    name: "IP Assets Manager",
+    abi: IPAManagerABI 
+  }
+];
+
+
+// TODO: Make it more user friendly. Show availbale contracts and all
+//       possible functions and then inputs based on the func.
 export default function NewProposalForm({setShowNewProposalForm}: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [proposalIndex, setProposalIndex] = useState<bigint>();
-  const [description, setDescription] = useState("Minting 25 tokens to Hardhat0");
+  const [description, setDescription] = useState("Minting 25 tokens to Dev1");
   const [calls, setCalls] = useState<Array<Call>>([
     {
       target: "0x84E13D0d7396f881F3f78505e14af04AE987cBE9",
       functionName: "mint",
-      abi: "",
-      args: '["0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", 25000000000000000000]',
+      abi: ABIS[0].name,  // default
+      args: '["0xDaaE14a470e36796ADf9c75766D3d8ADD0a3D94c", 25000000000000000000]',
       value: "0"
     }
   ]);
@@ -59,11 +74,11 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
 
     for (const call of calls) {
       try {
-        // const abiJson = JSON.parse(call.abi);
-        const abiJson = VotesERC20TokenABI;
+        const abiObj = ABIS.find((abi) => abi.name === call.abi);
+        const abi = abiObj.abi;
         const argsParsed = JSON.parse(call.args);
         const calldata = encodeFunctionData({
-          abi: abiJson,
+          abi,
           functionName: call.functionName,
           args: argsParsed
         });
@@ -100,7 +115,7 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
       publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => console.log("Proposal mined"));
       setShowNewProposalForm(false);
     } catch (err: any) {
-      console.error(`Encoding error: ${err.message}`)
+      console.error(`Encoding error: ${err}`)
     } finally {
       setIsLoading(false);
     }
@@ -141,13 +156,18 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
             onChange={(e) => updateCall(index, "functionName", e.target.value)}
             required
           />
-          {/*<textarea
-            placeholder='ABI (JSON format: [{"inputs":[],"name":"myFn",...}])'
-            className="w-full border p-2 rounded text-sm"
-            rows={3}
-            value={call.abi}
-            onChange={(e) => updateCall(index, "abi", e.target.value)}
-          />*/}
+          <select
+              className="w-full border p-2 text-sm rounded"
+              value={call.abi}
+              placeholder="Select target ABI"
+              onChange={(e) => updateCall(index, "abi", e.target.value)}
+          >
+              {ABIS.map((abi, i) => (
+                  <option key={abi.name} value={abi.name} className="bg-background">
+                      {abi.name}
+                  </option>
+              ))}
+          </select>
           <input
             type="text"
             placeholder='Arguments (e.g., ["0xabc", 42])'

@@ -35,7 +35,8 @@ interface Props {
 
 // TODOS:
 // Hides votes btn if already voted. Show "Voted For".
-// Refetch state after every few mins and after actions
+// Use deadline - voteDelay for timer when state is waiting. Then
+// refetch when it hits zero and make the deadline as timer
 
 export default function ProposalCard({ proposal, setVoteChoice, setSelectedProposal, setShowModal }: Props) {
     const [timeleft, setTimeleft] = useState("");
