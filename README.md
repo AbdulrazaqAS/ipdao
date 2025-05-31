@@ -8,8 +8,25 @@ Target Users
 - Web3-native brands launching collaborative stories or games
 - Token projects evolving into open IP
 
+```bash
+# Clone repo
+git clone https://github.com/AbdulrazaqAS/ipdao.git
+
+# Change dir
+cd ipdao
+
+# Install packages
+yarn
+
+# Compile contracts
+yarn hardhat compile
+```
+There might be compilation warnings which will probably be from the installed packages. Just ignore them as per as the compilation is successfully.
 
 ```bash
+# Rename .env
+mv .env.example .env
+
 # Deploy ERC20Token
 yarn hardhat run scripts/deployERC20Token.ts --network aeneid
 ```
@@ -27,7 +44,24 @@ yarn hardhat run scripts/deployIPAManager.ts --network aeneid
 ```
 Now this is the contract that will be governed. Copy its address from the console and paste it as `IPA_MANAGER` inside *.env*.
 
-## Verifications
+## Frontend setup
+```bash
+# Change dir
+cd frontend
+
+# Install packages
+yarn
+
+# Rename .env
+mv .env.example .env
+
+# Fill the missing .evn parameters with the previous values
+
+# Run
+yarn dev
+```
+
+## Verifications [Optional]
 TODO: Fix verification warnings
 ```bash
 # Verify IPAMAanager
