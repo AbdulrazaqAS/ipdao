@@ -77,6 +77,7 @@ export interface NFTMetadata {
 }
 
 export interface AssetMetadata {
+    id: `0x${string}`;
     createdAt: string;
     creators: CreatorMetadata[];
     description: string;
@@ -86,7 +87,81 @@ export interface AssetMetadata {
     mediaType: string;
     mediaUrl: string;
     title: string;
-    nftMetadata: NFTMetadata;
     registrationDate: bigint;
+    nftTokenURI: string;
     owner: `0x${string}`;
+}
+
+export interface AssetAPIMetadata {
+    ancestorCount: number;
+    blockNumber: string;
+    blockTimestamp: string;
+    childrenCount: number;
+    descendantCount: number;
+    id: string;
+    ipId: string;
+    isGroup: boolean;
+    latestArbitrationPolicy: string;
+    nftMetadata: {
+      chainId: string;
+      imageUrl: string;
+      name: string;
+      tokenContract: string;
+      tokenId: string;
+      tokenUri: string;
+    },
+    parentCount: number;
+    rootCount: number;
+    rootIpIds: string[];
+    transactionHash: string;
+}
+
+export interface AssetLicenseTerms {
+    blockNumber: string;
+    blockTime: string;
+    disabled: boolean;
+    id: string;
+    ipId: string;
+    licenseTemplate: string;
+    licenseTermsId: string;
+    licensingConfig: {
+        commercialRevShare: number,
+        disabled: boolean,
+        expectGroupRewardPool: string,
+        expectMinimumGroupRewardShare: number,
+        hookData: string,
+        isSet: boolean,
+        licensingHook: string,
+        mintingFee: string
+    }
+}
+
+export interface LicenseTerms {
+    blockNumber: string;
+    blockTime: string;
+    id: string;
+    licenseTemplate: string;
+    licenseTerms: {
+        trait_type: string;
+        value: string;
+    }[],
+    terms: {
+      commercialAttribution: boolean,
+      commercialRevCeiling: number,
+      commercialRevShare: number,
+      commercialUse: boolean,
+      commercializerChecker: string;
+      commercializerCheckerData: string;
+      currency: string;
+      defaultMintingFee: number,
+      derivativeRevCeiling: number,
+      derivativesAllowed: boolean,
+      derivativesApproval: boolean,
+      derivativesAttribution: boolean,
+      derivativesReciprocal: boolean,
+      expiration: number,
+      royaltyPolicy: string;
+      transferable: boolean,
+      uri: string;
+    }
 }
