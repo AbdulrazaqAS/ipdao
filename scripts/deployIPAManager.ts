@@ -7,6 +7,7 @@ async function main() {
   const licensingModule = process.env.LICENSING_MODULE!;
   const pilTemplate = process.env.PIL_TEMPLATE!;
   const revenueToken = process.env.REVENUE_TOKEN!;
+  const coreMetadataViewModule = process.env.CoreMetadataViewModule!;
 
   const IPAManager = await ethers.getContractFactory("IPAManager");
   const ipaManager = await IPAManager.deploy(
