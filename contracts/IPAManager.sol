@@ -7,38 +7,48 @@ import { ILicensingModule } from "@story-protocol/protocol-core/contracts/interf
 import { IPILicenseTemplate } from "@story-protocol/protocol-core/contracts/interfaces/modules/licensing/IPILicenseTemplate.sol";
 import { PILFlavors } from "@story-protocol/protocol-core/contracts/lib/PILFlavors.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { ICoreMetadataViewModule } from "@story-protocol/protocol-core/contracts/interfaces/modules/metadata/ICoreMetadataViewModule.sol";
 
 contract IPAManager is Ownable, ERC721Holder {
-    ILicensingModule public immutable LICENSING_MODULE;
-    IPILicenseTemplate public immutable PIL_TEMPLATE;
+    ILicensingModule public LICENSING_MODULE;
+    IPILicenseTemplate public PIL_TEMPLATE;
+    ICoreMetadataViewModule public CORE_METADATA_VIEW_MODULE;
 
     address[] public assets;
-    address public immutable revenueToken;
+    address public revenueToken;
 
     event AssetAdded(address indexed assetId);
-    event AssetRemoved(address indexed assetId);
+    event AssetTransferred(address indexed assetId, address collection, address to, uint256 tokenId);
+    event NFTReceived(address collection, address from, uint256 tokenId);
+    event LicensingModuleUpdated(address indexed newLicensingModule);
+    event PILTemplateUpdated(address indexed newPILTemplate);
+    event CoreMetadataViewModuleUpdated(address indexed newCoreMetadataViewModule);
+    event TermsCreatedAndAttached(address indexed assetId, uint256 licenseTermsId);
+    event RevenueTokenUpdated(address indexed newRevenueToken);
 
     constructor(
         address _initialOwner,
         address _licensingModule,
         address _pilTemplate,
+        address _coreMetadataViewModule,
         address _revenueToken
     ) Ownable(_initialOwner) {
         revenueToken = _revenueToken;
         LICENSING_MODULE = ILicensingModule(_licensingModule);
         PIL_TEMPLATE = IPILicenseTemplate(_pilTemplate);
+        CORE_METADATA_VIEW_MODULE = ICoreMetadataViewModule(_coreMetadataViewModule);
     }
 
-    function addAsset(address assetId, address tokenCollection, uint256 tokenId) external onlyOwner {
+    function addAsset(address assetId) external onlyOwner {
         require(assetId != address(0), "Invalid asset ID");
         require(!hasAsset(assetId), "Asset already exists");
-        require(IERC721(tokenCollection).ownerOf(tokenId) == address(this), "Contract must own the asset");
+        require(CORE_METADATA_VIEW_MODULE.getOwner(assetId) == address(this), "Contract must own the asset");
 
         assets.push(assetId);
         emit AssetAdded(assetId);
     }
 
-    function removeAsset(address assetId) external onlyOwner {
+    function _removeAsset(address assetId) internal {
         require(hasAsset(assetId), "Asset does not exist");
 
         for (uint256 i = 0; i < assets.length; i++) {
@@ -47,8 +57,6 @@ contract IPAManager is Ownable, ERC721Holder {
                 break;
             }
         }
-
-        emit AssetRemoved(assetId);
     }
 
     function _removeAssetAtIndex(uint256 index) internal {
@@ -57,7 +65,18 @@ contract IPAManager is Ownable, ERC721Holder {
         assets.pop();
     }
 
-    function CreateTermsAndAttach(address asset, uint256 mintingFee, uint32 commercialRevShare, address royaltyPolicy) external onlyOwner {
+    function transferAsset(address assetId, address collection, address to, uint256 tokenId) external onlyOwner {
+        require(hasAsset(assetId), "Asset does not exist");
+        require(to != address(0), "Invalid recipient address");
+
+        IERC721(collection).safeTransferFrom(address(this), to, tokenId);
+        
+        // Remove the asset from the manager
+        _removeAsset(assetId);
+        emit AssetTransferred(assetId, collection, to, tokenId);
+    }
+
+    function CreateTermsAndAttach(address assetId, uint256 mintingFee, uint32 commercialRevShare, address royaltyPolicy) external onlyOwner {
         uint256 licenseTermsId = PIL_TEMPLATE.registerLicenseTerms(
             PILFlavors.commercialRemix({
                 mintingFee : mintingFee,
@@ -68,7 +87,40 @@ contract IPAManager is Ownable, ERC721Holder {
         );
 
         // attach the license terms to the IP Asset
-        LICENSING_MODULE.attachLicenseTerms(asset, address(PIL_TEMPLATE), licenseTermsId);
+        LICENSING_MODULE.attachLicenseTerms(assetId, address(PIL_TEMPLATE), licenseTermsId);
+        emit TermsCreatedAndAttached(assetId, licenseTermsId);
+    }
+
+    function onERC721Received(address collection, address from, uint256 tokenId, bytes memory data) public virtual override returns (bytes4) {
+        // Ensure the contract is receiving an NFT
+        require(IERC721(msg.sender).ownerOf(tokenId) == address(this), "NFT not owned by this contract");
+        emit NFTReceived(collection, from, tokenId);
+
+        return this.onERC721Received.selector;
+    }
+
+    function setLicensingModule(address licensingModule) external onlyOwner {
+        require(licensingModule != address(0), "Invalid address");
+        LICENSING_MODULE = ILicensingModule(licensingModule);
+        emit LicensingModuleUpdated(licensingModule);
+    }
+
+    function setPILTemplate(address pilTemplate) external onlyOwner {
+        require(pilTemplate != address(0), "Invalid address");
+        PIL_TEMPLATE = IPILicenseTemplate(pilTemplate);
+        emit PILTemplateUpdated(pilTemplate);
+    }
+
+    function setCoreMetadataViewModule(address coreMetadataViewModule) external onlyOwner {
+        require(coreMetadataViewModule != address(0), "Invalid address");
+        CORE_METADATA_VIEW_MODULE = ICoreMetadataViewModule(coreMetadataViewModule);
+        emit CoreMetadataViewModuleUpdated(coreMetadataViewModule);
+    }
+
+    function setRevenueToken(address newRevenueToken) external onlyOwner {
+        require(newRevenueToken != address(0), "Invalid address");
+        revenueToken = newRevenueToken;
+        emit RevenueTokenUpdated(newRevenueToken);
     }
 
     function getAssets() external view returns (address[] memory) {

@@ -13,6 +13,7 @@ async function main() {
     governor,
     licensingModule,
     pilTemplate,
+    coreMetadataViewModule,
     revenueToken,
   );
   
