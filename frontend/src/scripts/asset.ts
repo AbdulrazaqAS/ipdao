@@ -56,7 +56,7 @@ export async function getAssetsIds(client: PublicClient): Promise<Array<Address>
     return assets as Array<Address>;
 }
 
-export async function getAssetLicenseTerms(ipId: Address, chainId: number): Promise<AssetLicenseTerms> {
+export async function getAssetLicenseTerms(ipId: Address, chainId: number): Promise<AssetLicenseTerms[]> {
   const options = {
     method: 'GET',
     headers: {
@@ -69,7 +69,7 @@ export async function getAssetLicenseTerms(ipId: Address, chainId: number): Prom
   if (!response.ok) throw new Error(`Response status: ${response.status}`);
 
   const terms = await response.json();  // {data, next, prev}
-  return terms.data as AssetLicenseTerms;
+  return terms.data as AssetLicenseTerms[];
 }
 
 export async function getAssetAPIMetadata(ipId: Address, chainId: number): Promise<AssetAPIMetadata> {

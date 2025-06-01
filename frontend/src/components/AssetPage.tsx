@@ -5,7 +5,7 @@ import { fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTer
 import { useChainId } from "wagmi";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   return (
     <div className="rounded-xl bg-surface p-4 mb-4 transition-all">
       <div
@@ -34,7 +34,7 @@ function TraitCard({ trait }: { trait: any }) {
   };
 
   return (
-    <div className="relative bg-background rounded-lg p-3 shadow border border-surface">
+    <div className="relative bg-background rounded-lg p-3 border border-surface">
       <p className="text-xs text-muted">{trait?.trait_type ?? trait.key}</p>
       <div className="flex items-center justify-between">
         <p className="text-sm text-text break-all font-medium w-[calc(100%-2rem)]">
@@ -61,8 +61,8 @@ interface Props {
 
 export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   const [assetAPIMetadata, setAssetAPIMetadata] = useState<AssetAPIMetadata>();
-  const [assetLicenseTerms, setAssetLicenseTerms] = useState<AssetLicenseTerms[]>([]);
-  const [licenseTerms, setLicenseTerms] = useState<LicenseTerms>();
+  const [assetLicenses, setAssetLicenses] = useState<AssetLicenseTerms[]>([]);
+  const [licensesTerms, setLicensesTerms] = useState<LicenseTerms[]>([]);
   const [nftMetadata, setNftMetadata] = useState<NFTMetadata>();
 
   const chain = useChainId();
@@ -70,12 +70,13 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   useEffect(() => {
     getAssetAPIMetadata(assetMetadata.id, chain).then((metadata) => {
       setAssetAPIMetadata(metadata);
+      console.log("AssetAPIMetadata:", metadata);
     }).catch((error) => {
       console.error("Error fetching asset API metadata:", error);
     });
 
     getAssetLicenseTerms(assetMetadata.id, chain).then((terms) => {
-      setAssetLicenseTerms(terms);
+      setAssetLicenses(terms);
       console.log("Asset License Terms:", terms);
     }).catch((error) => {
       console.error("Error fetching asset license terms:", error);
@@ -90,14 +91,17 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   }, []);
 
   useEffect(() => {
-    if (assetLicenseTerms.length === 0) return;
-    getLicenseTerms(Number(assetLicenseTerms[0].licenseTermsId), chain).then((terms) => {
-      setLicenseTerms(terms);
-      console.log("License Terms:", terms);
+    if (assetLicenses.length === 0) return;
+
+    Promise.all(
+      assetLicenses.map((license) => getLicenseTerms(Number(license.licenseTermsId), chain))
+    ).then((termsArray) => {
+      setLicensesTerms(termsArray);
+      console.log("All License Terms:", termsArray);
     }).catch((error) => {
-      console.error("Error fetching license terms:", error);
+      console.error("Error fetching all license terms:", error);
     });
-  }, [assetLicenseTerms]);
+  }, [assetLicenses]);
 
   return (
     <div className="min-h-screen bg-background px-4 pb-10 text-text">
@@ -125,89 +129,91 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
 
             {/* Metadata Grid */}
             <div className="h-full w-full grid grid-cols-[repeat(auto-fit,_minmax(200px,_1fr))] gap-4 mb-8">
-              <div className="bg-surface p-4 rounded-lg shadow">
+              <div className="bg-surface p-4 rounded-lg">
                 <p className="text-muted text-xs">Licenses</p>
-                <p className="text-text font-medium break-words">{assetLicenseTerms.length}</p>
+                <p className="text-text font-medium break-words">{assetLicenses.length}</p>
               </div>
-              <div className="bg-surface p-4 rounded-lg shadow">
+              <div className="bg-surface p-4 rounded-lg">
                 <p className="text-muted text-xs">Descendants</p>
                 <p className="text-text font-medium break-words">{assetAPIMetadata?.descendantCount}</p>
               </div>
-              <div className="bg-surface p-4 rounded-lg shadow">
+              <div className="bg-surface p-4 rounded-lg">
                 <p className="text-muted text-xs">Children</p>
                 <p className="text-text font-medium break-words">{assetAPIMetadata?.childrenCount}</p>
               </div>
-              <div className="bg-surface p-4 rounded-lg shadow">
+              <div className="bg-surface p-4 rounded-lg">
                 <p className="text-muted text-xs">Created At</p>
                 <p className="text-text font-medium break-words">{new Date(Number(assetMetadata.createdAt)).toISOString()}</p>
               </div>
-              <div className="bg-surface p-4 rounded-lg shadow">
+              <div className="bg-surface p-4 rounded-lg">
                 <p className="text-muted text-xs">Media Type</p>
                 <p className="text-text font-medium break-words">{assetMetadata.mediaType}</p>
               </div>
-              <div className="bg-surface p-4 rounded-lg shadow">
+              <div className="bg-surface p-4 rounded-lg">
                 <p className="text-muted text-xs">Media Url</p>
-                <p className="text-text font-medium break-words"><a href={assetMetadata.mediaUrl} target="_blank">Link</a></p>
-              </div>
-              <div className="bg-surface p-4 rounded-lg shadow">
-                <p className="text-muted text-xs">AssetLicenseComRevShare</p>
-                <p className="text-text font-medium break-words">{assetLicenseTerms[0]?.licensingConfig.commercialRevShare}</p>
-              </div>
-              <div className="bg-surface p-4 rounded-lg shadow">
-                <p className="text-muted text-xs">AssetLicenseMintingFee</p>
-                <p className="text-text font-medium break-words">{assetLicenseTerms[0]?.licensingConfig.mintingFee}</p>
+                <p className="text-text font-medium break-words underline"><a href={assetMetadata.mediaUrl} target="_blank">Link</a></p>
               </div>
             </div>
           </div>
         </div>
 
-        <Section title="Ownership">
-          The current owner of the IP NFT is <span className="font-medium">0x4321...dead</span>. Ownership grants the right to license and enforce rights on-chain.
+        <Section title="Creators">
+          {assetMetadata.creators.map((creator, index) => (
+            <div key={index} className="bg-surface rounded-lg border-white border py-2 px-4">
+              <p className="text-muted text-2xl font-semibold">{creator.name}</p>
+              <p className="text-text font-medium break-words">{creator.address}</p>
+              <p className="text-muted text-xs">Contribution: {creator.contributionPercent}%</p>
+            </div>
+          ))}
         </Section>
 
-        <Section title="Licensing">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm border-b border-surface py-1">
-              <span className="text-muted">Licensee</span>
-              <span>0xbeef...cafe</span>
-            </div>
-            <div className="flex justify-between text-sm border-b border-surface py-1">
-              <span className="text-muted">License Type</span>
-              <span>Remix + Commercial</span>
-            </div>
-            <div className="flex justify-between text-sm border-b border-surface py-1">
-              <span className="text-muted">Valid Until</span>
-              <span>Jul 10, 2025</span>
-            </div>
-          </div>
-        </Section>
+        <Section title="Licenses">
+          <div className="flex flex-col gap-2">
+            {licensesTerms.map((license, index) => (
+              <Section key={index} title={`License Terms #${index + 1}`}>
+                <div className="bg-surface p-4 rounded-lg mb-2 border-white border">
+                  <p className="text-muted text-xs">AssetLicenseComRevShare</p>
+                  <p className="text-text font-medium break-words">{assetLicenses[index]?.licensingConfig.commercialRevShare}</p>
+                </div>
 
-        <Section title="License Traits">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {licenseTerms?.licenseTerms.map((trait, index) => (
-              <TraitCard key={index} trait={trait} />
+                <div className="bg-surface p-4 rounded-lg mb-3 border-white border">
+                  <p className="text-muted text-xs">AssetLicenseMintingFee</p>
+                  <p className="text-text font-medium break-words">{assetLicenses[index]?.licensingConfig.mintingFee}</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {license?.licenseTerms.map((trait, index) => (
+                    <TraitCard key={index} trait={trait} />
+                  ))}
+                </div>
+              </Section>
             ))}
           </div>
         </Section>
 
         <Section title="NFT Metadata">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm border-b border-surface py-1">
-              <span className="text-muted">Name</span>
-              <span>{nftMetadata?.name}</span>
+          <div className="flex flex-col gap-4 md:flex-row">
+            <div className="space-y-2 w-full">
+              <div className="text-sm border-b border-surface py-1">
+                <p className="text-muted">Name</p>
+                <p>{nftMetadata?.name}</p>
+              </div>
+              <div className="text-sm py-1">
+                <p className="text-muted">Description</p>
+                <p>{nftMetadata?.description}</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {nftMetadata?.attributes.map((attr, index) => (
+                  <TraitCard key={index} trait={attr} />
+                ))}
+              </div>
             </div>
-            <div className="flex justify-between text-sm border-b border-surface py-1">
-              <span className="text-muted">Description</span>
-              <span>{nftMetadata?.description}</span>
-            </div>
-            <div className="flex justify-between text-sm border-b border-surface py-1">
-              <span className="text-muted">Image</span>
-              <span><a href={nftMetadata?.image} target="_blank">Link</a></span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {nftMetadata?.attributes.map((attr, index) => (
-                <TraitCard key={index} trait={attr} />
-              ))}
+            <div className="w-full md:max-w-xs">
+              <img
+                src={nftMetadata?.image}
+                alt="IP Asset Image"
+                className="w-full object-cover"
+              />
             </div>
           </div>
         </Section>
