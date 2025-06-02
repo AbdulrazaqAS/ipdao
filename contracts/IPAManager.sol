@@ -70,28 +70,46 @@ contract IPAManager is Ownable, ERC721Holder {
         require(to != address(0), "Invalid recipient address");
 
         IERC721(collection).safeTransferFrom(address(this), to, tokenId);
-        
+
         // Remove the asset from the manager
         _removeAsset(assetId);
         emit AssetTransferred(assetId, collection, to, tokenId);
     }
 
-    function CreateTermsAndAttach(address assetId, uint256 mintingFee, uint32 commercialRevShare, address royaltyPolicy) external onlyOwner {
-        uint256 licenseTermsId = PIL_TEMPLATE.registerLicenseTerms(
-            PILFlavors.commercialRemix({
-                mintingFee : mintingFee,
-                commercialRevShare : commercialRevShare,
-                royaltyPolicy : royaltyPolicy,
-                currencyToken: revenueToken
-            })
-        );
-
-        // attach the license terms to the IP Asset
+    function attachLicenseTerms(address assetId, uint256 licenseTermsId) external onlyOwner {
+        require(hasAsset(assetId), "Asset does not exist");
         LICENSING_MODULE.attachLicenseTerms(assetId, address(PIL_TEMPLATE), licenseTermsId);
         emit TermsCreatedAndAttached(assetId, licenseTermsId);
     }
 
-    function onERC721Received(address collection, address from, uint256 tokenId, bytes memory data) public virtual override returns (bytes4) {
+    // For owner to mint custom licnese tokens only. Not for public use.
+    function mintLicenseTokens(
+        address licensorIpId,
+        uint256 licenseTermsId,
+        uint256 amount,
+        address receiver,
+        bytes calldata royaltyContext
+    ) external onlyOwner returns (uint256 startLicenseTokenId) {
+        require(hasAsset(licensorIpId), "Asset does not exist");
+
+        startLicenseTokenId = LICENSING_MODULE.mintLicenseTokens(
+            licensorIpId,
+            address(PIL_TEMPLATE),
+            licenseTermsId,
+            amount,
+            receiver,
+            royaltyContext,
+            0,
+            100 // Won't hurt because this is only for owner
+        );
+    }
+
+    function onERC721Received(
+        address collection,
+        address from,
+        uint256 tokenId,
+        bytes memory data
+    ) public virtual override returns (bytes4) {
         // Ensure the contract is receiving an NFT
         require(IERC721(msg.sender).ownerOf(tokenId) == address(this), "NFT not owned by this contract");
         emit NFTReceived(collection, from, tokenId);
