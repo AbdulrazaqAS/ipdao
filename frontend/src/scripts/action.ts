@@ -2,6 +2,7 @@ import { type Address, type WalletClient, getContract } from 'viem'
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json'
 import type { ProposalArgs, VoteChoice } from '../utils/utils';
+import { type LicenseTerms, StoryClient } from "@story-protocol/core-sdk";
 
 const IPAGovernorAddress: Address = import.meta.env.VITE_IPA_GOVERNOR!;
 const GovernanceTokenAddress: Address = import.meta.env.VITE_GOVERNANCE_TOKEN!;
@@ -51,6 +52,22 @@ export async function executeProposal(proposalId: bigint, client: WalletClient, 
         client
     });
 
-    const txHash = await contract.write.execute([proposalId]);
+    const txHash = await contract.write.execute([proposalId]);  // TODO: Pass value if needed
     return txHash;
+}
+
+export async function registerLicenseTerms(licenseTerms: LicenseTerms, client: StoryClient): Promise<{hash: `0x${string}`, licenseTermsId: bigint}> {
+    const response = await client.license.registerPILTerms({
+    ...licenseTerms,
+    txOptions: { waitForTransaction: true },
+    });
+
+    if (!response.txHash || !response.licenseTermsId) {
+        throw new Error("Failed to register license terms:");
+    }
+    
+    return {
+        hash: response.txHash as `0x${string}`,
+        licenseTermsId: response.licenseTermsId
+    };
 }

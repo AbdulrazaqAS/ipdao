@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, ChevronLeft, Copy } from "lucide-react";
-import type { AssetAPIMetadata, AssetLicenseTerms, AssetMetadata, LicenseTerms, NFTMetadata } from "../utils/utils";
+import type { AssetAPIMetadata, AssetLicenseTerms, AssetMetadata, LicenseTermsMetadata, NFTMetadata } from "../utils/utils";
 import { fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms } from "../scripts/asset";
 import { useChainId } from "wagmi";
+import AttachNewLicenseTermsForm from "./AttachNewLicenseTermsForm";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
+
   return (
     <div className="rounded-xl bg-surface p-4 mb-4 transition-all">
       <div
@@ -59,11 +61,13 @@ interface Props {
   setSelectedAsset: Function;
 }
 
+// TODO: setShowNewLicenseForm should be set to false when its parent section is closed
 export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   const [assetAPIMetadata, setAssetAPIMetadata] = useState<AssetAPIMetadata>();
   const [assetLicenses, setAssetLicenses] = useState<AssetLicenseTerms[]>([]);
-  const [licensesTerms, setLicensesTerms] = useState<LicenseTerms[]>([]);
+  const [licensesTerms, setLicensesTerms] = useState<LicenseTermsMetadata[]>([]);
   const [nftMetadata, setNftMetadata] = useState<NFTMetadata>();
+  const [showNewLicenseForm, setShowNewLicenseForm] = useState(false);
 
   const chain = useChainId();
 
@@ -108,7 +112,7 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
       <div className="mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <label onClick={() => setSelectedAsset(undefined)}><ChevronLeft size={30} className="inline"/> Back</label>
+          <label onClick={() => setSelectedAsset(undefined)}><ChevronLeft size={30} className="inline" /> Back</label>
           <h1 className="text-3xl font-bold text-primary">{assetMetadata.title}</h1>
           <p className="text-md text-muted break-all mt-1">{assetMetadata.id}</p>
         </div>
@@ -189,6 +193,17 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
               </Section>
             ))}
           </div>
+
+          {!showNewLicenseForm ? (
+            <button
+              onClick={() => setShowNewLicenseForm(true)}
+              className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
+            >
+              Add new License
+            </button>
+          ) : (
+            <AttachNewLicenseTermsForm assetId={assetMetadata.id} />
+          )}
         </Section>
 
         <Section title="NFT Metadata">

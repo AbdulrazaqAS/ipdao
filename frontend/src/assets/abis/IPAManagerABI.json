@@ -18,6 +18,11 @@
         },
         {
           "internalType": "address",
+          "name": "_coreMetadataViewModule",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
           "name": "_revenueToken",
           "type": "address"
         }
@@ -68,9 +73,78 @@
           "internalType": "address",
           "name": "assetId",
           "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "collection",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
         }
       ],
-      "name": "AssetRemoved",
+      "name": "AssetTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newCoreMetadataViewModule",
+          "type": "address"
+        }
+      ],
+      "name": "CoreMetadataViewModuleUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newLicensingModule",
+          "type": "address"
+        }
+      ],
+      "name": "LicensingModuleUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "collection",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "NFTReceived",
       "type": "event"
     },
     {
@@ -93,31 +167,61 @@
       "type": "event"
     },
     {
+      "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
           "internalType": "address",
-          "name": "asset",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "mintingFee",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint32",
-          "name": "commercialRevShare",
-          "type": "uint32"
-        },
-        {
-          "internalType": "address",
-          "name": "royaltyPolicy",
+          "name": "newPILTemplate",
           "type": "address"
         }
       ],
-      "name": "CreateTermsAndAttach",
-      "outputs": [],
-      "stateMutability": "nonpayable",
+      "name": "PILTemplateUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newRevenueToken",
+          "type": "address"
+        }
+      ],
+      "name": "RevenueTokenUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "assetId",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "licenseTermsId",
+          "type": "uint256"
+        }
+      ],
+      "name": "TermsCreatedAndAttached",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "CORE_METADATA_VIEW_MODULE",
+      "outputs": [
+        {
+          "internalType": "contract ICoreMetadataViewModule",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -152,16 +256,6 @@
           "internalType": "address",
           "name": "assetId",
           "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "tokenCollection",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "tokenId",
-          "type": "uint256"
         }
       ],
       "name": "addAsset",
@@ -186,6 +280,24 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "assetId",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "licenseTermsId",
+          "type": "uint256"
+        }
+      ],
+      "name": "attachLicenseTerms",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -237,22 +349,61 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "",
-          "type": "address"
-        },
-        {
-          "internalType": "address",
-          "name": "",
+          "name": "licensorIpId",
           "type": "address"
         },
         {
           "internalType": "uint256",
-          "name": "",
+          "name": "licenseTermsId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "receiver",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "royaltyContext",
+          "type": "bytes"
+        }
+      ],
+      "name": "mintLicenseTokens",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "startLicenseTokenId",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "collection",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
           "type": "uint256"
         },
         {
           "internalType": "bytes",
-          "name": "",
+          "name": "data",
           "type": "bytes"
         }
       ],
@@ -281,19 +432,6 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "assetId",
-          "type": "address"
-        }
-      ],
-      "name": "removeAsset",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
       "inputs": [],
       "name": "renounceOwnership",
       "outputs": [],
@@ -311,6 +449,86 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "coreMetadataViewModule",
+          "type": "address"
+        }
+      ],
+      "name": "setCoreMetadataViewModule",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "licensingModule",
+          "type": "address"
+        }
+      ],
+      "name": "setLicensingModule",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "pilTemplate",
+          "type": "address"
+        }
+      ],
+      "name": "setPILTemplate",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newRevenueToken",
+          "type": "address"
+        }
+      ],
+      "name": "setRevenueToken",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "assetId",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "collection",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "transferAsset",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {

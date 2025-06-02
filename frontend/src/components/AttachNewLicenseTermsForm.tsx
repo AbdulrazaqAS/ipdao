@@ -1,0 +1,338 @@
+import { useState } from "react";
+import { registerLicenseTerms } from "../scripts/action";
+import { StoryClient, type LicenseTerms } from "@story-protocol/core-sdk";
+import { getCommercialRemixTerms, getCommercialUseTerms, getNonCommercialTerms } from "../utils/utils";
+import { http, usePublicClient, useWalletClient } from "wagmi";
+import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
+import type { ProposalArgs } from "../utils/utils";
+import { propose } from "../scripts/action";
+import { getProposalsCount } from "../scripts/proposal";
+import { encodeFunctionData, type Address } from "viem";
+
+const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER!;
+
+const licenseTermsTypeFields = {
+    NonCommercial: {},
+    CommercialUse: {
+        currency: "",
+        defaultMintingFee: "",
+        royaltyPolicy: "",
+    },
+    CommercialRemix: {
+        currency: "",
+        defaultMintingFee: "",
+        royaltyPolicy: "",
+        commercialRevShare: "",
+    },
+    Custom: {
+        transferable: false,
+        royaltyPolicy: "",
+        defaultMintingFee: "",
+        expiration: "",
+        commercialUse: false,
+        commercialAttribution: false,
+        commercializerChecker: "",
+        commercializerCheckerData: "",
+        commercialRevShare: "",
+        commercialRevCeiling: "",
+        derivativesAllowed: false,
+        derivativesAttribution: false,
+        derivativesApproval: false,
+        derivativesReciprocal: false,
+        derivativeRevCeiling: "",
+        currency: "",
+        uri: "", // TODO: find/create a URI for custom licenses
+    }
+};
+
+type LicenseTermsType = keyof typeof licenseTermsTypeFields;
+const licenses: LicenseTermsType[] = ['NonCommercial', 'CommercialUse', 'CommercialRemix', 'Custom'];
+const ROYALTY_POLICY_LAP: string = import.meta.env.VITE_ROYALTY_POLICY_LAP!;
+const ROYALTY_POLICY_LRP: string = import.meta.env.VITE_ROYALTY_POLICY_LRP!;
+
+interface Props {
+    assetId: Address;
+}
+
+// TODO: Add input checks before submitting
+export default function AttachNewLicenseTermsForm({assetId}: Props) {
+    const [licenseType, setLicenseType] = useState<LicenseTermsType>("NonCommercial");
+    const [licenseRegistered, setLicenseRegistered] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [licenseAttached, setLicenseAttached] = useState(false);
+    const [txIndexed, setTxIndexed] = useState(false);
+    const [licenseTermsId, setLicenseTermsId] = useState<bigint>();
+
+    const [formData, setFormData] = useState<any>({});
+
+    const {data: walletClient} = useWalletClient();
+    const publicClient = usePublicClient();
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value, type, checked } = e.target;
+        setFormData({
+            ...formData,
+            [name]: type === "checkbox" ? checked : value,
+        });
+    };
+
+    const changeLicenseTermsType = (type: LicenseTermsType) => {
+        setLicenseType(type);
+        setFormData({ ...licenseTermsTypeFields[type] });
+    };
+
+    const handleRegisterLicenseTerms = async () => {
+        console.log("Submitting license terms:", {
+            licenseType,
+            ...formData,
+        });
+
+        let licenseTerms: LicenseTerms;
+
+        if (licenseType === "NonCommercial") {
+            console.log("Non Commercial terms registered successfully:"); // ALready registered by Story with Id 1
+            setLicenseRegistered(true);
+            setLicenseTermsId(1n);
+            return;
+        } else if (licenseType === "CommercialUse") licenseTerms = getCommercialUseTerms(
+            formData.royaltyPolicy,
+            formData.defaultMintingFee,
+            formData.currency
+        )
+        else if (licenseType === "CommercialRemix") licenseTerms = getCommercialRemixTerms(
+            formData.royaltyPolicy,
+            formData.defaultMintingFee,
+            formData.currency,
+            formData.commercialRevShare
+        );
+        else licenseTerms = formData;  // Custom license terms
+        
+        try {
+            setIsLoading(true);
+            const storyClient = StoryClient.newClient({
+                account: walletClient!.account,
+                transport: http(walletClient!.transport?.url || ""),
+                chainId: walletClient!.chain.id.toString() as "1315" | "1514",
+            })
+            const result = await registerLicenseTerms(licenseTerms, storyClient);
+
+            // TODO: SHow this in frontend
+            console.log("Waiting for license terms registration transaction to be indexed...");
+
+            const txReceipt = await publicClient?.waitForTransactionReceipt({hash: result.hash});
+            if (txReceipt?.status !== "success") {
+                throw new Error("Transaction failed");
+            }
+
+            console.log("License terms registered successfully:", result);
+            setLicenseRegistered(true);
+            setLicenseTermsId(result.licenseTermsId);
+        } catch (error) {
+            console.error("Error registering license terms:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    const handleProposeAttachLicenseTerms = async () => {
+        try {
+            setIsLoading(true);
+            const targets = [IPA_MANAGER_ADDRESS];
+            const values = [0n];
+            const calldatas = [encodeFunctionData({
+                abi: IPAManagerABI,
+                functionName: "attachLicenseTerms",
+                args: [assetId, licenseTermsId!]
+            })];
+
+            const proposalIndex = await getProposalsCount(publicClient!);
+            // Added # for splitting the value when in use
+            const description = proposalIndex!.toString() + "#" + `Propose to attach license terms with ID ${licenseTermsId} to asset with ID ${assetId}`;
+            
+            const proposalArgs: ProposalArgs = {
+                targets,
+                values,
+                calldatas,
+                description
+            };
+
+            console.log("Proposing to attach license terms with args:", proposalArgs);
+            const txHash = await propose(proposalArgs, walletClient!);
+            setLicenseAttached(true);
+            console.log("Proposal waiting to be indexed. TxHash:", txHash); // TODO: Show this in frontend
+            
+            publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => {
+                console.log("Proposal mined")
+                setTxIndexed(true);
+            });
+        } catch (error) {
+            console.error("Error proposing to attach license terms:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!walletClient) {
+            console.error("Wallet not connected");
+            return;
+        }
+
+        if (!licenseRegistered) {
+            handleRegisterLicenseTerms();
+        } else {
+            handleProposeAttachLicenseTerms();
+        }
+    }
+
+    return (
+        <div className="mx-auto p-6 bg-surface text-text rounded-xl shadow-lg">
+            <h2 className="text-xl font-bold mb-4">Attach New License</h2>
+
+            <div className="flex flex-wrap gap-3 mb-4">
+                {licenses.map(type => (
+                    <button
+                        key={type}
+                        onClick={() => changeLicenseTermsType(type)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${licenseType === type ? 'bg-primary text-white border-transparent' : 'bg-transparent border-muted text-muted hover:border-primary hover:text-primary'}`}
+                    >
+                        {type}
+                    </button>
+                ))}
+            </div>
+
+            {licenseType === "NonCommercial" ? (
+                <>
+                    <p className="text-muted">Non-commercial licenses do not require additional inputs.</p>
+                    <div className="sm:col-span-2 md:col-span-3 flex justify-end mt-4">
+                        {!licenseAttached ? (
+                            <button
+                                type="submit"
+                                onClick={handleSubmit}
+                                className="bg-primary text-white px-6 py-2 rounded hover:bg-opacity-90 transition"
+                                disabled={isLoading}
+                            >
+                                {licenseRegistered ? "Propose Attach License" : "Register License"}{isLoading && "..." }
+                            </button>
+                        ) : (
+                            <p className="text-green-500 font-semibold">
+                                {txIndexed ?
+                                    "License Terms Attached Successfully!" :
+                                    "Attaching license terms..."
+                                }
+                            </p>
+                        )}
+                    </div>
+                </>
+            ) : (
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {licenseType === "Custom" && (
+                        <>
+                            <label>
+                                Transferable:
+                                <input type="checkbox" name="transferable" checked={formData.transferable} onChange={handleChange} className="ml-2" />
+                            </label>
+                            <label>
+                                Commercial Attribution:
+                                <input type="checkbox" name="commercialAttribution" checked={formData.commercialAttribution} onChange={handleChange} className="ml-2" />
+                            </label>
+                            <label>
+                                Commercial Use:
+                                <input type="checkbox" name="commercialUse" checked={formData.commercialUse} onChange={handleChange} className="ml-2" />
+                            </label>
+                            <label>
+                                Derivatives Allowed:
+                                <input type="checkbox" name="derivativesAllowed" checked={formData.derivativesAllowed} onChange={handleChange} className="ml-2" />
+                            </label>
+                            <label>
+                                Derivatives Attribution:
+                                <input type="checkbox" name="derivativesAttribution" checked={formData.derivativesAttribution} onChange={handleChange} className="ml-2" />
+                            </label>
+                            <label>
+                                Derivatives Approval:
+                                <input type="checkbox" name="derivativesApproval" checked={formData.derivativesApproval} onChange={handleChange} className="ml-2" />
+                            </label>
+                            <label>
+                                Derivatives Reciprocal:
+                                <input type="checkbox" name="derivativesReciprocal" checked={formData.derivativesReciprocal} onChange={handleChange} className="ml-2" />
+                            </label>
+
+                            <label>
+                                Expiration:
+                                <input type="text" name="expiration" value={formData.expiration} onChange={handleChange} className="input bg-surface border p-2 rounded w-full" />
+                            </label>
+                            <label>
+                                Commercializer Checker:
+                                <input type="text" name="commercializerChecker" value={formData.commercializerChecker} onChange={handleChange} className="input bg-surface border p-2 rounded w-full" />
+                            </label>
+                            <label>
+                                Commercial Revenue Ceiling:
+                                <input type="text" name="commercialRevCeiling" value={formData.commercialRevCeiling} onChange={handleChange} className="input bg-surface border p-2 rounded w-full" />
+                            </label>
+                            <label>
+                                Derivatives Revenue Ceiling:
+                                <input type="text" name="derivativeRevCeiling" value={formData.derivativeRevCeiling} onChange={handleChange} className="input bg-surface border p-2 rounded w-full" />
+                            </label>
+                        </>
+                    )}
+
+                    <>
+                        {formData.currency !== undefined && (
+                            <label>
+                                Currency:
+                                <input type="text" name="currency" value={formData.currency} onChange={handleChange} className="input bg-surface border p-2 rounded w-full" />
+                            </label>
+                        )}
+                        {formData.defaultMintingFee !== undefined && (
+                            <label>
+                                Default Minting Fee:
+                                <input type="text" name="defaultMintingFee" value={formData.defaultMintingFee} onChange={handleChange} className="input bg-surface border p-2 rounded w-full" />
+                            </label>
+                        )}
+                        {formData.commercialRevShare !== undefined && (
+                            <label>
+                                Commercial Rev Share (%):
+                                <input type="number" name="commercialRevShare" value={formData.commercialRevShare} onChange={handleChange} className="input bg-surface border p-2 rounded w-full" />
+                            </label>
+                        )}
+                        {formData.royaltyPolicy !== undefined && (
+                            <div className="flex flex-col">
+                                <p className="mb-2">Royalty Policy</p>
+                                <label>
+                                    <input type="radio" name="royaltyPolicyAddress" value={ROYALTY_POLICY_LRP} onChange={handleChange} className="mr-3"/>
+                                    Liquid Relative Percentage (LRP)
+                                </label>
+                                <label>
+                                    <input type="radio" name="royaltyPolicyAddress" value={ROYALTY_POLICY_LAP} onChange={handleChange} className="mr-3" selected />
+                                    Liquid Absolute Percentage (LAP)
+                                </label>
+                            </div>
+                        )}
+                    </>
+
+                    <div className="sm:col-span-2 md:col-span-3 flex justify-end mt-4">
+                        {!licenseAttached ? (
+                            <button
+                                type="submit"
+                                onClick={handleSubmit}
+                                className="bg-primary text-white px-6 py-2 rounded hover:bg-opacity-90 transition"
+                                disabled={isLoading}
+                            >
+                                {licenseRegistered ? "Attach License" : "Register License"}{isLoading && "..." }
+                            </button>
+                        ) : (
+                            <p className="text-green-500 font-semibold">
+                                {txIndexed ?
+                                    "License Terms Attached Successfully!" :
+                                    "Attaching license terms..."
+                                }
+                            </p>
+                        )}
+                    </div>
+                </form>
+            )}
+        </div>
+    );
+}

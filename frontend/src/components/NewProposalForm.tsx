@@ -75,6 +75,10 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
     for (const call of calls) {
       try {
         const abiObj = ABIS.find((abi) => abi.name === call.abi);
+        if (!abiObj) {
+          throw new Error(`ABI not found for ${call.abi}`);
+        }
+        
         const abi = abiObj.abi;
         const argsParsed = JSON.parse(call.args);
         const calldata = encodeFunctionData({
@@ -110,9 +114,9 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
       setIsLoading(true);
       const args = generateProposalArgs();
       const txHash = await propose(args, walletClient);
-      console.log("Proposal successful. TxHash:", txHash);
+      console.log("Proposal waiting to be indexed. TxHash:", txHash);
       
-      publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => console.log("Proposal mined"));
+      publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => console.log("Proposal indexed"));
       setShowNewProposalForm(false);
     } catch (err: any) {
       console.error(`Encoding error: ${err}`)
@@ -159,7 +163,6 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
           <select
               className="w-full border p-2 text-sm rounded"
               value={call.abi}
-              placeholder="Select target ABI"
               onChange={(e) => updateCall(index, "abi", e.target.value)}
           >
               {ABIS.map((abi, i) => (
