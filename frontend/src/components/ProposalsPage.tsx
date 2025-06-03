@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { usePublicClient, useWalletClient } from "wagmi";
-import { getProposals, getProposalsCount, getProposalsDeadlines, getProposalsProposers, getProposalsStates, getProposalsVotes } from "../scripts/proposal";
+import { getProposals, getProposalsCount, getProposalsDeadlines, getProposalsDescriptions, getProposalsProposers, getProposalsStates, getProposalsVotes } from "../scripts/proposal";
 import { ProposalState, type ProposalData, VoteChoice } from "../utils/utils";
 import ProposalCard from "./ProposalCard";
 import { castVote } from "../scripts/action";
@@ -59,12 +59,14 @@ export default function ProposalsPage() {
         const proposalsDeadline = await getProposalsDeadlines(proposalIds, publicClient!);
         const proposalsProposer = await getProposalsProposers(proposalIds, publicClient!);
         const proposalsStates = await getProposalsStates(proposalIds, publicClient!);
+        const descriptions = await getProposalsDescriptions(publicClient!);
 
         const proposals = proposalsDetails.map((details, index) => {
           const votes = proposalsVotes[index];
           const deadline = proposalsDeadline[index];
           const proposer = proposalsProposer[index];
           const state = proposalsStates[index] as ProposalState;
+          const description = descriptions.find(desc => details.id === desc.proposalId)?.description || null;
 
           return {
             ...details,
@@ -73,6 +75,7 @@ export default function ProposalsPage() {
             state,
             status: state,
             proposer: proposer,
+            description
           } as ProposalData
         });
         setProposals(proposals);
@@ -83,6 +86,7 @@ export default function ProposalsPage() {
     }
 
     fetchProposals();
+
   }, []);
 
   return (
@@ -125,7 +129,7 @@ export default function ProposalsPage() {
             <p className="text-gray-700 mb-4">
               Are you sure you want to vote <span className="font-bold">{VoteChoice[voteChoice]}</span> on:
               <br />
-              <span className="italic text-gray-900">"{selectedProposal.descriptionHash}"</span>?
+              <span className="italic text-gray-900">"{selectedProposal.id.toString().slice(0, 5)}...{selectedProposal.id.toString().slice(-5)}"</span>?
             </p>
             <div className="flex justify-center gap-4">
               <button

@@ -1,4 +1,4 @@
-import { type Address, type PublicClient, getContract } from 'viem'
+import { type Address, type PublicClient, getContract, parseAbiItem } from 'viem'
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 import { type ProposalDetails, type ProposalVotes } from '../utils/utils';
 
@@ -95,7 +95,7 @@ export async function getProposalsDeadlines(proposalIds: Array<bigint>, client: 
     const deadlines = await Promise.all(
         proposalIds.map((id) => contract.read.proposalDeadline([id]))
     ) as bigint[];
-    
+
     return deadlines;
 }
 
@@ -127,6 +127,34 @@ export async function getProposalsProposers(proposalIds: Array<bigint>, client: 
     const proposers = await Promise.all(
         proposalIds.map((id) => contract.read.proposalProposer([id]))
     ) as Array<`0x${string}`>;
-    
+
     return proposers;
 }
+
+export async function getProposalsDescriptions(client: PublicClient): Promise<{
+    proposalId: bigint | undefined;
+    description: string | undefined;
+}[]> {
+    // ABI for the ProposalCreated event
+    const proposalCreatedAbi = parseAbiItem(
+        'event ProposalCreated(uint256 proposalId, address proposer, address[] targets, uint256[] values, string[] signatures, bytes[] calldatas, uint256 voteStart, uint256 voteEnd, string description)'
+    );
+
+    const governorDeploymentBlock = import.meta.env.VITE_IPA_GOVERNOR_BLOCK ?? 0;
+
+    const logs = await client.getLogs({
+        address: IPAGovernorAddress,
+        event: proposalCreatedAbi,
+        fromBlock: BigInt(governorDeploymentBlock),
+        toBlock: 'latest',
+    })
+
+    // Extract proposalId and description
+    const proposals = logs.map(log => ({
+        proposalId: log.args.proposalId,
+        description: log.args.description
+    }))
+
+    console.log(proposals)
+    return proposals
+}   

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { registerLicenseTerms } from "../scripts/action";
 import { StoryClient, type LicenseTerms } from "@story-protocol/core-sdk";
-import { getCommercialRemixTerms, getCommercialUseTerms, getNonCommercialTerms } from "../utils/utils";
-import { http, usePublicClient, useWalletClient } from "wagmi";
+import { getCommercialRemixTerms, getCommercialUseTerms } from "../utils/utils";
+import { usePublicClient, useWalletClient } from "wagmi";
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import type { ProposalArgs } from "../utils/utils";
 import { propose } from "../scripts/action";

@@ -33,6 +33,7 @@ export type ProposalData = ProposalDetails & ProposalVotes & {
     deadline: bigint;
     state: number;
     status: ProposalState;
+    description: string | null;
 }
 
 export enum ProposalState {

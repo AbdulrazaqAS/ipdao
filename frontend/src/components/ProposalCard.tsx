@@ -101,7 +101,13 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
             className="bg-white border border-gray-200 rounded-xl shadow p-5"
         >
             <div className="flex flex-col sm:flex-row sm:justify-between gap-2 mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">Description Hash: {proposal.descriptionHash}</h2>
+                <div className="">
+                    <p className="text-md text-gray-900">
+                        #{proposal.id.toString().slice(0, 5)}...{proposal.id.toString().slice(-5)}
+                    </p>
+                    <p className="text-sm text-gray-600">By: {proposal.proposer}</p>
+                    <h2 className="text-xl font-semibold text-gray-800">{proposal.description || proposal.descriptionHash}</h2>
+                </div>
                 <span
                     className={`text-sm h-full px-3 py-1 rounded-full inline-flex items-center ${StatusColor[proposal.status]}`}
                 >
