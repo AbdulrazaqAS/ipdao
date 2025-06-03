@@ -34,6 +34,7 @@ export default function ProposalsPage() {
       const txHash = await castVote(selectedProposal!.id, voteChoice!, walletClient);
       console.log(`Voted ${voteChoice} on proposal ${selectedProposal!.id}`);
 
+      // TODO: Resolving doesn't mean it has been accepted.
       publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => {
         console.log("Vote minted");
       });

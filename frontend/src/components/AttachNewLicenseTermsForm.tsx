@@ -7,7 +7,7 @@ import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import type { ProposalArgs } from "../utils/utils";
 import { propose } from "../scripts/action";
 import { getProposalsCount } from "../scripts/proposal";
-import { encodeFunctionData, type Address } from "viem";
+import { encodeFunctionData, type Address, parseEther, custom } from "viem";
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER!;
 
@@ -32,7 +32,7 @@ const licenseTermsTypeFields = {
         commercialUse: false,
         commercialAttribution: false,
         commercializerChecker: "",
-        commercializerCheckerData: "",
+        commercializerCheckerData: "0x",
         commercialRevShare: "",
         commercialRevCeiling: "",
         derivativesAllowed: false,
@@ -82,11 +82,6 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
     };
 
     const handleRegisterLicenseTerms = async () => {
-        console.log("Submitting license terms:", {
-            licenseType,
-            ...formData,
-        });
-
         let licenseTerms: LicenseTerms;
 
         if (licenseType === "NonCommercial") {
@@ -102,31 +97,32 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
         else if (licenseType === "CommercialRemix") licenseTerms = getCommercialRemixTerms(
             formData.royaltyPolicy,
             formData.defaultMintingFee,
+            formData.commercialRevShare,
             formData.currency,
-            formData.commercialRevShare
         );
-        else licenseTerms = formData;  // Custom license terms
+        else licenseTerms = {
+            ...formData,
+            defaultMintingFee: parseEther(formData.defaultMintingFee)
+        };  // Custom license terms
+
+        console.log("Submitting license terms:", {
+            licenseType,
+            ...licenseTerms,
+        });
         
         try {
             setIsLoading(true);
             const storyClient = StoryClient.newClient({
-                account: walletClient!.account,
-                transport: http(walletClient!.transport?.url || ""),
+                wallet: walletClient!,
+                transport: custom(walletClient!.transport),
                 chainId: walletClient!.chain.id.toString() as "1315" | "1514",
             })
-            const result = await registerLicenseTerms(licenseTerms, storyClient);
+            console.log("ChainId", walletClient!.chain.id.toString());
+            const licenseTermsId = await registerLicenseTerms(licenseTerms, storyClient);
 
-            // TODO: SHow this in frontend
-            console.log("Waiting for license terms registration transaction to be indexed...");
-
-            const txReceipt = await publicClient?.waitForTransactionReceipt({hash: result.hash});
-            if (txReceipt?.status !== "success") {
-                throw new Error("Transaction failed");
-            }
-
-            console.log("License terms registered successfully:", result);
+            console.log("License terms registered successfully. ID: ", licenseTermsId);
             setLicenseRegistered(true);
-            setLicenseTermsId(result.licenseTermsId);
+            setLicenseTermsId(licenseTermsId);
         } catch (error) {
             console.error("Error registering license terms:", error);
         } finally {
@@ -147,7 +143,7 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
 
             const proposalIndex = await getProposalsCount(publicClient!);
             // Added # for splitting the value when in use
-            const description = proposalIndex!.toString() + "#" + `Propose to attach license terms with ID ${licenseTermsId} to asset with ID ${assetId}`;
+            const description = proposalIndex!.toString() + "#" + `Proposal to attach license terms with ID ${licenseTermsId} to asset with ID ${assetId}`;
             
             const proposalArgs: ProposalArgs = {
                 targets,
@@ -301,11 +297,11 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
                             <div className="flex flex-col">
                                 <p className="mb-2">Royalty Policy</p>
                                 <label>
-                                    <input type="radio" name="royaltyPolicyAddress" value={ROYALTY_POLICY_LRP} onChange={handleChange} className="mr-3"/>
+                                    <input type="radio" name="royaltyPolicy" value={ROYALTY_POLICY_LRP} onChange={handleChange} className="mr-3"/>
                                     Liquid Relative Percentage (LRP)
                                 </label>
                                 <label>
-                                    <input type="radio" name="royaltyPolicyAddress" value={ROYALTY_POLICY_LAP} onChange={handleChange} className="mr-3" selected />
+                                    <input type="radio" name="royaltyPolicy" value={ROYALTY_POLICY_LAP} onChange={handleChange} className="mr-3" />
                                     Liquid Absolute Percentage (LAP)
                                 </label>
                             </div>
@@ -320,13 +316,13 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
                                 className="bg-primary text-white px-6 py-2 rounded hover:bg-opacity-90 transition"
                                 disabled={isLoading}
                             >
-                                {licenseRegistered ? "Attach License" : "Register License"}{isLoading && "..." }
+                                {isLoading ? "Sending Tx..." : licenseRegistered ? "Propose Attach License" : "Register License"}
                             </button>
                         ) : (
                             <p className="text-green-500 font-semibold">
                                 {txIndexed ?
-                                    "License Terms Attached Successfully!" :
-                                    "Attaching license terms..."
+                                    "License Terms Attachment Proposal Submitted" :
+                                    "Making New Proposal..."
                                 }
                             </p>
                         )}

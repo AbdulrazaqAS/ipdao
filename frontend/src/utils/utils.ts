@@ -192,11 +192,11 @@ export function getNonCommercialTerms(): LicenseTerms {
     }
 }
 
-export function getCommercialUseTerms(royaltyPolicy: Address, defaultMintingFee: number, currency: Address): LicenseTerms {
+export function getCommercialUseTerms(royaltyPolicy: Address, defaultMintingFee: string, currency: Address): LicenseTerms {
     return {
         transferable: true,
         royaltyPolicy,
-        defaultMintingFee: parseEther(defaultMintingFee.toString()),
+        defaultMintingFee: parseEther(defaultMintingFee),
         expiration: 0n,
         commercialUse: true,
         commercialAttribution: true,
@@ -224,7 +224,7 @@ export function getCommercialRemixTerms(royaltyPolicy: Address, defaultMintingFe
         commercialAttribution: true,
         commercializerChecker: zeroAddress,
         commercializerCheckerData: "0x",
-        commercialRevShare,
+        commercialRevShare: Number(commercialRevShare),
         commercialRevCeiling: 0n,
         derivativesAllowed: true,
         derivativesAttribution: true,

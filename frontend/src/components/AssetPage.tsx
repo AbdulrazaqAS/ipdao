@@ -172,10 +172,10 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
         </Section>
 
         <Section title="Licenses">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col">
             {licensesTerms.map((license, index) => (
-              <Section key={index} title={`License Terms #${index + 1}`}>
-                <div className="bg-surface p-4 rounded-lg mb-2 border-white border">
+              <Section key={index} title={`License Terms #${license.id}`}>
+                <div className="bg-surface p-2 rounded-lg mb-2 border-white border">
                   <p className="text-muted text-xs">AssetLicenseComRevShare</p>
                   <p className="text-text font-medium break-words">{assetLicenses[index]?.licensingConfig.commercialRevShare}</p>
                 </div>

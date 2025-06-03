@@ -23,7 +23,7 @@ contract IPAManager is Ownable, ERC721Holder {
     event LicensingModuleUpdated(address indexed newLicensingModule);
     event PILTemplateUpdated(address indexed newPILTemplate);
     event CoreMetadataViewModuleUpdated(address indexed newCoreMetadataViewModule);
-    event TermsCreatedAndAttached(address indexed assetId, uint256 licenseTermsId);
+    event TermsAttached(address indexed assetId, uint256 licenseTermsId);
     event RevenueTokenUpdated(address indexed newRevenueToken);
 
     constructor(

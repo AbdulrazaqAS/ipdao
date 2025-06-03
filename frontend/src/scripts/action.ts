@@ -56,18 +56,17 @@ export async function executeProposal(proposalId: bigint, client: WalletClient, 
     return txHash;
 }
 
-export async function registerLicenseTerms(licenseTerms: LicenseTerms, client: StoryClient): Promise<{hash: `0x${string}`, licenseTermsId: bigint}> {
+export async function registerLicenseTerms(licenseTerms: LicenseTerms, client: StoryClient): Promise<bigint> {
     const response = await client.license.registerPILTerms({
     ...licenseTerms,
     txOptions: { waitForTransaction: true },
     });
 
-    if (!response.txHash || !response.licenseTermsId) {
-        throw new Error("Failed to register license terms:");
+    console.log("Response", response);
+
+    if (!response.licenseTermsId) {
+        throw new Error("Failed to register license terms");
     }
     
-    return {
-        hash: response.txHash as `0x${string}`,
-        licenseTermsId: response.licenseTermsId
-    };
+    return response.licenseTermsId;
 }
