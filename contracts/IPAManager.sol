@@ -17,14 +17,14 @@ contract IPAManager is Ownable, ERC721Holder {
     address[] public assets;
     address public revenueToken;
 
-    event AssetAdded(address indexed assetId);
-    event AssetTransferred(address indexed assetId, address collection, address to, uint256 tokenId);
-    event NFTReceived(address collection, address from, uint256 tokenId);
-    event LicensingModuleUpdated(address indexed newLicensingModule);
-    event PILTemplateUpdated(address indexed newPILTemplate);
-    event CoreMetadataViewModuleUpdated(address indexed newCoreMetadataViewModule);
+    event AssetAdded(address assetId);
+    event AssetTransferred(address assetId, address collection, address to, uint256 tokenId);
     event TermsAttached(address indexed assetId, uint256 licenseTermsId);
-    event RevenueTokenUpdated(address indexed newRevenueToken);
+    event NFTReceived(address collection, address from, uint256 tokenId);
+    event LicensingModuleUpdated(address newLicensingModule);
+    event PILTemplateUpdated(address newPILTemplate);
+    event CoreMetadataViewModuleUpdated(address newCoreMetadataViewModule);
+    event RevenueTokenUpdated(address newRevenueToken);
 
     constructor(
         address _initialOwner,
@@ -79,7 +79,7 @@ contract IPAManager is Ownable, ERC721Holder {
     function attachLicenseTerms(address assetId, uint256 licenseTermsId) external onlyOwner {
         require(hasAsset(assetId), "Asset does not exist");
         LICENSING_MODULE.attachLicenseTerms(assetId, address(PIL_TEMPLATE), licenseTermsId);
-        emit TermsCreatedAndAttached(assetId, licenseTermsId);
+        emit TermsAttached(assetId, licenseTermsId);
     }
 
     // For owner to mint custom licnese tokens only. Not for public use.
@@ -105,14 +105,14 @@ contract IPAManager is Ownable, ERC721Holder {
     }
 
     function onERC721Received(
-        address collection,
+        address operator,
         address from,
         uint256 tokenId,
         bytes memory data
     ) public virtual override returns (bytes4) {
         // Ensure the contract is receiving an NFT
         require(IERC721(msg.sender).ownerOf(tokenId) == address(this), "NFT not owned by this contract");
-        emit NFTReceived(collection, from, tokenId);
+        emit NFTReceived(msg.sender, from, tokenId);
 
         return this.onERC721Received.selector;
     }

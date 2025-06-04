@@ -3,6 +3,7 @@ import { fetchMetadata, getAssetsIds, getAssetsMetadata } from "../scripts/asset
 import { usePublicClient } from "wagmi";
 import { type AssetMetadata, type CreatorMetadata } from '../utils/utils';
 import AssetPage from './AssetPage';
+import NewAssetForm from './NewAssetForm';
 
 export interface AssetInitialMetadata {
     createdAt: string;
@@ -19,6 +20,7 @@ export interface AssetInitialMetadata {
 export default function AssetsPage() {
     const [assets, setAssets] = useState<AssetMetadata[]>([]);
     const [selectedAsset, setSelectedAsset] = useState<AssetMetadata>();
+    const [showNewAssetForm, setShowNewAssetForm] = useState(false);
 
     const publicClient = usePublicClient();
 
@@ -55,11 +57,14 @@ export default function AssetsPage() {
 
     return (
         <div className="mx-auto px-4 py-8">
-            {!selectedAsset && (
+            {!selectedAsset && !showNewAssetForm && (
                 <>
                     <div className="flex items-center justify-between mb-6">
                         <h1 className="text-text text-2xl font-bold">Assets</h1>
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                        <button
+                            onClick={() => setShowNewAssetForm(true)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+                        >
                             Add Asset
                         </button>
                     </div>
@@ -86,6 +91,7 @@ export default function AssetsPage() {
                 </>
             )}
             {selectedAsset && <AssetPage assetMetadata={selectedAsset} setSelectedAsset={setSelectedAsset} />}
+            {showNewAssetForm && <NewAssetForm setShowNewAssetForm={setShowNewAssetForm} />}
         </div>
     );
 }
