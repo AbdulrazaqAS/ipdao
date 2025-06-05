@@ -8,6 +8,11 @@
         },
         {
           "internalType": "address",
+          "name": "_ipAssetRegistry",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
           "name": "_licensingModule",
           "type": "address"
         },
@@ -24,6 +29,11 @@
         {
           "internalType": "address",
           "name": "_revenueToken",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_NewAssetCollection",
           "type": "address"
         }
       ],
@@ -56,7 +66,7 @@
       "anonymous": false,
       "inputs": [
         {
-          "indexed": true,
+          "indexed": false,
           "internalType": "address",
           "name": "assetId",
           "type": "address"
@@ -69,7 +79,7 @@
       "anonymous": false,
       "inputs": [
         {
-          "indexed": true,
+          "indexed": false,
           "internalType": "address",
           "name": "assetId",
           "type": "address"
@@ -102,24 +112,23 @@
         {
           "indexed": true,
           "internalType": "address",
-          "name": "newCoreMetadataViewModule",
+          "name": "childIpId",
           "type": "address"
-        }
-      ],
-      "name": "CoreMetadataViewModuleUpdated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
+        },
         {
-          "indexed": true,
-          "internalType": "address",
-          "name": "newLicensingModule",
-          "type": "address"
+          "indexed": false,
+          "internalType": "address[]",
+          "name": "parentIpIds",
+          "type": "address[]"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256[]",
+          "name": "licenseTermsIds",
+          "type": "uint256[]"
         }
       ],
-      "name": "LicensingModuleUpdated",
+      "name": "DerivativeAssetCreated",
       "type": "event"
     },
     {
@@ -170,20 +179,7 @@
       "anonymous": false,
       "inputs": [
         {
-          "indexed": true,
-          "internalType": "address",
-          "name": "newPILTemplate",
-          "type": "address"
-        }
-      ],
-      "name": "PILTemplateUpdated",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
+          "indexed": false,
           "internalType": "address",
           "name": "newRevenueToken",
           "type": "address"
@@ -208,7 +204,7 @@
           "type": "uint256"
         }
       ],
-      "name": "TermsCreatedAndAttached",
+      "name": "TermsAttached",
       "type": "event"
     },
     {
@@ -217,6 +213,19 @@
       "outputs": [
         {
           "internalType": "contract ICoreMetadataViewModule",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "IP_ASSET_REGISTRY",
+      "outputs": [
+        {
+          "internalType": "contract IIPAssetRegistry",
           "name": "",
           "type": "address"
         }
@@ -243,6 +252,19 @@
       "outputs": [
         {
           "internalType": "contract IPILicenseTemplate",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "Token_Collection",
+      "outputs": [
+        {
+          "internalType": "contract MintableNFT",
           "name": "",
           "type": "address"
         }
@@ -366,11 +388,6 @@
           "internalType": "address",
           "name": "receiver",
           "type": "address"
-        },
-        {
-          "internalType": "bytes",
-          "name": "royaltyContext",
-          "type": "bytes"
         }
       ],
       "name": "mintLicenseTokens",
@@ -388,7 +405,7 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "collection",
+          "name": "operator",
           "type": "address"
         },
         {
@@ -432,6 +449,98 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "licenseTermsId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "metadataURI",
+          "type": "string"
+        }
+      ],
+      "name": "registerAssetFromMint",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "ipId",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "tokenCollection",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "licenseTermsId",
+          "type": "uint256"
+        }
+      ],
+      "name": "registerAssetFromNFT",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "ipId",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "parentIpIds",
+          "type": "address[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "licenseTermsIds",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "string",
+          "name": "metadataURI",
+          "type": "string"
+        }
+      ],
+      "name": "registerDerivative",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "childTokenId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "childIpId",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "renounceOwnership",
       "outputs": [],
@@ -449,45 +558,6 @@
         }
       ],
       "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "coreMetadataViewModule",
-          "type": "address"
-        }
-      ],
-      "name": "setCoreMetadataViewModule",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "licensingModule",
-          "type": "address"
-        }
-      ],
-      "name": "setLicensingModule",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "pilTemplate",
-          "type": "address"
-        }
-      ],
-      "name": "setPILTemplate",
-      "outputs": [],
-      "stateMutability": "nonpayable",
       "type": "function"
     },
     {

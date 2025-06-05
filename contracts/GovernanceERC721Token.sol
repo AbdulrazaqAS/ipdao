@@ -8,7 +8,7 @@ import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/
 import {ERC721Votes} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Votes.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract ERC721Token is ERC721, ERC721URIStorage, Ownable, EIP712, ERC721Votes {
+contract GovernanceERC721Token is ERC721, ERC721URIStorage, Ownable, EIP712, ERC721Votes {
     uint256 private _nextTokenId;
 
     constructor(string memory name, string memory symbol, address initialOwner)

@@ -70,7 +70,7 @@ export interface CreatorMetadata {
 }
 
 export interface NFTMetadata {
-    animation_url: string;
+    animation_url?: string;
     attributes: {
         key: string;
         value: string;

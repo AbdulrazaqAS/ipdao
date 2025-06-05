@@ -8,7 +8,7 @@ import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Vo
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract ERC20Token is ERC20, Ownable, ERC20Permit, ERC20Votes {
+contract GovernanceERC20Token is ERC20, Ownable, ERC20Permit, ERC20Votes {
     constructor(string memory _name, string memory _symbol, address _initialOwner)
         ERC20(_name, _symbol)
         Ownable(_initialOwner)

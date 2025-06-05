@@ -151,7 +151,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
         }
     }
 
-    async function uploadNFTMetadata() {
+    async function uploadNFTMetadataAndMintNFT() {
         const imageCid = await handleUploadImage();
         const imageUri = `https://ipfs.io/ipfs/${imageCid}`;
         console.log("Image uplaoded:", imageUri);
@@ -163,9 +163,9 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
         const metadataUri = `https://ipfs.io/ipfs/${metadataCid}`;
         console.log("Metadata uploaded:", metadataUri);
 
-        // const tokenId = await mintNFT(IPA_MANAGER_ADDRESS, metadataUri!, publicClient!, walletClient!);
-        // if (!tokenId) throw new Error("Failed to mint NFT");
-        // setNftId(tokenId);
+        const tokenId = await mintNFT(IPA_MANAGER_ADDRESS, metadataUri!, publicClient!, walletClient!);
+        if (!tokenId) throw new Error("Failed to mint NFT");
+        setNftId(tokenId);
         setNftMetadata(metadata);
         setNftMetadataUri(metadataUri!);
 

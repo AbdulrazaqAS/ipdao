@@ -33,6 +33,12 @@ yarn hardhat run scripts/deployERC20Token.ts --network aeneid
 Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `GOVERNANCE_TOKEN` inside *.env*.
 
 ```bash
+# Deploy NFT Collection
+yarn hardhat run scripts/deployERC721Token.ts --network aeneid
+```
+Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `NFT_CONTRACT_ADDRESS` inside *.env*.
+
+```bash
 # Deploy IPGovernorNoTimelock and make it token owner
 yarn hardhat run scripts/deployIPGovernorNoTimeLock.ts --network aeneid
 ```

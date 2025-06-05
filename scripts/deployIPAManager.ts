@@ -8,14 +8,18 @@ async function main() {
   const pilTemplate = process.env.PIL_TEMPLATE!;
   const revenueToken = process.env.REVENUE_TOKEN!;
   const coreMetadataViewModule = process.env.CoreMetadataViewModule!;
+  const assetRegistry = process.env.IPAssetRegistry!;
+  const nftCollection = process.env.NFT_CONTRACT_ADDRESS!;
 
   const IPAManager = await ethers.getContractFactory("IPAManager");
   const ipaManager = await IPAManager.deploy(
     governor,
+    assetRegistry,
     licensingModule,
     pilTemplate,
     coreMetadataViewModule,
     revenueToken,
+    nftCollection
   );
   
   await ipaManager.waitForDeployment();

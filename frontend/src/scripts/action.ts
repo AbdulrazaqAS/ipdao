@@ -1,8 +1,9 @@
-import { type Address, type WalletClient, getContract } from 'viem'
+import { type Address, type PublicClient, type WalletClient, getContract, zeroAddress } from 'viem'
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json'
 import VotesERC721TokenABI from '../assets/abis/VotesERC721TokenABI.json'
 import type { ProposalArgs, VoteChoice } from '../utils/utils';
+import { getNonCommercialTerms } from '../utils/utils';
 import { type LicenseTerms, StoryClient } from "@story-protocol/core-sdk";
 import axios from "axios";
 
@@ -75,66 +76,58 @@ export async function registerLicenseTerms(licenseTerms: LicenseTerms, client: S
 }
 
 export async function uploadFileToIPFS(file: File, filename: string): Promise<string | undefined> {
-    try {
-        const formData = new FormData();
-        formData.set("file", file);
-        formData.set("filename", filename);
+    const formData = new FormData();
+    formData.set("file", file);
+    formData.set("filename", filename);
 
-        const isDev = import.meta.env.DEV; // true in dev, false in build
+    const isDev = import.meta.env.DEV; // true in dev, false in build
 
-        const endpoint = isDev
-            ? "http://localhost:5000/api/uploadFileToIPFS"
-            : "/api/uploadToIPFS";
+    const endpoint = isDev
+        ? "http://localhost:5000/api/uploadFileToIPFS"
+        : "/api/uploadToIPFS";
 
-        const response = await axios.post(endpoint, formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            },
-        });
+    const response = await axios.post(endpoint, formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
 
-        const result = response.data;
+    const result = response.data;
 
-        if (response.statusText === "OK" || response.status === 200) {
-            return result.cid;
-        } else {
-            throw new Error(result.error || "Unknown error");
-        }
-    } catch (error) {
-        console.error("Error uploading to IPFS:", error);
+    if (response.statusText === "OK" || response.status === 200) {
+        return result.cid;
+    } else {
+        throw new Error(result.error || "Unknown error");
     }
 };
 
 export async function uploadJsonToIPFS(data: any, filename: string): Promise<string | undefined> {
-    try {
-        const formData = new FormData();
-        formData.set("data", data);
-        formData.set("filename", filename);
+    const formData = new FormData();
+    formData.set("data", data);
+    formData.set("filename", filename);
 
-        const isDev = import.meta.env.DEV; // true in dev, false in build
+    const isDev = import.meta.env.DEV; // true in dev, false in build
 
-        const endpoint = isDev
-            ? "http://localhost:5000/api/uploadJSONToIPFS"
-            : "/api/uploadToIPFS";
+    const endpoint = isDev
+        ? "http://localhost:5000/api/uploadJSONToIPFS"
+        : "/api/uploadToIPFS";
 
-        const response = await axios.post(endpoint, formData, {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            },
-        });
+    const response = await axios.post(endpoint, formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
 
-        const result = response.data;
+    const result = response.data;
 
-        if (response.statusText === "OK" || response.status === 200) {
-            return result.cid;
-        } else {
-            throw new Error(result.error || "Unknown error");
-        }
-    } catch (error) {
-        console.error("Error uploading to IPFS:", error);
+    if (response.statusText === "OK" || response.status === 200) {
+        return result.cid;
+    } else {
+        throw new Error(result.error || "Unknown error");
     }
 };
 
-export async function mintNFT(to: Address, uri: string, publicClient: PublicClient, walletClient: WalletClient): Promise<number | undefined> {
+export async function mintNFT(to: Address, uri: string, publicClient: PublicClient, walletClient: WalletClient): Promise<bigint | undefined> {
     const { request } = await publicClient.simulateContract({
         address: NFTContractAddress,
         functionName: 'safeMint',
@@ -142,12 +135,82 @@ export async function mintNFT(to: Address, uri: string, publicClient: PublicClie
         abi: VotesERC721TokenABI,
         account: walletClient.account
     });
-    
-    const hash = await walletClient.writeContract({ ...request, account: walletClient.account })
+
+    const hash = await walletClient.writeContract({ ...request, account: walletClient.account! })
     const { logs } = await publicClient.waitForTransactionReceipt({
         hash,
     })
     if (logs[0].topics[3]) {
-        return parseInt(logs[0].topics[3], 16)
+        return BigInt(parseInt(logs[0].topics[3], 16));
     }
+}
+
+// export async function registerAsset(
+//     tokenId: bigint,
+//     ipMetadataURI: string,
+//     ipMetadataHash: `0x${string}`,
+//     nftMetadataURI: string,
+//     nftMetadataHash: `0x${string}`,
+//     storyClient: StoryClient,
+// ): Promise<{ txHash: `0x${string}`, ipId: `0x${string}` }> {
+//     const response = await storyClient.ipAsset.registerIpAndAttachPilTerms({
+//         nftContract: NFTContractAddress,
+//         tokenId: tokenId,
+//         licenseTermsData: [
+//             {
+//                 terms: getNonCommercialTerms()
+//             }
+//         ],
+//         ipMetadata: {
+//             ipMetadataURI,
+//             ipMetadataHash,
+//             nftMetadataURI,
+//             nftMetadataHash,
+//         },
+//         txOptions: { waitForTransaction: true },
+//     })
+
+//     if (!response.txHash || !response.ipId) {
+//         throw new Error("Failed to register asset");
+//     }
+
+//     return { txHash: response.txHash, ipId: response.ipId};
+// }
+
+export const createFileHash = async (file: File): Promise<`0x${string}`> => {
+    // Read file as an ArrayBuffer using FileReader
+    const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as ArrayBuffer);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+    });
+
+    // Use SubtleCrypto for SHA-256 hashing in the browser
+    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return `0x${hashHex}`;
+}
+
+export const createMetadataHash = async (data: any): Promise<`0x${string}`> => {
+    // Use SubtleCrypto for SHA-256 hashing in the browser
+    const jsonString = JSON.stringify(data);
+    const encoder = new TextEncoder();
+    const arrayBuffer = encoder.encode(jsonString);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return `0x${hashHex}`;
+}
+
+export async function getNFTUri(collectionAddress: Address, tokenId: bigint, client: PublicClient): Promise<string> {
+    const contract = getContract({
+        address: collectionAddress,
+        abi: VotesERC721TokenABI,
+        client
+    });
+
+    const uri = await contract.read.tokenURI([tokenId]);
+    return uri as string;
 }
