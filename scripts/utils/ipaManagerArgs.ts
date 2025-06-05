@@ -5,6 +5,9 @@ module.exports = [
 	process.env.LICENSING_MODULE!,
 	process.env.PIL_TEMPLATE!,
 	process.env.CoreMetadataViewModule!,
+	process.env.REGISTRATION_WORKFLOWS!,
+	process.env.DERIVATIVE_WORKFLOWS!,
 	process.env.REVENUE_TOKEN!,
-	process.env.NFT_CONTRACT_ADDRESS!,
+  	process.env.SPG_NFT_CONTRACT_NAME!,
+  	process.env.SPG_NFT_CONTRACT_SYMBOL!,
 ];

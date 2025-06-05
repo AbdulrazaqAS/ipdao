@@ -3,15 +3,16 @@ pragma solidity ^0.8.26;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ERC721Holder } from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
-import { ILicensingModule } from "@story-protocol/protocol-core/contracts/interfaces/modules/licensing/ILicensingModule.sol";
-import { IPILicenseTemplate } from "@story-protocol/protocol-core/contracts/interfaces/modules/licensing/IPILicenseTemplate.sol";
-import { PILFlavors } from "@story-protocol/protocol-core/contracts/lib/PILFlavors.sol";
+import { ILicensingModule } from "@storyprotocol/core/interfaces/modules/licensing/ILicensingModule.sol";
+import { IPILicenseTemplate } from "@storyprotocol/core/interfaces/modules/licensing/IPILicenseTemplate.sol";
+import { PILFlavors } from "@storyprotocol/core/lib/PILFlavors.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import { ICoreMetadataViewModule } from "@story-protocol/protocol-core/contracts/interfaces/modules/metadata/ICoreMetadataViewModule.sol";
-import { IIPAssetRegistry } from "@story-protocol/protocol-core/contracts/interfaces/registries/IIPAssetRegistry.sol";
-import { ISPGNFT } from "@story-protocol/protocol-periphery/contracts/interfaces/ISPGNFT.sol";
-import { IRegistrationWorkflows } from "@story-protocol/protocol-periphery/contracts/interfaces/workflows/IRegistrationWorkflows.sol";
-import { WorkflowStructs } from "@story-protocol/protocol-periphery/contracts/lib/WorkflowStructs.sol";
+import { ICoreMetadataViewModule } from "@storyprotocol/core/interfaces/modules/metadata/ICoreMetadataViewModule.sol";
+import { IIPAssetRegistry } from "@storyprotocol/core/interfaces/registries/IIPAssetRegistry.sol";
+import { ISPGNFT } from "@storyprotocol/periphery/interfaces/ISPGNFT.sol";
+import { IRegistrationWorkflows } from "@storyprotocol/periphery/interfaces/workflows/IRegistrationWorkflows.sol";
+import { IDerivativeWorkflows } from "@storyprotocol/periphery/interfaces/workflows/IDerivativeWorkflows.sol";
+import { WorkflowStructs } from "@storyprotocol/periphery/lib/WorkflowStructs.sol";
 
 contract IPAManager is Ownable, ERC721Holder {
     IIPAssetRegistry public immutable IP_ASSET_REGISTRY;
@@ -19,6 +20,7 @@ contract IPAManager is Ownable, ERC721Holder {
     IPILicenseTemplate public immutable PIL_TEMPLATE;
     ICoreMetadataViewModule public immutable CORE_METADATA_VIEW_MODULE;
     IRegistrationWorkflows public immutable REGISTRATION_WORKFLOWS;
+    IDerivativeWorkflows public immutable DERIVATIVE_WORKFLOWS;
     ISPGNFT public immutable SPG_NFT;
 
     address[] public assets;
@@ -29,7 +31,7 @@ contract IPAManager is Ownable, ERC721Holder {
     event TermsAttached(address indexed assetId, uint256 licenseTermsId);
     event NFTReceived(address collection, address from, uint256 tokenId);
     event RevenueTokenUpdated(address newRevenueToken);
-    event DerivativeAssetCreated(address indexed childIpId, address[] parentIpIds, uint256[] licenseTermsIds);
+    event DerivativeAssetCreated(address childIpId, uint256 childTokenId, address[] parentIpIds, uint256[] licenseTermsIds);
 
     constructor(
         address _initialOwner,
@@ -38,6 +40,7 @@ contract IPAManager is Ownable, ERC721Holder {
         address _pilTemplate,
         address _coreMetadataViewModule,
         address _registrationWorkflows,
+        address _derivativeWorkflows,
         address _revenueToken,
         string memory _spgName,
         string memory _spgSymbol
@@ -48,6 +51,7 @@ contract IPAManager is Ownable, ERC721Holder {
         PIL_TEMPLATE = IPILicenseTemplate(_pilTemplate);
         CORE_METADATA_VIEW_MODULE = ICoreMetadataViewModule(_coreMetadataViewModule);
         REGISTRATION_WORKFLOWS = IRegistrationWorkflows(_registrationWorkflows);
+        DERIVATIVE_WORKFLOWS = IDerivativeWorkflows(_derivativeWorkflows);
 
         SPG_NFT = ISPGNFT(
             REGISTRATION_WORKFLOWS.createCollection(
@@ -111,23 +115,21 @@ contract IPAManager is Ownable, ERC721Holder {
         string memory _ipMetadataURI,
         string memory _ipMetadataHash,
         string memory _nftMetadataURI,
-        string memory _nftMetadataHash,
-        uint256 _licenseTermsId
+        string memory _nftMetadataHash
     ) external onlyOwner returns (address ipId, uint256 tokenId){
         (ipId, tokenId) = REGISTRATION_WORKFLOWS.mintAndRegisterIp(
             address(SPG_NFT),
             address(this),  // receiver
             WorkflowStructs.IPMetadata({
                 ipMetadataURI: _ipMetadataURI,
-                ipMetadataHash: _ipMetadataHash,
+                ipMetadataHash: bytes32(bytes(_ipMetadataHash)),
                 nftMetadataURI: _nftMetadataURI,
-                nftMetadataHash: _nftMetadataHash
+                nftMetadataHash: bytes32(bytes(_nftMetadataHash))
             }),
-            true  // ??
+            true  // allow duplicates with same metadata
         );
 
         addAsset(ipId);
-        attachLicenseTerms(ipId, _licenseTermsId);
     }
 
     function transferAsset(address assetId, address collection, address to, uint256 tokenId) external onlyOwner {
@@ -169,26 +171,36 @@ contract IPAManager is Ownable, ERC721Holder {
     }
 
     // For owner to create derivatives.
-    function registerDerivative(
-        address[] calldata parentIpIds,
-        uint256[] calldata licenseTermsIds,
-        string memory metadataURI
-    ) external onlyOwner returns (uint256 childTokenId, address childIpId) {
-        childTokenId = SPG_NFT.safeMint(address(this), metadataURI);
-        childIpId = IP_ASSET_REGISTRY.register(block.chainid, address(Token_Collection), childTokenId);
+    function mintAndRegisterAndMakeDerivative(
+        address[] calldata _parentIpIds,
+        uint256[] calldata _licenseTermsIds,
+        string memory _ipMetadataURI,
+        string memory _ipMetadataHash,
+        string memory _nftMetadataURI,
+        string memory _nftMetadataHash
+    ) external onlyOwner {
+        (address childIpId, uint256 childTokenId) = DERIVATIVE_WORKFLOWS.mintAndRegisterIpAndMakeDerivative(
+            address(SPG_NFT),
+            WorkflowStructs.MakeDerivative({
+                parentIpIds: _parentIpIds,
+                licenseTemplate: address(PIL_TEMPLATE),
+                licenseTermsIds: _licenseTermsIds,
+                royaltyContext: "",
+                maxMintingFee: 0,
+                maxRts: 0,
+                maxRevenueShare: 30
+            }),
+            WorkflowStructs.IPMetadata({
+                ipMetadataURI: _ipMetadataURI,
+                ipMetadataHash: bytes32(bytes(_ipMetadataHash)),
+                nftMetadataURI: _nftMetadataURI,
+                nftMetadataHash: bytes32(bytes(_nftMetadataHash))
+            }),
+            address(this),
+            false  // allow duplicates
+        );
 
-        LICENSING_MODULE.registerDerivative({
-        childIpId: childIpId,
-        parentIpIds: parentIpIds,
-        licenseTermsIds: licenseTermsIds,
-        licenseTemplate: address(PIL_TEMPLATE),
-        royaltyContext: "", // empty for PIL
-        maxMintingFee: 0,
-        maxRts: 0,
-        maxRevenueShare: 100
-        });
-
-        emit DerivativeAssetCreated(childIpId, parentIpIds, licenseTermsIds);
+        emit DerivativeAssetCreated(childIpId, childTokenId, _parentIpIds, _licenseTermsIds);
     }
 
     function onERC721Received(

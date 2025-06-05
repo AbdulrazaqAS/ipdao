@@ -33,12 +33,6 @@ yarn hardhat run scripts/deployERC20Token.ts --network aeneid
 Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `GOVERNANCE_TOKEN` inside *.env*.
 
 ```bash
-# Deploy NFT Collection
-yarn hardhat run scripts/deployERC721Token.ts --network aeneid
-```
-Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `NFT_CONTRACT_ADDRESS` inside *.env*.
-
-```bash
 # Deploy IPGovernorNoTimelock and make it token owner
 yarn hardhat run scripts/deployIPGovernorNoTimeLock.ts --network aeneid
 ```
@@ -71,7 +65,7 @@ yarn dev
 TODO: Fix verification warnings
 ```bash
 # Verify IPAMAanager
-npx hardhat verify --constructor-args utils/ipaManagerArgs.ts --network aeneid <IPAManager Address>
+yarn hardhat verify --constructor-args scripts/utils/ipaManagerArgs.ts --network aeneid <IPAManager Address>
 ```
 
 npx hardhat verify --network aeneid 0xB1C6fDA5E79A4E8e102CEc5Dec6F78eF1d90d285 ["CreatorDao",300,900,100000000000000000000,4,"0x84E13D0d7396f881F3f78505e14af04AE987cBE9"]

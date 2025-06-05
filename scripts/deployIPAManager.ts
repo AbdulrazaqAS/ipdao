@@ -9,7 +9,10 @@ async function main() {
   const revenueToken = process.env.REVENUE_TOKEN!;
   const coreMetadataViewModule = process.env.CoreMetadataViewModule!;
   const assetRegistry = process.env.IPAssetRegistry!;
-  const nftCollection = process.env.NFT_CONTRACT_ADDRESS!;
+  const derivativeWorkflows = process.env.DERIVATIVE_WORKFLOWS!;
+  const registrationWorkflows = process.env.REGISTRATION_WORKFLOWS!;
+  const spgNftName = process.env.SPG_NFT_CONTRACT_NAME!;
+  const spgNftSymbol = process.env.SPG_NFT_CONTRACT_SYMBOL!;
 
   const IPAManager = await ethers.getContractFactory("IPAManager");
   const ipaManager = await IPAManager.deploy(
@@ -18,15 +21,17 @@ async function main() {
     licensingModule,
     pilTemplate,
     coreMetadataViewModule,
+    registrationWorkflows,
+    derivativeWorkflows,
     revenueToken,
-    nftCollection
+    spgNftName,
+    spgNftSymbol
   );
   
   await ipaManager.waitForDeployment();
   const deploymentTx = ipaManager.deploymentTransaction();
   const deploymentReceipt = await deploymentTx!.wait();
   console.log("IP Assets Manager Address:", deploymentReceipt?.contractAddress);
-
 }
 
 main().catch(console.error);

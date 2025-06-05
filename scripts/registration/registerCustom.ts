@@ -1,7 +1,7 @@
-import { mintNFT } from '../../utils/functions/mintNFT'
-import { createCommercialRemixTerms, NFTContractAddress } from '../../utils/utils'
-import { client, account, networkInfo } from '../../utils/config'
-import { uploadJSONToIPFS, uploadFileToIPFS } from '../../utils/functions/uploadToIpfs'
+import { mintNFT } from '../utils/functions/mintNFT'
+import { createCommercialRemixTerms, NFTContractAddress } from '../utils/utils'
+import { client, account, networkInfo } from '../utils/config'
+import { uploadJSONToIPFS, uploadFileToIPFS } from '../utils/functions/uploadToIpfs'
 import { createHash } from 'crypto'
 import { readFileSync } from 'fs';
 import { IpMetadata } from '@story-protocol/core-sdk'

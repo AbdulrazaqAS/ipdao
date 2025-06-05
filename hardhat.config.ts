@@ -1,6 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-verify";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-foundry";
 import "dotenv/config";
 
 const { WALLET_PRIVATE_KEY } = process.env;
@@ -35,7 +36,7 @@ const config: HardhatUserConfig = {
         }
       }
     ]
-  },
+  }
 };
 
 export default config;
