@@ -2,7 +2,8 @@ import { Hourglass, Zap, XCircle, CheckCircle, Clock3 } from "lucide-react";
 import { useState, useEffect, type JSX } from "react";
 import { usePublicClient, useWalletClient } from 'wagmi'
 import { ProposalState, VoteChoice, type ProposalData } from "../utils/utils";
-import { executeProposal } from "../scripts/action";
+import { cancelProposal, executeProposal } from "../scripts/action";
+import { formatEther } from "viem";
 
 const StatusColor: Record<ProposalState, string> = {
     [ProposalState.Pending]: "bg-yellow-100 text-yellow-800",
@@ -28,38 +29,57 @@ const StatusIcon: Record<ProposalState, JSX.Element> = {
 
 interface Props {
     proposal: ProposalData;
+    votingPeriod: number;
     setVoteChoice: Function;
     setSelectedProposal: Function;
     setShowModal: Function;
 }
 
 // TODOS:
-// Hides votes btn if already voted. Show "Voted For".
-// Use deadline - voteDelay for timer when state is waiting. Then
-// refetch when it hits zero and make the deadline as timer
-// Show cancel btn
-// Show number of votes, quorom % that has voted
+// Show quorom % that has voted
+// Add confirmation modals for execute and cancel
 
-export default function ProposalCard({ proposal, setVoteChoice, setSelectedProposal, setShowModal }: Props) {
+export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, setSelectedProposal, setShowModal }: Props) {
     const [timeleft, setTimeleft] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    
+
     const totalVotes = Number(proposal.for + proposal.against + proposal.abstain) || 1; // Avoid division by zero
     const forPct = Math.round((Number(proposal.for) / totalVotes) * 100);
     const againstPct = Math.round((Number(proposal.against) / totalVotes) * 100);
     const abstainPct = Math.round((Number(proposal.abstain) / totalVotes) * 100);
 
-    const {data: walletClient} = useWalletClient();
+    const forEth = formatEther(proposal.for);
+    const againstEth = formatEther(proposal.against);
+    const abstainEth = formatEther(proposal.abstain);
+
+    const { data: walletClient } = useWalletClient();
     const publicClient = usePublicClient();
 
     useEffect(() => {
         const updateTime = setInterval(() => {
-            // Calculate time left
-            const now = Date.now() / 1000; // Current time in seconds
-            const timeLeftSeconds = Number(proposal.deadline) - now;
+            // Calculate time left. Only these states have timer.
+            if (proposal.state !== ProposalState.Pending && proposal.state !== ProposalState.Active) {
+                clearInterval(updateTime);
+                return;
+            }
 
-            if (timeLeftSeconds < 0) {
-                clearInterval(updateTime); // proposal status will show more info if proposal is expired
+            const now = Date.now() / 1000; // Current time in seconds
+            let timeLeftSeconds = Number(proposal.deadline) - now;
+
+            // if in pending status (i.e timeLeftSeconds > votingPeriod), show countdown to active state
+            if (timeLeftSeconds > votingPeriod) timeLeftSeconds = timeLeftSeconds - votingPeriod;
+
+            if (timeLeftSeconds <= 0) {
+                if (proposal.state === ProposalState.Pending) {
+                    // TODO: Update state to active
+                } else if (proposal.state === ProposalState.Active) {
+                    clearInterval(updateTime);
+                    setTimeleft("");
+                    // TODO: update proposal status
+                } else {  // Any other state
+                    clearInterval(updateTime);
+                    setTimeleft("");
+                }
                 return;
             }
 
@@ -70,10 +90,7 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
 
             const timeleft = `${days}d ${hours}h ${minutes}m ${seconds}s`;
             setTimeleft(timeleft);
-        }, 1000)
-
-        // const updateStatus = setInterval(() => {}, 1000 * 60); // after every min
-        // const updateVotes = setInterval(() => {}, 1000 * 60); // after every min
+        }, 1000);
     }, []);
 
     async function handleExecute() {
@@ -86,11 +103,42 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
             setIsLoading(true);
             const txHash = await executeProposal(proposal.id, walletClient);
             console.log("Execution tx sent. TxHash:", txHash);
-              
-            publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => console.log("Execution mined"));
-            // TODO: update state
+
+            publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
+                if (txReceipt.status === "reverted") console.error("Failed to execute proposal");
+                else {
+                    console.log("Proposal executed");
+                    // TODO: update state and remove btn
+                }
+            });
         } catch (error) {
             console.error("Error executing proposal:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    
+    async function handleCancel() {
+        if (!walletClient) {
+            console.error("Wallet not connected");
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            const txHash = await cancelProposal(proposal.id, walletClient);
+            console.log("Cancel tx sent. TxHash:", txHash);
+
+            publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
+                if (txReceipt.status === "reverted") console.error("Failed to cancel proposal");
+                else {
+                    console.log("Proposal cancelled");
+                    // TODO: update state and remove btn
+                }
+            });
+
+        } catch (error) {
+            console.error("Error cancelling proposal:", error);
         } finally {
             setIsLoading(false);
         }
@@ -124,7 +172,7 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
                             style={{ width: `${forPct}%` }}
                         ></div>
                     </div>
-                    <span className="text-xs text-gray-500">{forPct}%</span>
+                    <span className="text-xs text-gray-500">{forEth} | {forPct}%</span>
                 </div>
 
                 <div>
@@ -135,7 +183,7 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
                             style={{ width: `${againstPct}%` }}
                         ></div>
                     </div>
-                    <span className="text-xs text-gray-500">{againstPct}%</span>
+                    <span className="text-xs text-gray-500">{againstEth} | {againstPct}%</span>
                 </div>
 
                 <div>
@@ -146,7 +194,7 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
                             style={{ width: `${abstainPct}%` }}
                         ></div>
                     </div>
-                    <span className="text-xs text-gray-500">{abstainPct}%</span>
+                    <span className="text-xs text-gray-500">{abstainEth} | {abstainPct}%</span>
                 </div>
             </div>
 
@@ -155,8 +203,8 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
                 {timeleft}
             </div>}
 
-            {/* Show vote buttons if active */}
-            {proposal.status === ProposalState.Active && (
+            {/* Show vote buttons if active, wallet connected, and has not vote */}
+            {proposal.status === ProposalState.Active && walletClient && !proposal.hasVoted && (
                 <div className="flex gap-3 flex-wrap">
                     <button
                         className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
@@ -191,6 +239,13 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
                 </div>
             )}
 
+            {/* Show vote choice if has already voted */}
+            {walletClient && proposal.hasVoted && (
+                <p className="text-md text-gray-900">
+                    Already voted on this proposal.
+                </p>
+            )}
+
             {/* Show execute button if succeeded */}
             {proposal.status === ProposalState.Succeeded && (
                 <div className="flex gap-3 flex-wrap">
@@ -200,6 +255,19 @@ export default function ProposalCard({ proposal, setVoteChoice, setSelectedPropo
                         disabled={isLoading}
                     >
                         {isLoading ? "Sending..." : "Execute"}
+                    </button>
+                </div>
+            )}
+
+            {/* Show cancel  button if pending and the user is the proposer */}
+            {proposal.status === ProposalState.Pending && walletClient && walletClient.account.address === proposal.proposer && (
+                <div className="flex gap-3 flex-wrap">
+                    <button
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:cursor-not-allowed"
+                        onClick={handleCancel}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? "Sending..." : "Cancel"}
                     </button>
                 </div>
             )}

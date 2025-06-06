@@ -37,6 +37,7 @@ export type ProposalData = ProposalDetails & ProposalVotes & {
     state: number;
     status: ProposalState;
     description: string | null;
+    hasVoted?: boolean;
 }
 
 export enum ProposalState {

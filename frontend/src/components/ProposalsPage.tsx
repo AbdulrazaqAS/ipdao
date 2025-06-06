@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { usePublicClient, useWalletClient } from "wagmi";
-import { getProposals, getProposalsCount, getProposalsDeadlines, getProposalsDescriptions, getProposalsProposers, getProposalsStates, getProposalsVotes } from "../scripts/proposal";
+import { getProposals, getProposalsCount, getProposalsDeadlines, getProposalsDescriptions, getProposalsProposers, getProposalsStates, getProposalsVotes, getVotingPeriod, hasVoted } from "../scripts/proposal";
 import { ProposalState, type ProposalData, VoteChoice } from "../utils/utils";
 import ProposalCard from "./ProposalCard";
 import { castVote } from "../scripts/action";
@@ -12,19 +12,20 @@ export default function ProposalsPage() {
   const [voteChoice, setVoteChoice] = useState<VoteChoice>();
   const [selectedProposal, setSelectedProposal] = useState<ProposalData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [votingPeriod, setVotingPeriod] = useState(0n);
 
   // FIlter out number keys from tabs.
   const tabs = ["All", ...Object.keys(ProposalState).filter((e) => e.length > 1)];
 
-  const {data: walletClient} = useWalletClient();
+  const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
 
   const filteredProposals = proposals.filter((p) =>
     selectedTab === "All" ? true : ProposalState[p.status] === selectedTab
   );
 
-  async function handleCastVote(){
-    if (!walletClient){
+  async function handleCastVote() {
+    if (!walletClient) {
       console.error("Wallet not connected");
       return;
     }
@@ -34,9 +35,14 @@ export default function ProposalsPage() {
       const txHash = await castVote(selectedProposal!.id, voteChoice!, walletClient);
       console.log(`Voted ${voteChoice} on proposal ${selectedProposal!.id}`);
 
-      // TODO: Resolving doesn't mean it has been accepted.
-      publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => {
-        console.log("Vote minted");
+      publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
+        if (txReceipt.status === "reverted") console.error("Failed to cast vote");
+        else {
+          const votedProposalIndex = proposals.findIndex((p) => p.id === selectedProposal?.id);
+          const updatedProposals = [...proposals];
+          updatedProposals[votedProposalIndex].hasVoted = true;
+          console.log("Vote confirmed");
+        }
       });
     } catch (error) {
       console.error("Error sending vote:", error);
@@ -50,8 +56,8 @@ export default function ProposalsPage() {
     async function fetchProposals() {
       try {
         const proposalCount = await getProposalsCount(publicClient!);
-        const indices = Array.from({length: Number(proposalCount)}, (_, i) => i).reverse();  // reverse to fetch by descending
-        
+        const indices = Array.from({ length: Number(proposalCount) }, (_, i) => i).reverse();  // reverse to fetch by descending
+
         const proposalsDetails = await getProposals(indices, publicClient!);
         const proposalIds = proposalsDetails.map((p) => p.id);
 
@@ -61,12 +67,15 @@ export default function ProposalsPage() {
         const proposalsStates = await getProposalsStates(proposalIds, publicClient!);
         const descriptions = await getProposalsDescriptions(publicClient!);
 
-        const proposals = proposalsDetails.map((details, index) => {
+        const proposalsPromise = proposalsDetails.map(async (details, index) => {
           const votes = proposalsVotes[index];
           const deadline = proposalsDeadline[index];
           const proposer = proposalsProposer[index];
           const state = proposalsStates[index] as ProposalState;
           const description = descriptions.find(desc => details.id === desc.proposalId)?.description || null;
+
+          let userHasVoted = false;
+          if (walletClient) userHasVoted = await hasVoted(details.id, walletClient.account.address, publicClient!);
 
           return {
             ...details,
@@ -75,9 +84,12 @@ export default function ProposalsPage() {
             state,
             status: state,
             proposer: proposer,
-            description
+            description,
+            hasVoted: userHasVoted,
           } as ProposalData
         });
+
+        const proposals = await Promise.all(proposalsPromise);
         setProposals(proposals);
         console.log("Proposals fetched:", proposals);
       } catch (error) {
@@ -86,6 +98,8 @@ export default function ProposalsPage() {
     }
 
     fetchProposals();
+
+    getVotingPeriod(publicClient!).then(setVotingPeriod).catch(console.error);
 
   }, []);
 
@@ -98,11 +112,10 @@ export default function ProposalsPage() {
         {tabs.map((tab) => (
           <button
             key={tab}
-            className={`px-4 py-2 rounded text-sm font-medium transition ${
-              selectedTab === tab
+            className={`px-4 py-2 rounded text-sm font-medium transition ${selectedTab === tab
                 ? "bg-blue-600 text-white"
                 : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-            }`}
+              }`}
             onClick={() => setSelectedTab(tab)}
           >
             {tab}
@@ -113,7 +126,7 @@ export default function ProposalsPage() {
       {/* Proposal cards */}
       <div className="grid gap-6">
         {filteredProposals.map((proposal) =>
-          <ProposalCard key={proposal.id} proposal={proposal} setSelectedProposal={setSelectedProposal} setShowModal={setShowModal} setVoteChoice={setVoteChoice}/>
+          <ProposalCard key={proposal.id} proposal={proposal} votingPeriod={Number(votingPeriod)} setSelectedProposal={setSelectedProposal} setShowModal={setShowModal} setVoteChoice={setVoteChoice} />
         )}
 
         {filteredProposals.length === 0 && (
@@ -140,13 +153,12 @@ export default function ProposalsPage() {
                 Cancel
               </button>
               <button
-                className={`px-4 py-2 rounded text-white disabled:cursor-not-allowed ${
-                  voteChoice === VoteChoice.For
+                className={`px-4 py-2 rounded text-white disabled:cursor-not-allowed ${voteChoice === VoteChoice.For
                     ? "bg-green-600 hover:bg-green-700"
                     : voteChoice === VoteChoice.Against
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-yellow-500 hover:bg-yellow-600"
-                }`}
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-yellow-500 hover:bg-yellow-600"
+                  }`}
                 onClick={handleCastVote}
                 disabled={isLoading}
               >

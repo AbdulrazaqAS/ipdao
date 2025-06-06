@@ -15,7 +15,7 @@ export default function Dashboard() {
   // const [userBalance, setUserBalance] = useState(0n);
   const [userVotingPower, setUserVotingPower] = useState(0n);
   const [daoName, setDaoName] = useState("");
-  const [governanceTokenSupply, setGovernanceTokenSupply] = useState(0n);
+  const [governanceTokenSupply, setGovernanceTokenSupply] = useState("");
   const [governanceTokenHolders, setGovernanceTokenHolders] = useState(0);
 
   const {data: walletClient} = useWalletClient();
@@ -37,11 +37,15 @@ export default function Dashboard() {
       setProposalThreshold(valueEth);
     }).catch(console.error);
     
+    getGovernanceTokenSupply(publicClient!).then((supply) => {
+      const supplyEth = formatEther(supply);
+      setGovernanceTokenSupply(supplyEth);
+    }).catch(console.error);
+
     getDAOName(publicClient!).then(setDaoName).catch(console.error);
     getQuorum(publicClient!).then(setQuorum).catch(console.error);
     // getGovernanceToken(publicClient!).then(setGovernanceToken).catch(console.error);
     getProposalsCount(publicClient!).then(setTotalProposals).catch(console.error);
-    getGovernanceTokenSupply(publicClient!).then(setGovernanceTokenSupply).catch(console.error);
 
     if (publicClient?.chain.id === 1315)
       getGovernanceTokenHolders("aeneid").then(setGovernanceTokenHolders).catch(console.error);
@@ -63,7 +67,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
           <Users className="w-8 h-8 text-primary" />
           <div>
@@ -74,7 +78,7 @@ export default function Dashboard() {
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
           <Coins className="w-8 h-8 text-yellow-500" />
           <div>
-            <p className="text-sm text-muted-foreground">Token Supply</p>
+            <p className="text-sm text-muted-foreground">Token Total Supply</p>
             <p className="text-xl font-semibold">{governanceTokenSupply}</p>
           </div>
         </div>

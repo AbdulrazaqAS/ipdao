@@ -288,5 +288,5 @@ export async function getGovernanceTokenHolders(chain: "aeneid" | "mainnet"): Pr
     });
 
     const holdersMetadata = await response.json();
-    return holdersMetadata.lenght as number;
+    return holdersMetadata.items.length as number;
 }
