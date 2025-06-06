@@ -1,6 +1,9 @@
 import { parseEther, zeroAddress, type Address } from "viem";
 import { type LicenseTerms } from "@story-protocol/core-sdk";
 
+export const AeniedProtocolExplorer = 'https://aeneid.explorer.story.foundation';
+export const MainnetProtocolExplorer = 'https://explorer.story.foundation';
+
 export enum NavItems {
     Dashboard = "Dashboard",
     Proposals = "Proposals",

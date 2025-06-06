@@ -162,13 +162,15 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
         </div>
 
         <Section title="Creators">
-          {assetMetadata.creators.map((creator, index) => (
-            <div key={index} className="bg-surface rounded-lg border-white border py-2 px-4">
-              <p className="text-muted text-2xl font-semibold">{creator.name}</p>
-              <p className="text-text font-medium break-words">{creator.address}</p>
-              <p className="text-muted text-xs">Contribution: {creator.contributionPercent}%</p>
-            </div>
-          ))}
+          <div className="space-y-2">
+            {assetMetadata.creators.map((creator, index) => (
+              <div key={index} className="bg-surface rounded-lg border-white border py-2 px-4">
+                <p className="text-muted text-2xl font-semibold">{creator.name}</p>
+                <p className="text-text font-medium break-words">{creator.address}</p>
+                <p className="text-muted text-xs">Contribution: {creator.contributionPercent}%</p>
+              </div>
+            ))}
+          </div>
         </Section>
 
         <Section title="Licenses">

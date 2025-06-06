@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { ChevronLeft, X } from 'lucide-react'
-import { uploadFileToIPFS, uploadJsonToIPFS, mintNFT, createFileHash, createMetadataHash, registerAsset, getNFTUri } from '../scripts/action';
-import { custom, type Address } from 'viem';
+import { uploadFileToIPFS, uploadJsonToIPFS, createFileHash, createMetadataHash, getNFTUri, propose } from '../scripts/action';
+import { custom, encodeFunctionData, type Address } from 'viem';
 import { useWalletClient, usePublicClient } from 'wagmi';
-import { StoryClient } from '@story-protocol/core-sdk';
-import type { NFTMetadata } from '../utils/utils';
+import { StoryClient, type IpMetadata } from '@story-protocol/core-sdk';
+import { AeniedProtocolExplorer, MainnetProtocolExplorer, type NFTMetadata, type ProposalArgs } from '../utils/utils';
+import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
+import { getProposalsCount } from '../scripts/proposal';
+import { getAssetMetadata } from '../scripts/asset';
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER;
 
@@ -37,18 +40,15 @@ interface Props {
 
 export default function NewAssetForm({ setShowNewAssetForm }: Props) {
     const [assetId, setAssetId] = useState('');
-    const [haveIPAsset, setHaveIPAsset] = useState(false);
     const [processType, setProcessType] = useState<AssetCreationProcess>("fromScratch");
-    const [nftId, setNftId] = useState<bigint>();
     const [nftAttributes, setNftAttributes] = useState<NFTAttribute[]>([]);
     const [nftImage, setNftImage] = useState<File>();
     const [ipaMedia, setIpaMedia] = useState<File>();
     const [ipaImage, setIpaImage] = useState<File>();
-    const [ipaMediaHash, setIpaMediaHash] = useState<string>();
-    const [nftImageHash, setNftImageHash] = useState<string>();
-    const [ipaImageHash, setIpaImageHash] = useState<string>();
     const [nftMetadata, setNftMetadata] = useState<NFTMetadata>();
     const [nftMetadataUri, setNftMetadataUri] = useState<string>();
+    const [ipMetadata, setIpMetadata] = useState<IpMetadata>();
+    const [ipMetadataUri, setIpMetadataUri] = useState<string>();
 
     const [ipFields, setIpFields] = useState({
         title: '',
@@ -127,66 +127,82 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
     }
 
-    async function handleUploadImage() {
-        if (!nftImage) {
-            console.error("No image selected for upload");
-            return;
-        }
+    async function handleUploadFile(file: File, maxSizeMb: number) {
+        if (file.size > maxSizeMb * 1024 * 1024) throw new Error(`File size exceeds ${maxSizeMb}MB limit`);
 
-        if (nftImage.size > 5 * 1024 * 1024) {
-            throw new Error("Image size exceeds 5MB limit");
-        }
-
-        const cid = await uploadFileToIPFS(nftImage, nftImage.name);
+        const cid = await uploadFileToIPFS(file, file.name);
         return cid;
     }
 
     async function handleUploadMetadata(metadata: any, filename: string) {
-        try {
-            const data = JSON.stringify(metadata);
-            const cid = await uploadJsonToIPFS(data, filename);
-            return cid;
-        } catch (error) {
-            throw error;
-        }
+        const data = JSON.stringify(metadata);
+        const cid = await uploadJsonToIPFS(data, filename);
+        return cid;
     }
 
     async function uploadNFTMetadata() {
-        const imageCid = await handleUploadImage();
-        const imageUri = `https://ipfs.io/ipfs/${imageCid}`;
-        console.log("Image uplaoded:", imageUri);
+        try {
+            if (!nftImage) throw new Error("No image selected for upload");
 
-        const metadata = getNftMetadata(imageUri);
-        const metadataFilename = metadata.name + "NftMetadata.json"
-        console.log({ ...metadata, metadataFilename });
-        const metadataCid = await handleUploadMetadata(metadata, metadataFilename);
-        const metadataUri = `https://ipfs.io/ipfs/${metadataCid}`;
-        console.log("Metadata uploaded:", metadataUri);
+            const imageCid = await handleUploadFile(nftImage, 5);
+            if (!imageCid) throw Error("Failed to upload metadata");
 
-        // const tokenId = await mintNFT(IPA_MANAGER_ADDRESS, metadataUri!, publicClient!, walletClient!);
-        // if (!tokenId) throw new Error("Failed to mint NFT");
-        // setNftId(tokenId);
-        setNftMetadata(metadata);
-        setNftMetadataUri(metadataUri!);
+            const imageUri = `https://ipfs.io/ipfs/${imageCid}`;
+            console.log("Image uplaoded:", imageUri);
 
-        console.log("NFT Minted. ID:", tokenId);
+            const metadata = getNftMetadata(imageUri);
+            const metadataFilename = metadata.name + "NftMetadata.json"
+            const metadataCid = await handleUploadMetadata(metadata, metadataFilename);
+            if (!metadataCid) throw Error("Failed to upload metadata");
+
+            const metadataUri = `https://ipfs.io/ipfs/${metadataCid}`;
+            console.log("Metadata uploaded:", metadataUri);
+
+            setNftMetadata(metadata);
+            setNftMetadataUri(metadataUri!);
+        } catch (error) {
+            console.log("Error uploading NFT metadata:", error);
+        }
+    }
+
+    async function loadNftMetadata() {
+        try {
+            // TODO: Add checks
+            const collectionAddress = nftFields.collectionAddress.trim();
+            const tokenId = nftFields.tokenId.trim();
+            if (!collectionAddress || !tokenId) throw new Error("Collection address and token ID are required");
+    
+            const tokenCid = await getNFTUri(collectionAddress as Address, BigInt(tokenId), publicClient!);
+            if (!tokenCid) throw new Error("Failed to get NFT URI");
+    
+            const tokenUri = `https://ipfs.io/ipfs/${tokenCid}`;
+            const metadata = await fetch(tokenUri).then(res => res.json());
+            if (!metadata) throw new Error("Failed to fetch NFT metadata");
+    
+            setNftMetadata(metadata);
+            setNftMetadataUri(tokenUri);
+            console.log("NFT metadata fetched:", metadata);
+        } catch (error) {
+            console.error("Error fetching NFT metadata:", error);
+        }
     }
 
     async function uploadIPAMetadata() {
-        if (!ipaMedia || !ipaImage) {
-            console.error("No media or image selected for upload");
-            return;
-        }
-
-        if (ipaMedia.size > 100 * 1024 * 1024) {
-            throw new Error("Media size exceeds 100MB limit");
-        }
-
-        if (ipaImage.size > 5 * 1024 * 1024) {
-            throw new Error("Image size exceeds 5MB limit");
-        }
-        
         try {
+            if (!ipaMedia) throw new Error("No IP media selected for upload");
+            if (!ipaImage) throw new Error("No IP image selected for upload");
+            if (ipaMedia.size > 100 * 1024 * 1024) throw new Error("Media size exceeds 100MB limit");
+            if (ipaImage.size > 5 * 1024 * 1024) throw new Error("Image size exceeds 5MB limit");
+            
+            const mediaCid = await handleUploadFile(ipaMedia, 100);
+            if (!mediaCid) throw new Error("Failed to upload IPA media");
+            
+            const imageCid = await handleUploadFile(ipaImage, 5);
+            if (!imageCid) throw new Error("Failed to upload IPA image");
+            
+            const mediaUri = `https://ipfs.io/ipfs/${mediaCid}`;
+            const imageUri = `https://ipfs.io/ipfs/${imageCid}`;
+            
             const storyClient = StoryClient.newClient({
                 wallet: walletClient!,
                 transport: custom(walletClient!.transport),
@@ -194,15 +210,9 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             })
             
             const mediaHash = await createFileHash(ipaMedia);
-            setIpaMediaHash(mediaHash);
             const imageHash = await createFileHash(ipaImage);
-            setIpaImageHash(imageHash);
 
-            const mediaCid = await uploadFileToIPFS(ipaMedia, ipaMedia.name);
-            const imageCid = await uploadFileToIPFS(ipaImage, ipaImage.name);
-            const mediaUri = `https://ipfs.io/ipfs/${mediaCid}`;
-            const imageUri = `https://ipfs.io/ipfs/${imageCid}`;
-
+            // TODO: Add checks
             const ipMetadata = storyClient.ipAsset.generateIpMetadata({
                 title: ipFields.title.trim(),
                 description: ipFields.description.trim(),
@@ -213,36 +223,109 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                     contributionPercent: parseInt(creator.contributionPercent),
                 })),
                 image: imageUri,
-                imageHash: ipaImageHash as `0x${string}`,
+                imageHash: imageHash as `0x${string}`,
                 mediaUrl: mediaUri,
-                mediaHash: ipaMediaHash as `0x${string}`,
+                mediaHash: mediaHash as `0x${string}`,
                 mediaType: ipaMedia.type,
             });
 
-            const ipMetadataHash = await createMetadataHash(ipMetadata);
             const metadataFilename = `${ipFields.title}IpMetadata.json`;
-            const nftMetadataHash = await createMetadataHash(nftMetadata!);
             const metadataCid = await handleUploadMetadata(ipMetadata, metadataFilename);
-            
-            if (!metadataCid) {
-                throw new Error("Failed to upload IP metadata");
-            }
+            if (!metadataCid) throw new Error("Failed to upload IP metadata");
 
             const metadataUri = `https://ipfs.io/ipfs/${metadataCid}`;
-            
-            const { txHash, ipId } = await registerAsset(
-                nftId!,
-                metadataUri,
-                ipMetadataHash,
-                nftMetadataUri!,
-                nftMetadataHash,
-                storyClient
-            )
-            
-            console.log("Asset registered successfully:", { txHash, ipId });
-            setShowNewAssetForm(false);
+            console.log("IPA media uploaded:", { mediaUri, imageUri, metadataUri });
+
+            setIpMetadata(ipMetadata);
+            setIpMetadataUri(metadataUri);
         } catch (error) {
             console.error("Error uploading IP metadata:", error);
+        }
+    }
+
+    async function handleProposeAddRegisteredNewAsset () {
+        try {
+            const ipId = assetId.trim();
+            if (!ipId) throw new Error("Invalid asset id");
+
+            const targets = [IPA_MANAGER_ADDRESS];
+            const values = [0n];
+            const calldatas = [encodeFunctionData({
+                abi: IPAManagerABI,
+                functionName: "addAsset",
+                args: [ipId]
+            })];
+
+            const proposalIndex = await getProposalsCount(publicClient!);
+
+            const network = import.meta.env.VITE_STORY_NETWORK!;
+            const protocolExplorer = network === "mainnet" ? MainnetProtocolExplorer : AeniedProtocolExplorer;
+            const ipUrl = `View on the explorer: ${protocolExplorer}/ipa/${ipId}`;
+
+            // Added # for splitting the value when in use
+            const description = proposalIndex!.toString() +
+                "#Proposal to add new registered asset:\n" +
+                `IP Url: ${ipUrl}`
+
+            const proposalArgs: ProposalArgs = {
+                targets,
+                values,
+                calldatas,
+                description
+            };
+
+            console.log("Proposing to create new asset with args:", proposalArgs);
+            const txHash = await propose(proposalArgs, walletClient!);
+            console.log("Proposal waiting to be indexed. TxHash:", txHash); // TODO: Show this in frontend
+
+            publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
+                if (txReceipt.status === "reverted") console.error("Proposal reverted");
+                else console.log("Proposal mined")
+            });
+            setShowNewAssetForm(false);
+        } catch (error) {
+            console.error("Error proposing to add new asset:", error);
+        }
+    }
+
+    const handleProposeAddNewAsset = async () => {
+        try {
+            const ipMetadataHash = await createMetadataHash(ipMetadata!);
+            const nftMetadataHash = await createMetadataHash(nftMetadata!);
+
+            const targets = [IPA_MANAGER_ADDRESS];
+            const values = [0n];
+            const calldatas = [encodeFunctionData({
+                abi: IPAManagerABI,
+                functionName: "createAsset",
+                args: [ipMetadataUri, ipMetadataHash, nftMetadataUri, nftMetadataHash]
+            })];
+
+            const proposalIndex = await getProposalsCount(publicClient!);
+            // Added # for splitting the value when in use
+            const description = proposalIndex!.toString() +
+                "#Proposal to create new asset with:\n" +
+                `IP Metadata: ${ipMetadataUri}\n` +
+                `NFT Metadata: ${nftMetadataUri}`;
+
+            const proposalArgs: ProposalArgs = {
+                targets,
+                values,
+                calldatas,
+                description
+            };
+
+            console.log("Proposing to create new asset with args:", proposalArgs);
+            const txHash = await propose(proposalArgs, walletClient!);
+            console.log("Proposal waiting to be indexed. TxHash:", txHash); // TODO: Show this in frontend
+
+            publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
+                if (txReceipt.status === "reverted") console.error("Proposal reverted");
+                else console.log("Proposal mined")
+            });
+            setShowNewAssetForm(false);
+        } catch (error) {
+            console.error("Error proposing to add new asset:", error);
         }
     }
 
@@ -254,40 +337,22 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             return;
         }
 
-        try {
-            // If !nftId (for fromScratch) and !nftFields.tokenId (for fromNft)
-            if (!nftId && !nftFields.tokenId) await uploadNFTMetadataAndMintNFT();
-            else if (!nftMetadataUri) {
-                // If we already have an NFT, we need to get its metadata
-                const collectionAddress = nftFields.collectionAddress.trim();
-                const tokenId = nftFields.tokenId.trim();
-                if (!collectionAddress || !tokenId) {
-                    console.error("Collection address and token ID are required");
-                    return;
-                }
+        // If !nftMetadataUri for fromScratch when the metadata has not been uploaded.
+        // If !nftFields.tokenId for fromNft when the metadata has not been loaded
+        // but tokenId is inputted, it should skip this.
+        if (!nftMetadataUri && !nftFields.tokenId) await uploadNFTMetadata();
 
-                const tokenCid = await getNFTUri(collectionAddress as Address, BigInt(tokenId), publicClient!);
+        // For fromNft to load the metadata ( if tokenId is inputted (checked by the form))
+        else if (!nftMetadataUri) await loadNftMetadata();
 
-                if (!tokenCid) {
-                    console.error("Failed to get NFT URI");
-                    return;
-                }
-                const tokenUri = `https://ipfs.io/ipfs/${tokenCid}`;
-                const metadata = await fetch(tokenUri).then(res => res.json());
-                if (!metadata) {
-                    console.error("Failed to fetch NFT metadata");
-                    return;
-                }
+        // After getting required data to upload IP metadata
+        else if (nftMetadata && nftMetadataUri && !ipMetadataUri) await uploadIPAMetadata();
 
-                setNftMetadata(metadata);
-                setNftMetadataUri(tokenUri);
-                setNftId(BigInt(tokenId));
-                console.log("NFT metadata fetched:", metadata);
-            }
-            else await uploadIPAMetadata();
-        } catch (error) {
-            console.error("Error uploading nft metadata:", error);
-        }
+        // After getting required data to upload IP metadata
+        else if (ipMetadata && ipMetadataUri) await handleProposeAddNewAsset();
+
+        // For fromAsset
+        else if (assetId) handleProposeAddRegisteredNewAsset();
     }
 
     return (
@@ -303,7 +368,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                 <label><input type="radio" onChange={() => setProcessType("fromAsset")} checked={processType === "fromAsset"} /> Already have a Story registered asset</label>
             </div>
 
-            {processType === "fromNFT" && nftId === undefined && (
+            {processType === "fromNFT" && !nftMetadataUri && (
                 <div className="bg-background rounded-lg p-4">
                     <h3 className="font-semibold">NFT Details</h3>
                     <p className="text-sm text-muted mt-2">Make sure the NFT is owned by the IPAManager. Transfer it if not.</p>
@@ -314,7 +379,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                 </div>
             )}
 
-            {processType === "fromScratch" && nftId === undefined && (
+            {processType === "fromScratch" && !nftMetadataUri && (
                 <div className="bg-background rounded-lg p-4">
                     <div
                         className="flex items-center justify-between cursor-pointer"
@@ -342,6 +407,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                                 ))}
                             </div>
                             <button
+                                type="button"
                                 onClick={addNftAttribute}
                                 className="bg-primary text-background font-semibold py-1 px-3 rounded-lg hover:opacity-80 transition"
                             >
@@ -353,8 +419,8 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             )}
 
             {/* IP Section */}
-            {/* If fromNFT or fromScratch, show this section but only if nftId is detected */}
-            {(processType === "fromNFT" || processType === "fromScratch") && nftId != undefined && (
+            {/* If fromNFT or fromScratch, show this section but only if nftMetadataUri is loaded */}
+            {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && (
                 <div className="bg-background rounded-lg p-4 space-y-4">
                     <h3 className="font-semibold">IP Metadata</h3>
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -385,6 +451,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                             ))}
                         </div>
                         <button
+                            type="button"
                             onClick={addIpCreator}
                             className="bg-primary text-background font-semibold py-1 px-3 rounded-lg hover:opacity-80 transition"
                         >
@@ -416,10 +483,9 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                 </div>
             )}
 
-            {(processType === "fromNFT" || processType === "fromScratch") && nftId === undefined && (
+            {(processType === "fromNFT" || processType === "fromScratch") && !nftMetadataUri && (
                 <p className="text-md text-muted">
-                    Next Step:{" "}
-                    {(processType === "fromNFT" || processType === "fromScratch") && nftId === undefined && "Create Asset"}
+                    Next Step: Create Asset
                 </p>
             )}
 
@@ -427,9 +493,10 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                 type="submit"
                 className="bg-primary text-background font-semibold py-2 px-6 rounded-lg w-full hover:opacity-80 transition"
             >
-                {processType === "fromScratch" && nftId === undefined && "Mint NFT"}
-                {processType === "fromNFT" && nftId === undefined && "Get NFT"}
-                {(processType === "fromNFT" || processType === "fromScratch") && nftId !== undefined && "Create Asset"}
+                {processType === "fromScratch" && !nftMetadataUri && "Mint NFT"}
+                {processType === "fromNFT" && !nftMetadataUri && "Get NFT"}
+                {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && !ipMetadataUri && "Upload Asset Metadata"}
+                {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && ipMetadataUri && "Create Asset"}
                 {processType === "fromAsset" && "Create Asset"}
             </button>
         </form>

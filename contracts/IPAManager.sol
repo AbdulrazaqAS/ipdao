@@ -110,7 +110,7 @@ contract IPAManager is Ownable, ERC721Holder {
         attachLicenseTerms(ipId, licenseTermsId);
     }
 
-    /// @notice Mint an NFT and register it in the same call via the Story Protocol Gateway.
+    // Mint an NFT and register it in the same call via the Story Protocol Gateway.
     function createAsset(
         string memory _ipMetadataURI,
         string memory _ipMetadataHash,

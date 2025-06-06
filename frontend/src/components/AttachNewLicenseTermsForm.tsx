@@ -157,8 +157,9 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
             setLicenseAttached(true);
             console.log("Proposal waiting to be indexed. TxHash:", txHash); // TODO: Show this in frontend
             
-            publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => {
-                console.log("Proposal mined")
+            publicClient?.waitForTransactionReceipt({hash: txHash}).then((txReceipt) => {
+                if (txReceipt.status === "reverted") console.error("Proposal reverted");
+                else console.log("Proposal mined")
                 setTxIndexed(true);
             });
         } catch (error) {

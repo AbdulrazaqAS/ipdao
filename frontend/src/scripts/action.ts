@@ -3,7 +3,6 @@ import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json'
 import VotesERC721TokenABI from '../assets/abis/VotesERC721TokenABI.json'
 import type { ProposalArgs, VoteChoice } from '../utils/utils';
-import { getNonCommercialTerms } from '../utils/utils';
 import { type LicenseTerms, StoryClient } from "@story-protocol/core-sdk";
 import axios from "axios";
 
@@ -127,23 +126,23 @@ export async function uploadJsonToIPFS(data: any, filename: string): Promise<str
     }
 };
 
-export async function mintNFT(to: Address, uri: string, publicClient: PublicClient, walletClient: WalletClient): Promise<bigint | undefined> {
-    const { request } = await publicClient.simulateContract({
-        address: NFTContractAddress,
-        functionName: 'safeMint',
-        args: [to, uri],
-        abi: VotesERC721TokenABI,
-        account: walletClient.account
-    });
+// export async function mintNFT(to: Address, uri: string, publicClient: PublicClient, walletClient: WalletClient): Promise<bigint | undefined> {
+//     const { request } = await publicClient.simulateContract({
+//         address: NFTContractAddress,
+//         functionName: 'safeMint',
+//         args: [to, uri],
+//         abi: VotesERC721TokenABI,
+//         account: walletClient.account
+//     });
 
-    const hash = await walletClient.writeContract({ ...request, account: walletClient.account! })
-    const { logs } = await publicClient.waitForTransactionReceipt({
-        hash,
-    })
-    if (logs[0].topics[3]) {
-        return BigInt(parseInt(logs[0].topics[3], 16));
-    }
-}
+//     const hash = await walletClient.writeContract({ ...request, account: walletClient.account! })
+//     const { logs } = await publicClient.waitForTransactionReceipt({
+//         hash,
+//     })
+//     if (logs[0].topics[3]) {
+//         return BigInt(parseInt(logs[0].topics[3], 16));
+//     }
+// }
 
 // export async function registerAsset(
 //     tokenId: bigint,
