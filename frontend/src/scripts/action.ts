@@ -58,6 +58,17 @@ export async function executeProposal(proposalId: bigint, client: WalletClient, 
     return txHash;
 }
 
+export async function cancelProposal(proposalId: bigint, client: WalletClient): Promise<`0x${string}`> {
+    const contract = getContract({
+        address: IPAGovernorAddress,
+        abi: IPAGovernorABI,
+        client
+    });
+
+    const txHash = await contract.write.cancel([proposalId]);
+    return txHash;
+}
+
 export async function registerLicenseTerms(licenseTerms: LicenseTerms, client: StoryClient): Promise<bigint> {
     const response = await client.license.registerPILTerms({
         ...licenseTerms,
