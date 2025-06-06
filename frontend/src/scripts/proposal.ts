@@ -1,8 +1,10 @@
 import { type Address, type PublicClient, getContract, parseAbiItem } from 'viem'
-import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 import { type ProposalDetails, type ProposalVotes } from '../utils/utils';
+import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json';
+import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json';
 
 const IPAGovernorAddress: Address = import.meta.env.VITE_IPA_GOVERNOR!;
+const GovernanceTokenAddress: Address = import.meta.env.VITE_GOVERNANCE_TOKEN!;
 
 
 export async function getProposalsCount(client: PublicClient): Promise<bigint> {
@@ -157,4 +159,86 @@ export async function getProposalsDescriptions(client: PublicClient): Promise<{
 
     console.log(proposals)
     return proposals
-}   
+}
+
+export async function getProposalThreshold(client: PublicClient): Promise<bigint> {
+    const contract = getContract({
+        address: IPAGovernorAddress,
+        abi: IPAGovernorABI,
+        client
+    });
+
+    const threshold = await contract.read.proposalThreshold();
+
+    return threshold as bigint;
+}
+
+export async function getQuorum(client: PublicClient): Promise<bigint> {
+    const contract = getContract({
+        address: IPAGovernorAddress,
+        abi: IPAGovernorABI,
+        client
+    });
+
+    const quorum = await contract.read.quorumNumerator();
+
+    return quorum as bigint;
+}
+
+export async function getGovernanceToken(client: PublicClient): Promise<Address> {
+    const contract = getContract({
+        address: IPAGovernorAddress,
+        abi: IPAGovernorABI,
+        client
+    });
+
+    const address = await contract.read.token();
+
+    return address as Address;
+}
+
+export async function getVotingDelay(client: PublicClient): Promise<bigint> {
+    const contract = getContract({
+        address: IPAGovernorAddress,
+        abi: IPAGovernorABI,
+        client
+    });
+
+    const delay = await contract.read.votingDelay();
+
+    return delay as bigint;
+}
+
+export async function getVotingPeriod(client: PublicClient): Promise<bigint> {
+    const contract = getContract({
+        address: IPAGovernorAddress,
+        abi: IPAGovernorABI,
+        client
+    });
+
+    const period = await contract.read.votingPeriod();
+
+    return period as bigint;
+}
+
+export async function getGovernanceTokenBalance(addr: Address, client: PublicClient): Promise<bigint> {
+    const contract = getContract({
+        address: GovernanceTokenAddress,
+        abi: VotesERC20TokenABI,
+        client
+    });
+
+    const balance = await contract.read.balanceOf([addr]);
+    return balance as bigint;
+}
+
+export async function getGovernanceTokenSupply(client: PublicClient): Promise<bigint> {
+    const contract = getContract({
+        address: GovernanceTokenAddress,
+        abi: VotesERC20TokenABI,
+        client
+    });
+
+    const supply = await contract.read.totalSupply();
+    return supply as bigint;
+}

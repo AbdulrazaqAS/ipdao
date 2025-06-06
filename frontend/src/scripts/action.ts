@@ -1,4 +1,4 @@
-import { type Address, type PublicClient, type WalletClient, getContract, zeroAddress } from 'viem'
+import { type Address, type PublicClient, type WalletClient, getContract } from 'viem'
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json'
 import VotesERC721TokenABI from '../assets/abis/VotesERC721TokenABI.json'
@@ -8,7 +8,6 @@ import axios from "axios";
 
 const IPAGovernorAddress: Address = import.meta.env.VITE_IPA_GOVERNOR!;
 const GovernanceTokenAddress: Address = import.meta.env.VITE_GOVERNANCE_TOKEN!;
-const NFTContractAddress: Address = import.meta.env.VITE_NFT_CONTRACT_ADDRESS!;
 
 export async function delegateVote(delegate: Address, client: WalletClient): Promise<`0x${string}`> {
     const contract = getContract({
@@ -125,56 +124,6 @@ export async function uploadJsonToIPFS(data: any, filename: string): Promise<str
         throw new Error(result.error || "Unknown error");
     }
 };
-
-// export async function mintNFT(to: Address, uri: string, publicClient: PublicClient, walletClient: WalletClient): Promise<bigint | undefined> {
-//     const { request } = await publicClient.simulateContract({
-//         address: NFTContractAddress,
-//         functionName: 'safeMint',
-//         args: [to, uri],
-//         abi: VotesERC721TokenABI,
-//         account: walletClient.account
-//     });
-
-//     const hash = await walletClient.writeContract({ ...request, account: walletClient.account! })
-//     const { logs } = await publicClient.waitForTransactionReceipt({
-//         hash,
-//     })
-//     if (logs[0].topics[3]) {
-//         return BigInt(parseInt(logs[0].topics[3], 16));
-//     }
-// }
-
-// export async function registerAsset(
-//     tokenId: bigint,
-//     ipMetadataURI: string,
-//     ipMetadataHash: `0x${string}`,
-//     nftMetadataURI: string,
-//     nftMetadataHash: `0x${string}`,
-//     storyClient: StoryClient,
-// ): Promise<{ txHash: `0x${string}`, ipId: `0x${string}` }> {
-//     const response = await storyClient.ipAsset.registerIpAndAttachPilTerms({
-//         nftContract: NFTContractAddress,
-//         tokenId: tokenId,
-//         licenseTermsData: [
-//             {
-//                 terms: getNonCommercialTerms()
-//             }
-//         ],
-//         ipMetadata: {
-//             ipMetadataURI,
-//             ipMetadataHash,
-//             nftMetadataURI,
-//             nftMetadataHash,
-//         },
-//         txOptions: { waitForTransaction: true },
-//     })
-
-//     if (!response.txHash || !response.ipId) {
-//         throw new Error("Failed to register asset");
-//     }
-
-//     return { txHash: response.txHash, ipId: response.ipId};
-// }
 
 export const createFileHash = async (file: File): Promise<`0x${string}`> => {
     // Read file as an ArrayBuffer using FileReader

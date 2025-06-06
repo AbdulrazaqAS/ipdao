@@ -14,12 +14,12 @@ const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER;
 const inputsClass = "w-full px-4 py-2 rounded-lg bg-background border border-muted placeholder-muted";
 type AssetCreationProcess = "fromScratch" | "fromNFT" | "fromAsset";
 
-const mediaTypes = [
-    {
-        name: "PNG Image",
-        value: "image/png",
-    }
-]
+// const mediaTypes = [
+//     {
+//         name: "PNG Image",
+//         value: "image/png",
+//     }
+// ]
 
 interface IPCreator {
     address: string;
@@ -430,7 +430,8 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                         <input type="file" accept="image/*" onChange={(e) => setIpaImage(e.target.files![0])} className={inputsClass} required />
                         <input
                             type="file"
-                            accept={mediaTypes.map(mt => mt.value).join(',')}
+                            // accept={mediaTypes.map(mt => mt.value).join(',')}
+                            accept="*"
                             onChange={(e) => setIpaMedia(e.target.files![0])}
                             className={inputsClass}
                             required
