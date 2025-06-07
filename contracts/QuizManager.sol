@@ -4,11 +4,15 @@ pragma solidity ^0.8.26;
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+interface MintableERC20 is IERC20 {
+    function mint(address to, uint256 amount) external;
+}
+
 contract QuizManager is AccessControl{
     bytes32 public constant CREATOR_ROLE = keccak256("CREATOR_ROLE");
     bytes32 public constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
 
-    IERC20 public immutable TOKEN;
+    MintableERC20 public immutable TOKEN;
 
     struct Quiz {
         uint8 maxTrials;
@@ -31,7 +35,7 @@ contract QuizManager is AccessControl{
     event QuizWon(uint256 indexed quizId, address indexed user);
 
     constructor(address admin, address token) {
-        TOKEN = IERC20(token);
+        TOKEN = MintableERC20(token);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
@@ -79,7 +83,6 @@ contract QuizManager is AccessControl{
         }
     }
 
-    // Tokens will be minted to this contract for users claiming
     function claimPrize(uint256 quizId) external {
         Quiz memory quiz = quizzes[quizId];
         require(quiz.exists, "Quiz not found");
@@ -88,17 +91,8 @@ contract QuizManager is AccessControl{
         require(!hasClaimed[msg.sender][quizId], "Already claimed");
 
         hasClaimed[msg.sender][quizId] = true;
-        TOKEN.transfer(msg.sender, quiz.prizeAmount);
+        TOKEN.mint(msg.sender, quiz.prizeAmount);
 
         emit PrizeClaimed(quizId, msg.sender);
-    }
-
-    function withdrawToken(address to) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        TOKEN.transfer(to, TOKEN.balanceOf(address(this)));
-    }
-
-    function getQuizPrizeTotal(uint256 quizId) external view returns(uint256){
-        Quiz memory quiz = quizzes[quizId];
-        return quiz.winners * quiz.prizeAmount;
     }
 }

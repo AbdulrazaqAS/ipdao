@@ -5,6 +5,7 @@ import { getProposalsCount, getQuizzesCount } from '../scripts/proposal';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
 import type { ProposalArgs } from '../utils/utils';
+import { X } from 'lucide-react';
 
 const QuizManagerAddress: Address = import.meta.env.VITE_QUIZ_MANAGER!;
 
@@ -56,6 +57,18 @@ export default function NewQuizForm() {
 
     const removeQuestion = (index: number) => {
         const updated = questions.filter((_, i) => i !== index);
+        setQuestions(updated);
+    };
+
+    const addQuestionOption = (questionIndex: number) => {
+        const updated = [...questions];
+        updated[questionIndex].options.push("");
+        setQuestions(updated);
+    };
+
+    const removeQuestionOption = (questionIndex: number, optionIndex: number) => {
+        const updated = [...questions];
+        updated[questionIndex].options = updated[questionIndex].options.filter((_, i) => i !== optionIndex);
         setQuestions(updated);
     };
 
@@ -217,8 +230,9 @@ export default function NewQuizForm() {
                 {questions.map((qa, index) => (
                     <div
                         key={index}
-                        className="bg-background border border-muted rounded-md p-4 space-y-2"
+                        className="bg-background relative border border-muted rounded-md p-4 space-y-2"
                     >
+                        <div className="absolute top-0 right-[-25px]" onClick={() => removeQuestion(index)}><X color="red" /></div>
                         <div>
                             <label className="text-sm text-muted">Question {index + 1}</label>
                             <input
@@ -233,7 +247,8 @@ export default function NewQuizForm() {
                             <label className="text-sm text-muted">Options</label>
                             <div className='space-y-1'>
                                 {qa.options.map((option, oIndex) => (
-                                    <div className="w-full p-2 bg-surface rounded">
+                                    <div key={oIndex} className="w-full relative p-2 bg-surface rounded">
+                                        <div className="absolute top-0 right-[-25px]" onClick={() => removeQuestionOption(index, oIndex)}><X color="red" /></div>
                                         <input
                                             type="radio"
                                             name={`options${index}`}
@@ -254,6 +269,13 @@ export default function NewQuizForm() {
                                     </div>
                                 ))}
                             </div>
+                            <button
+                                type="button"
+                                className="bg-secondary text-background px-4 py-2 rounded hover:opacity-90 transition"
+                                onClick={() => addQuestionOption(index)}
+                            >
+                                Add Option
+                            </button>
                         </div>
                         <button
                             type="button"
