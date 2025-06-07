@@ -2,10 +2,11 @@ import { type Address, type PublicClient, getContract, parseAbiItem } from 'viem
 import { type ProposalDetails, type ProposalVotes } from '../utils/utils';
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json';
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json';
+import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
 
 const IPAGovernorAddress: Address = import.meta.env.VITE_IPA_GOVERNOR!;
 const GovernanceTokenAddress: Address = import.meta.env.VITE_GOVERNANCE_TOKEN!;
-
+const QuizManagerAddress: Address = import.meta.env.VITE_QUIZ_MANAGER!;
 
 export async function getProposalsCount(client: PublicClient): Promise<bigint> {
     const contract = getContract({
@@ -289,4 +290,15 @@ export async function getGovernanceTokenHolders(chain: "aeneid" | "mainnet"): Pr
 
     const holdersMetadata = await response.json();
     return holdersMetadata.items.length as number;
+}
+
+export async function getQuizzesCount(client: PublicClient): Promise<bigint> {
+    const contract = getContract({
+        address: QuizManagerAddress,
+        abi: QuizManagerABI,
+        client
+    });
+
+    const count = await contract.read.totalQuizzes();
+    return count as bigint;
 }

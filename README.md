@@ -75,6 +75,9 @@ yarn hardhat verify --constructor-args scripts/utils/ipaManagerArgs.ts --network
 
 # Verify QuizManager
 yarn hardhat verify --constructor-args scripts/utils/quizManagerArgs.ts --network aeneid <QuizManager Address>
+
+# Verify ERC20
+ yarn hardhat verify --constructor-args scripts/utils/erc20Args.ts --network aeneid <ERC20 Address>
 ```
 
 npx hardhat verify --network aeneid 0xB1C6fDA5E79A4E8e102CEc5Dec6F78eF1d90d285 ["CreatorDao",300,900,100000000000000000000,4,"0x84E13D0d7396f881F3f78505e14af04AE987cBE9"]

@@ -6,17 +6,25 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract GovernanceERC20Token is ERC20, Ownable, ERC20Permit, ERC20Votes {
-    constructor(string memory _name, string memory _symbol, address _initialOwner)
+contract GovernanceERC20Token is ERC20, AccessControl, ERC20Permit, ERC20Votes {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+
+    constructor(string memory _name, string memory _symbol, address _admin)
         ERC20(_name, _symbol)
-        Ownable(_initialOwner)
         ERC20Permit(_name)
-    {}
+    {
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+    }
 
-    function mint(address to, uint256 amount) public onlyOwner {
+    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
         _mint(to, amount);
+    }
+
+    function burn(address from, uint256 amount) public onlyRole(BURNER_ROLE) {
+        _burn(from, amount);
     }
 
     function clock() public view override returns (uint48) {
