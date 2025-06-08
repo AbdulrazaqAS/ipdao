@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { type QuizMetadata } from '../utils/utils';
+import { type QuizMetadata, type QuizQuestion } from '../utils/utils';
 import { getGovernanceTokenSymbol, getQuizzes, getQuizzesCount, getQuizzesUserCanClaim, getQuizzesUserHasClaimed, getQuizzesUserTrials } from '../scripts/proposal';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { fetchMetadata } from '../scripts/asset';
 import { formatEther } from 'viem';
+import { sendScoreToServer } from '../scripts/action';
 
 const quizTabs = {
     all: "All",
@@ -25,6 +26,8 @@ export default function QuizPage() {
     const [expandedQuiz, setExpandedQuiz] = useState<number | null>(null);
     const [quizzes, setQuizzes] = useState<QuizMetadataPlus[]>([]);
     const [tokenSymbol, setTokenSymbol] = useState("Tokens");
+    const [selectedQuestions, setSelectedQuestions] = useState<QuizQuestion[]>([]);
+    const [questionAnswers, setQuestionAnswers] = useState<any>({});
 
     const publicClient = usePublicClient();
     const { data: walletClient } = useWalletClient();
@@ -38,10 +41,41 @@ export default function QuizPage() {
         } else if (activeTab === "claimable") return !!q.canClaim;
 
         return false;
-    }
-        //activeTab === 'All' ? true : q.status === activeTab
-    );
+    });
 
+    function handleAnswerChange(idx: number, i: number): void {
+        setQuestionAnswers((prev: { [key: string]: number }) => {
+            const newAnswers = { ...prev };
+            newAnswers[idx.toString()] = i;
+            return newAnswers;
+        });
+    }
+
+    async function handleSubmitAnswers() {
+        if (!walletClient) {
+            console.error("Wallet client not connected");
+            return;
+        }
+        
+        try {
+            console.log("Answers for quiz:", questionAnswers);
+
+            const result = await sendScoreToServer(
+                publicClient!.chain.id,
+                walletClient.account.address,
+                expandedQuiz!,
+                questionAnswers
+            );
+            
+            if (!result) {
+                throw new Error("Failed to submit answers");
+            }
+            
+            console.log(`Submitting answers for quiz ${expandedQuiz}:`, `Score: ${result.score}`, `TxHash: ${result.txHash}`);
+        } catch (error) {
+            console.error("Error submitting answers:", error);
+        }
+    }
     useEffect(() => {
         getGovernanceTokenSymbol(publicClient!).then(setTokenSymbol).catch(console.error);
 
@@ -82,6 +116,15 @@ export default function QuizPage() {
 
         fetchUserQuizzesData();
     }, [walletClient?.account.address]);
+
+    useEffect(() => {
+        if (!expandedQuiz) return;
+
+        // Randomize questions and pick questionsPerUser
+        const shuffled = [...filteredQuizzes[expandedQuiz].questions].sort(() => 0.5 - Math.random());
+        const selectedQuestions = shuffled.slice(0, filteredQuizzes[expandedQuiz].questionsPerUser);
+        setSelectedQuestions(selectedQuestions);
+    }, [expandedQuiz])
 
     useEffect(() => {
         if (!walletClient) return;
@@ -142,7 +185,29 @@ export default function QuizPage() {
                         {/* Expandable Questions */}
                         {expandedQuiz === quiz.quizId && (
                             <div className="mt-4 space-y-4">
-                                {quiz.questions.map((q, idx) => (
+                                {/* {(() => {
+                                    // Randomize questions and pick questionsPerUser
+                                    const shuffled = [...quiz.questions].sort(() => 0.5 - Math.random());
+                                    const selectedQuestions = shuffled.slice(0, quiz.questionsPerUser);
+
+                                    return selectedQuestions.map((q, idx) => (
+                                        <div key={idx} className="p-3 text-text bg-background border border-muted rounded">
+                                            <p className="font-medium">{q.question}</p>
+                                            <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                {q.options.map((opt, i) => (
+                                                    <label
+                                                        key={i}
+                                                        className="block p-2 bg-surface border border-muted rounded hover:border-primary cursor-pointer"
+                                                    >
+                                                        <input type="radio" name={`q${quiz.quizId}-${idx}`} className="mr-2" />
+                                                        {opt}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ));
+                                })()} */}
+                                {selectedQuestions.map((q, idx) => (
                                     <div key={idx} className="p-3 text-text bg-background border border-muted rounded">
                                         <p className="font-medium">{q.question}</p>
                                         <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -151,7 +216,7 @@ export default function QuizPage() {
                                                     key={i}
                                                     className="block p-2 bg-surface border border-muted rounded hover:border-primary cursor-pointer"
                                                 >
-                                                    <input type="radio" name={`q${idx}`} className="mr-2" />
+                                                    <input type="radio" name={`q${idx}`} onChange={() => handleAnswerChange(idx, i)} className="mr-2" />
                                                     {opt}
                                                 </label>
                                             ))}

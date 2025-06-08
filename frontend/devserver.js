@@ -5,6 +5,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 import axios from "axios";
 import FormData from "form-data";
+import { createPublicClient, getContract, http, createWalletClient } from 'viem'
+import { story, storyAeneid } from 'viem/chains'
+import QuizManagerABI from "src/assets/abis/QuizManagerABI.json";
 
 dotenv.config();
 const app = express();
@@ -25,9 +28,9 @@ app.post("/api/uploadFileToIPFS", (req, res) => {
 
     try {
       const file = files.file[0];
-      
-      if (!file.originalFilename || !file.mimetype){
-        return res.status(400).json({error: "File originalFilename or mimetype is null"});
+
+      if (!file.originalFilename || !file.mimetype) {
+        return res.status(400).json({ error: "File originalFilename or mimetype is null" });
       }
 
       const fileStream = fs.createReadStream(file.filepath);
@@ -39,14 +42,14 @@ app.post("/api/uploadFileToIPFS", (req, res) => {
 
       const pinataJwt = process.env.PINATA_JWT;
       const response = await axios.post(
-          "https://api.pinata.cloud/pinning/pinFileToIPFS",
-          formData,
-          {
-              headers: {
-                  ...formData.getHeaders(),
-                  Authorization: `Bearer ${pinataJwt}`,
-              },
-          }
+        "https://api.pinata.cloud/pinning/pinFileToIPFS",
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+            Authorization: `Bearer ${pinataJwt}`,
+          },
+        }
       );
 
       const cid = response.data.IpfsHash;
@@ -94,6 +97,87 @@ app.post("/api/uploadJSONToIPFS", (req, res) => {
     } catch (error) {
       console.error("Upload error:", error);
       return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+});
+
+app.post("/api/submitQuiz", (req, res) => {
+  const form = formidable({ keepExtensions: true });
+
+  form.parse(req, async (err, fields, files) => {
+    if (err) return res.status(500).json({ error: "Form parsing error" });
+
+    try {
+      const { chainId, userAddress, quizId, userAnswers } = fields;
+      if (!chainId || !userAddress || !quizId || !userAnswers) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      let chain;
+      if (chainId === '1315') chain = storyAeneid;
+      else if (chainId === "1514") chain = story;
+      else {
+        res.status(400).json({ error: "Unsupported chainId" });
+        return;
+      }
+
+      const clientConfig = {
+        chain,
+        transport: http(),
+      }
+
+      const publicClient = createPublicClient(clientConfig)
+      const QuizManagerAddress = process.env.VITE_QUIZ_MANAGER;
+
+      // 1. Read metadata URI from contract
+      const quizMetadata = await publicClient.readContract({
+        address: QuizManagerAddress,
+        abi: QuizManagerABI,
+        functionName: 'quizzes',
+        args: [BigInt(quizId)],
+      });
+      console.log("Quiz metadata:", quizMetadata);
+
+      // 2. Check if quiz is active
+      if (!quizMetadata[2]) {
+        return res.status(400).json({ error: "Quiz not found or not active" });
+      }
+
+      // 3. Fetch quiz metadata from IPFS
+      const quizMetadataUri = quizMetadata[6];
+      const { data: quizData } = await axios.get(quizMetadataUri);
+      console.log("Quiz metadata:", quizData);
+
+      const userAnswersObj = JSON.parse(userAnswers);
+      const selectedQuestions = quizData.questions.filter((_, i) => Object.keys(userAnswersObj).includes(i.toString()));
+
+      let score = 0;
+      Object.keys(userAnswersObj).forEach((questionIndex) => {
+        if (selectedQuestions[Number(questionIndex)].answer === userAnswersObj[questionIndex]) {
+          score += 1;
+        }
+      });
+
+      console.log("Score:", score);
+
+      // 4. Send the result to the contract
+      const account = privateKeyToAccount(`0x${process.env.UPDATER_WALLET_PRIVATE_KEY}`);
+      const walletClient = createWalletClient({
+        ...clientConfig,
+        account,
+      })
+
+      const txHash = await walletClient.writeContract({
+        address: QuizManagerAddress,
+        abi: QuizManagerABI,
+        functionName: 'setHasTried',
+        args: [userAddress, BigInt(score), BigInt(quizId)],
+      });
+
+      return res.status(200).json({ success: true, score, txHash });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
     }
   });
 });

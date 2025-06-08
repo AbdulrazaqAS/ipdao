@@ -141,6 +141,40 @@ export async function uploadJsonToIPFS(data: any, filename: string): Promise<str
     }
 };
 
+export async function sendScoreToServer(chainId: number, userAddress: string, quizId: number, userAnswers: any): Promise<{score: number, txHash: string} | undefined> {
+    let dataStr: string;
+
+    if (userAnswers instanceof Object) dataStr = JSON.stringify(userAnswers, (_, value) => typeof value === 'bigint' ? value.toString() : value);
+    else dataStr = userAnswers.toString();
+
+    const formData = new FormData();
+    // , userAddress, quizId, userAnswers
+    formData.set("chainId", chainId.toString());
+    formData.set("userAddress", userAddress);
+    formData.set("quizId", quizId.toString());
+    formData.set("userAnswers", dataStr);
+
+    const isDev = import.meta.env.DEV; // true in dev, false in build
+
+    const endpoint = isDev
+        ? "http://localhost:5000/api/submitQuiz"
+        : "/api/submitQuiz";
+
+    const response = await axios.post(endpoint, formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+
+    const result = response.data;
+
+    if (response.statusText === "OK" || response.status === 200) {
+        return {score: result.score, txHash: result.txHash};
+    } else {
+        throw new Error(result.error || "Unknown error");
+    }
+};
+
 export const createFileHash = async (file: File): Promise<`0x${string}`> => {
     // Read file as an ArrayBuffer using FileReader
     const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
