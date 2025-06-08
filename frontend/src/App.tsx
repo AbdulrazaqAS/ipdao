@@ -5,6 +5,7 @@ import ProposalsPage from "./components/ProposalsPage";
 import { NavItems } from "./utils/utils";
 import ProfilePage from './components/ProfilePage';
 import AssetsPage from './components/AssetsPage';
+import AirdropPage from './components/AirdropPage';
 
 function App() {
   const [currentPage, setCurrentPage] = useState(NavItems.Dashboard);
@@ -16,6 +17,7 @@ function App() {
       {currentPage === NavItems.Proposals && <ProposalsPage />}
       {currentPage === NavItems.Assets && <AssetsPage />}
       {currentPage === NavItems.Profile && <ProfilePage />}
+      {currentPage === NavItems.Airdrops && <AirdropPage />}
     </>
   )
 }

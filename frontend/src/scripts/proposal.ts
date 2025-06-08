@@ -1,5 +1,5 @@
 import { type Address, type PublicClient, getContract, parseAbiItem } from 'viem'
-import { type ProposalDetails, type ProposalVotes, type QuizMetadata } from '../utils/utils';
+import { type ProposalDetails, type ProposalVotes, type QuizContractMetadata} from '../utils/utils';
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json';
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
@@ -233,6 +233,28 @@ export async function getGovernanceTokenBalance(addr: Address, client: PublicCli
     return balance as bigint;
 }
 
+export async function getGovernanceTokenSymbol(client: PublicClient): Promise<string> {
+    const contract = getContract({
+        address: GovernanceTokenAddress,
+        abi: VotesERC20TokenABI,
+        client
+    });
+
+    const sym = await contract.read.symbol();
+    return sym as string;
+}
+
+export async function getGovernanceTokeName(client: PublicClient): Promise<string> {
+    const contract = getContract({
+        address: GovernanceTokenAddress,
+        abi: VotesERC20TokenABI,
+        client
+    });
+
+    const name = await contract.read.name();
+    return name as string;
+}
+
 export async function getGovernanceTokenSupply(client: PublicClient): Promise<bigint> {
     const contract = getContract({
         address: GovernanceTokenAddress,
@@ -303,7 +325,7 @@ export async function getQuizzesCount(client: PublicClient): Promise<bigint> {
     return count as bigint;
 }
 
-export async function getQuizzes(indices: Array<number>, client: PublicClient): Promise<QuizMetadata[]> {
+export async function getQuizzes(indices: Array<number>, client: PublicClient): Promise<QuizContractMetadata[]> {
     const contract = getContract({
         address: QuizManagerAddress,
         abi: QuizManagerABI,
@@ -316,7 +338,7 @@ export async function getQuizzes(indices: Array<number>, client: PublicClient): 
         indices.map((i) => contract.read.quizzes([i]))
     ) as { 0: number, 1: number, 2: boolean, 3: bigint, 4: bigint, 5: bigint, 6: string}[];
 
-    const proposals = details.map((proposal): QuizMetadata => {
+    const proposals = details.map((proposal): QuizContractMetadata => {
         return {
             maxTrials: proposal[0],
             minScore: proposal[1],

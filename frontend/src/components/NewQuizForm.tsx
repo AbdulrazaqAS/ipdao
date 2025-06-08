@@ -4,26 +4,9 @@ import { propose, uploadJsonToIPFS } from '../scripts/action';
 import { getProposalsCount, getQuizzesCount } from '../scripts/proposal';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
-import type { ProposalArgs } from '../utils/utils';
+import type { ProposalArgs, QuizQuestion, QuizMetadata } from '../utils/utils';
 
 const QuizManagerAddress: Address = import.meta.env.VITE_QUIZ_MANAGER!;
-
-interface Question {
-    question: string;
-    answer: string;
-    options: string[];
-}
-
-interface QuizMetadata {
-    quizId: number;
-    title: string;
-    questions: Question[];
-    questionsPerUser: number;
-    maxTrials: number;
-    minScore: number;
-    deadline: string;
-    prizeAmount: bigint;
-}
 
 interface Props {
     setShowNewQuizForm: Function;
@@ -36,12 +19,12 @@ export default function NewQuizForm({setShowNewQuizForm}: Props) {
     const [deadline, setDeadline] = useState("");
     const [prizeAmount, setPrizeAmount] = useState("");
     const [questionsPerUser, setQuestionsPerUser] = useState("");
-    const [questions, setQuestions] = useState<Question[]>([{ question: '', answer: '', options: [''] }]);
+    const [questions, setQuestions] = useState<QuizQuestion[]>([{ question: '', answer: '', options: [''] }]);
 
     const publicClient = usePublicClient();
     const { data: walletClient } = useWalletClient();
 
-    const handleQuestionChange = (index: number, field: keyof Question, value: string, optionIndex?: number) => {
+    const handleQuestionChange = (index: number, field: keyof QuizQuestion, value: string, optionIndex?: number) => {
         const updated = [...questions];
         if (field === "answer") {
             if (!updated[index]["options"][+value]) return;  // If option value is empty, dont select as answer
@@ -103,7 +86,7 @@ export default function NewQuizForm({setShowNewQuizForm}: Props) {
         return {
             quizId,
             title: title2,
-            deadline: Math.floor(deadlineMilSecs / 1000),
+            deadline: Math.floor(deadlineMilSecs / 1000).toString(),
             maxTrials: Number(maxTrials),
             minScore: Number(minScore),
             prizeAmount: parseEther(prizeAmount),

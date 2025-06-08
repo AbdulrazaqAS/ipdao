@@ -6,6 +6,7 @@ export const MainnetProtocolExplorer = 'https://explorer.story.foundation';
 
 export enum NavItems {
     Dashboard = "Dashboard",
+    Airdrops = "Airdrops",
     Proposals = "Proposals",
     Assets = "Assets",
     Profile = "Profile",
@@ -144,7 +145,7 @@ export interface AssetLicenseTerms {
     }
 }
 
-export interface QuizMetadata {
+export interface QuizContractMetadata {
     maxTrials: number;
     minScore: number;
     exists: boolean;
@@ -152,6 +153,23 @@ export interface QuizMetadata {
     deadline: bigint;
     prizeAmount: bigint;
     metadataURI: string;
+}
+
+export interface QuizQuestion {
+    question: string;
+    answer: string;
+    options: string[];
+}
+
+export interface QuizMetadata {
+    quizId: number;
+    title: string;
+    questions: QuizQuestion[];
+    questionsPerUser: number;
+    maxTrials: number;
+    minScore: number;
+    deadline: string;
+    prizeAmount: bigint;
 }
 
 export interface LicenseTermsMetadata {
