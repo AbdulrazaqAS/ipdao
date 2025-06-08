@@ -5,7 +5,6 @@ import { getProposalsCount, getQuizzesCount } from '../scripts/proposal';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
 import type { ProposalArgs } from '../utils/utils';
-import { X } from 'lucide-react';
 
 const QuizManagerAddress: Address = import.meta.env.VITE_QUIZ_MANAGER!;
 
@@ -16,6 +15,7 @@ interface Question {
 }
 
 interface QuizMetadata {
+    quizId: number;
     title: string;
     questions: Question[];
     questionsPerUser: number;
@@ -25,7 +25,11 @@ interface QuizMetadata {
     prizeAmount: bigint;
 }
 
-export default function NewQuizForm() {
+interface Props {
+    setShowNewQuizForm: Function;
+}
+
+export default function NewQuizForm({setShowNewQuizForm}: Props) {
     const [title, setTitle] = useState("");
     const [maxTrials, setMaxTrials] = useState("");
     const [minScore, setMinScore] = useState("");
@@ -39,9 +43,13 @@ export default function NewQuizForm() {
 
     const handleQuestionChange = (index: number, field: keyof Question, value: string, optionIndex?: number) => {
         const updated = [...questions];
-        if (field !== "options") updated[index][field] = value;
-        else {
-            if (!optionIndex) {
+        if (field === "answer") {
+            if (!updated[index]["options"][+value]) return;  // If option value is empty, dont select as answer
+            updated[index][field] = value;
+        } else if (field === "question") {
+            updated[index][field] = value;
+        } else {
+            if (optionIndex == undefined) {  // optionIndex !== undefined and not !optionIndex bcoz index can be 0
                 console.error("Option index not specified");
                 return;
             }
@@ -52,11 +60,12 @@ export default function NewQuizForm() {
 
     const addQuestion = () => {
         if (questions.length >= 255) return; // max score in contract in uint8. Each question should be 1 score.
-        setQuestions([...questions, { question: '', answer: '', options: [] }]);
+        setQuestions([...questions, { question: '', answer: '', options: [''] }]);
     };
 
     const removeQuestion = (index: number) => {
         const updated = questions.filter((_, i) => i !== index);
+        if (updated.length <= 0) return;  // Dont remove last one
         setQuestions(updated);
     };
 
@@ -69,10 +78,12 @@ export default function NewQuizForm() {
     const removeQuestionOption = (questionIndex: number, optionIndex: number) => {
         const updated = [...questions];
         updated[questionIndex].options = updated[questionIndex].options.filter((_, i) => i !== optionIndex);
+        updated[questionIndex].answer = "";
+        if (updated[questionIndex].options.length <= 0) return;  // Dont remove last one
         setQuestions(updated);
     };
 
-    const generateQuizMetadata = (): QuizMetadata => {
+    const generateQuizMetadata = (quizId: number): QuizMetadata => {
         const title2 = title.trim();
         // TODO: Refine/trim questions and options
 
@@ -80,9 +91,19 @@ export default function NewQuizForm() {
             throw new Error("Invalid quiz parameters");
         }
 
+        if (+minScore > questions.length) {
+            throw new Error("Min score must be less than number of questions. Each question 1 point.");
+        }
+
+        const deadlineMilSecs = new Date(deadline).getTime();
+        if (deadlineMilSecs <= Date.now()){
+            throw new Error("Deadline must be in the future");
+        }
+
         return {
+            quizId,
             title: title2,
-            deadline,
+            deadline: Math.floor(deadlineMilSecs / 1000),
             maxTrials: Number(maxTrials),
             minScore: Number(minScore),
             prizeAmount: parseEther(prizeAmount),
@@ -100,22 +121,27 @@ export default function NewQuizForm() {
         }
 
         try {
-            const quizMetadata = generateQuizMetadata();
             const quizzesCount = await getQuizzesCount(publicClient!);
+            const quizMetadata = generateQuizMetadata(Number(quizzesCount));
             const metadataFileName = "QuizMetadata" + quizzesCount;
-            const metadataCid = uploadJsonToIPFS(quizMetadata, metadataFileName);
+            const metadataCid = await uploadJsonToIPFS(quizMetadata, metadataFileName);
             if (!metadataCid) throw new Error("Error uploading quiz metadata");
 
             const metadataUri = `https://ipfs.io/ipfs/${metadataCid}`;
             console.log("Quiz metadata URI:", metadataUri);
 
-            console.log("Submit quiz:", questions);
             const targets = [QuizManagerAddress];
             const values = [0n];
             const calldatas = [encodeFunctionData({
                 abi: QuizManagerABI,
                 functionName: "createQuiz",
-                args: [maxTrials, minScore, deadline, prizeAmount, metadataUri]
+                args: [
+                    quizMetadata.maxTrials,
+                    quizMetadata.minScore,
+                    quizMetadata.deadline,
+                    quizMetadata.prizeAmount,
+                    metadataUri
+                ],
             })];
 
             const proposalIndex = await getProposalsCount(publicClient!);
@@ -140,6 +166,7 @@ export default function NewQuizForm() {
                 if (txReceipt.status === "reverted") console.error("Proposal reverted");
                 else console.log("Proposal mined")
             });
+            // setShowNewQuizForm(false);
         } catch (error) {
             console.error("Error submitting quiz proposal", error);
         }
@@ -153,7 +180,7 @@ export default function NewQuizForm() {
             <h2 className="text-xl font-semibold text-primary">Create New Quiz</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div className="col-span-2">
                     <label className="text-sm text-muted">Title</label>
                     <input
                         type="text"
@@ -230,9 +257,8 @@ export default function NewQuizForm() {
                 {questions.map((qa, index) => (
                     <div
                         key={index}
-                        className="bg-background relative border border-muted rounded-md p-4 space-y-2"
+                        className="bg-background border border-muted rounded-md p-4 space-y-2"
                     >
-                        <div className="absolute top-0 right-[-25px]" onClick={() => removeQuestion(index)}><X color="red" /></div>
                         <div>
                             <label className="text-sm text-muted">Question {index + 1}</label>
                             <input
@@ -247,43 +273,55 @@ export default function NewQuizForm() {
                             <label className="text-sm text-muted">Options</label>
                             <div className='space-y-1'>
                                 {qa.options.map((option, oIndex) => (
-                                    <div key={oIndex} className="w-full relative p-2 bg-surface rounded">
-                                        <div className="absolute top-0 right-[-25px]" onClick={() => removeQuestionOption(index, oIndex)}><X color="red" /></div>
-                                        <input
-                                            type="radio"
-                                            name={`options${index}`}
-                                            className="p-2 rounded"
-                                            value={oIndex}
-                                            onChange={(e) => handleQuestionChange(index, 'answer', e.target.value)}
-                                            checked={option === qa.answer}
-                                            required
-                                        />
-                                        <input
-                                            type="text"
-                                            name={`options${index}`}
-                                            className="w-full border border-muted"
-                                            value={option}
-                                            onChange={(e) => handleQuestionChange(index, 'options', e.target.value, oIndex)}
-                                            required
-                                        />
+                                    <div key={oIndex} className="w-full flex p-2 bg-surface rounded">
+                                        <div className="mr-4">
+                                            <input
+                                                type="radio"
+                                                name={`options${index}`}
+                                                className="p-2 rounded"
+                                                value={oIndex}
+                                                onChange={(e) => handleQuestionChange(index, 'answer', e.target.value)}
+                                                checked={oIndex.toString() === qa.answer}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="w-full mr-2">
+                                            <input
+                                                type="text"
+                                                name={`options${index}`}
+                                                className="w-full px-2 border rounded border-muted"
+                                                value={option}
+                                                onChange={(e) => handleQuestionChange(index, 'options', e.target.value, oIndex)}
+                                                required
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="text-primary p-1 bg-danger text-sm rounded"
+                                            onClick={() => removeQuestionOption(index, oIndex)}
+                                        >
+                                            Remove
+                                        </button>
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                        <div className="flex space-x-2">
+                            <button
+                                    type="button"
+                                    className="bg-secondary text-background p-1 text-sm rounded hover:opacity-90 transition"
+                                    onClick={() => addQuestionOption(index)}
+                                >
+                                    Add Option
+                                </button>
                             <button
                                 type="button"
-                                className="bg-secondary text-background px-4 py-2 rounded hover:opacity-90 transition"
-                                onClick={() => addQuestionOption(index)}
+                                className="text-background p-1 bg-danger text-sm rounded"
+                                onClick={() => removeQuestion(index)}
                             >
-                                Add Option
+                                Remove Question
                             </button>
                         </div>
-                        <button
-                            type="button"
-                            className="text-danger text-sm mt-1"
-                            onClick={() => removeQuestion(index)}
-                        >
-                            Remove
-                        </button>
                     </div>
                 ))}
                 <button
@@ -295,12 +333,19 @@ export default function NewQuizForm() {
                 </button>
             </div>
 
-            <div className="pt-4">
+            <div className=" gap-3 flex flex-col md:flex-row">
                 <button
                     type="submit"
                     className="bg-primary text-background px-6 py-2 rounded hover:opacity-90 transition"
                 >
-                    Submit Quiz Proposal
+                    Submit Proposal
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setShowNewQuizForm(false)}
+                    className="bg-danger text-background px-6 py-2 rounded hover:opacity-90 transition"
+                >
+                    Close Form
                 </button>
             </div>
         </form>

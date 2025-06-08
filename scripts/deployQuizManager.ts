@@ -3,12 +3,12 @@ import "dotenv/config";
 
 // Automatically copy ABI to frotend directory
 async function main() {
-  const governor = process.env.IPA_GOVERNOR!;
+  const [admin] = await ethers.getSigners();
   const governanceToken = process.env.GOVERNANCE_TOKEN!;
 
   const QuizManager = await ethers.getContractFactory("QuizManager");
   const quizManager = await QuizManager.deploy(
-    governor,
+    admin.address,
     governanceToken
   );
   

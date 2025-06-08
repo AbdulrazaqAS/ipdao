@@ -4,6 +4,7 @@ import { usePublicClient, useWalletClient } from 'wagmi'
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json'
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
+import QiuzManagerABI from '../assets/abis/QuizManagerABI.json'
 import type { ProposalArgs } from "../utils/utils";
 import { propose } from "../scripts/action";
 import { getProposalsCount } from "../scripts/proposal";
@@ -33,6 +34,10 @@ const ABIS = [
   {
     name: "Governor",
     abi: IPAGovernorABI
+  },
+  {
+    name: "Quiz Manager",
+    abi: QiuzManagerABI
   }
 ];
 

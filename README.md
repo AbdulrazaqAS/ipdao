@@ -33,10 +33,16 @@ yarn hardhat run scripts/deployERC20Token.ts --network aeneid
 Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `GOVERNANCE_TOKEN` inside *.env*.
 
 ```bash
-# Deploy IPAGovernor and make it token owner
+# Deploy QuizManager
+yarn hardhat run scripts/deployQuizManager.ts --network aeneid
+```
+Then copy the contract address from the console and paste it as the `QUIZ_MANAGER` inside *.env*.
+
+```bash
+# Deploy IPAGovernor
 yarn hardhat run scripts/deployIPAGovernor.ts --network aeneid
 ```
-Then copy the `contractAddress` from the transaction receipt logged to the console. Paste the address as the `IPA_GOVERNOR` inside *.env*.
+Then copy the contract address from the console and paste it as the `IPA_GOVERNOR` inside *.env*. Then copy the governor block and paste it as `IPA_GOVERNOR_BLOCK` inside `.env`. THe block will be used as starting block for lookups.
 
 ```bash
 # Deploy IPAManager with governor as owner
@@ -45,10 +51,12 @@ yarn hardhat run scripts/deployIPAManager.ts --network aeneid
 Now this is the contract that will be governed. Copy its address from the console and paste it as `IPA_MANAGER` inside *.env*.
 
 ```bash
-# Deploy QuizManager with governor as owner
-yarn hardhat run scripts/deployQuizManager.ts --network aeneid
+# Set roles and transfer ownership to governor
+yarn hardhat run scripts/transferOwnership.ts --network aeneid
 ```
-Then copy the contract address from the console and paste it as the `QUIZ_MANAGER` inside *.env*.
+Governor will now be the admin of QuizManager and Token. Admins are responsible for granting and revoking and revoking roles. The governor is also given minter role responsible for minting tokens and quiz creator role for creating quizzes. Quiz manager too is given minter role for minting tokens to quiz winners.
+
+From now on, granting and revoking roles can only be done through proposals. Quiz creation and minting tokens by the governor too can only be done through proposals. Only QuizManager can mint tokens, to winners, without proposal.
 
 ## Frontend setup
 ```bash

@@ -30,7 +30,7 @@ contract QuizManager is AccessControl{
     mapping(address user => mapping(uint256 quizId => bool)) public canClaim;
     mapping(address user => mapping(uint256 quizId => bool)) public hasClaimed;
 
-    event QuizCreated(uint256 indexed quizId, uint8 maxTrials, uint8 minScore, uint256 deadline, uint256 prizeAmount, string metadataURI);
+    event QuizCreated(uint256 indexed quizId, address creator, uint8 maxTrials, uint8 minScore, uint256 deadline, uint256 prizeAmount, string metadataURI);
     event PrizeClaimed(uint256 indexed quizId, address indexed user);
     event QuizWon(uint256 indexed quizId, address indexed user);
 
@@ -63,7 +63,7 @@ contract QuizManager is AccessControl{
         
         totalQuizzes++;
 
-        emit QuizCreated(quizId, maxTrials, minScore, deadline, prizeAmount, metadataURI);
+        emit QuizCreated(quizId, msg.sender, maxTrials, minScore, deadline, prizeAmount, metadataURI);
         return quizId;
     }
 

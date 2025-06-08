@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import "dotenv/config";
 
-// Automatically copy ABI to frotend directory
+// TODO: Automatically copy ABI to frotend directory
 async function main() {
   const governor = process.env.IPA_GOVERNOR!;
   const licensingModule = process.env.LICENSING_MODULE!;

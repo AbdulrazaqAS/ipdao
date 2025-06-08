@@ -111,8 +111,13 @@ export async function uploadFileToIPFS(file: File, filename: string): Promise<st
 };
 
 export async function uploadJsonToIPFS(data: any, filename: string): Promise<string | undefined> {
+    let dataStr: string;
+
+    if (data instanceof Object) dataStr = JSON.stringify(data, (_, value) => typeof value === 'bigint' ? value.toString() : value);
+    else dataStr = data.toString();
+
     const formData = new FormData();
-    formData.set("data", data);
+    formData.set("data", dataStr);
     formData.set("filename", filename);
 
     const isDev = import.meta.env.DEV; // true in dev, false in build
