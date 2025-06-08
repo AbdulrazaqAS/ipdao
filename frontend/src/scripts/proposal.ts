@@ -1,5 +1,5 @@
 import { type Address, type PublicClient, getContract, parseAbiItem } from 'viem'
-import { type ProposalDetails, type ProposalVotes } from '../utils/utils';
+import { type ProposalDetails, type ProposalVotes, type QuizMetadata } from '../utils/utils';
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json';
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
@@ -301,4 +301,73 @@ export async function getQuizzesCount(client: PublicClient): Promise<bigint> {
 
     const count = await contract.read.totalQuizzes();
     return count as bigint;
+}
+
+export async function getQuizzes(indices: Array<number>, client: PublicClient): Promise<QuizMetadata[]> {
+    const contract = getContract({
+        address: QuizManagerAddress,
+        abi: QuizManagerABI,
+        client
+    });
+
+    // Leveraging batching configured on the client.
+    // TODO: Limit the range so as not to exceed provider limits
+    const details = await Promise.all(
+        indices.map((i) => contract.read.quizzes([i]))
+    ) as { 0: number, 1: number, 2: boolean, 3: bigint, 4: bigint, 5: bigint, 6: string}[];
+
+    const proposals = details.map((proposal): QuizMetadata => {
+        return {
+            maxTrials: proposal[0],
+            minScore: proposal[1],
+            exists: proposal[2],
+            winners: proposal[3],
+            deadline: proposal[4],
+            prizeAmount: proposal[5],
+            metadataURI: proposal[6],
+        }
+    });
+
+    return proposals;
+}
+
+export async function getQuizzesUserTrials(quizIds: Array<number>, user: Address, client: PublicClient): Promise<bigint[]> {
+    const contract = getContract({
+        address: QuizManagerAddress,
+        abi: QuizManagerABI,
+        client
+    });
+
+    const trials = await Promise.all(
+        quizIds.map((i) => contract.read.userTrials([user, i]))
+    )
+    return trials as bigint[];
+}
+
+export async function getQuizzesUserCanClaim(quizIds: Array<number>, user: Address, client: PublicClient): Promise<boolean[]> {
+    const contract = getContract({
+        address: QuizManagerAddress,
+        abi: QuizManagerABI,
+        client
+    });
+
+    const canClaims = await Promise.all(
+        quizIds.map((i) => contract.read.canClaim([user, i]))
+    );
+
+    return canClaims as boolean[];
+}
+
+export async function getQuizzesUserHasClaimed(quizIds: Array<number>, user: Address, client: PublicClient): Promise<boolean[]> {
+    const contract = getContract({
+        address: QuizManagerAddress,
+        abi: QuizManagerABI,
+        client
+    });
+
+    const hasClaimeds = await Promise.all(
+        quizIds.map((i) => contract.read.hasClaimed([user, i]))
+    );
+
+    return hasClaimeds as boolean[];
 }

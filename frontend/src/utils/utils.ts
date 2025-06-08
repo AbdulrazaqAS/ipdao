@@ -144,6 +144,16 @@ export interface AssetLicenseTerms {
     }
 }
 
+export interface QuizMetadata {
+    maxTrials: number;
+    minScore: number;
+    exists: boolean;
+    winners: bigint;
+    deadline: bigint;
+    prizeAmount: bigint;
+    metadataURI: string;
+}
+
 export interface LicenseTermsMetadata {
     blockNumber: string;
     blockTime: string;
