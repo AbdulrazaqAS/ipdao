@@ -385,7 +385,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             <label onClick={() => setShowNewAssetForm(false)}><ChevronLeft size={30} className="inline" /> Back</label>
             <h2 className="text-xl font-bold text-primary">Register New Asset</h2>
 
-            {/* NFT Section */}
+            {/* Process selection */}
             <div className="flex flex-col bg-background rounded-lg p-4">
                 <h3 className="font-semibold pb-4">Select Asset Registration Process</h3>
                 <label><input type="radio" onChange={() => setProcessType("fromScratch")} checked={processType === "fromScratch"} /> Mint a new NFT and create asset with it</label>
@@ -398,8 +398,8 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                     <h3 className="font-semibold">NFT Details</h3>
                     <p className="text-sm text-muted mt-2">Make sure the NFT is owned by the IPAManager. Transfer it if not.</p>
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" placeholder="NFT Collection Address" value={nftFields.collectionAddress} onChange={(e) => setNftFields({ ...nftFields, collectionAddress: e.target.value })} className={inputsClass} />
-                        <input type="text" placeholder="NFT ID" value={nftFields.tokenId} onChange={(e) => setNftFields({ ...nftFields, tokenId: e.target.value })} className={inputsClass} />
+                        <label>NFT Collection Address:<input type="text" placeholder="NFT Collection Address" value={nftFields.collectionAddress} onChange={(e) => setNftFields({ ...nftFields, collectionAddress: e.target.value })} className={inputsClass} /></label>
+                        <label>NFT ID:<input type="text" placeholder="NFT ID" value={nftFields.tokenId} onChange={(e) => setNftFields({ ...nftFields, tokenId: e.target.value })} className={inputsClass} /></label>
                     </div>
                 </div>
             )}
@@ -413,10 +413,10 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                     </div>
                     <div className="mt-4 space-y-2">
                         <div className="flex flex-col md:flex-row space-x-2 ">
-                            <input type="text" placeholder="NFT Name" value={nftFields.name} onChange={(e) => setNftFields({ ...nftFields, name: e.target.value })} className={inputsClass} required />
-                            <input type="file" accept="image/*" onChange={(e) => setNftImage(e.target.files![0])} className={inputsClass} required />
+                            <label>NFT Name:<input type="text" placeholder="NFT Name" value={nftFields.name} onChange={(e) => setNftFields({ ...nftFields, name: e.target.value })} className={inputsClass} required /></label>
+                            <label>NFT Image:<input type="file" accept="image/*" onChange={(e) => setNftImage(e.target.files![0])} className={inputsClass} required /></label>
                         </div>
-                        <textarea placeholder="NFT Description" rows={3} value={nftFields.description} onChange={(e) => setNftFields({ ...nftFields, description: e.target.value })} className={inputsClass} required />
+                        <label>NFT Description:<textarea placeholder="NFT Description" rows={3} value={nftFields.description} onChange={(e) => setNftFields({ ...nftFields, description: e.target.value })} className={inputsClass} required /></label>
 
                         <div>
                             <h3 className="font-semibold">NFT Attributes</h3>
@@ -449,18 +449,18 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                 <div className="bg-background rounded-lg p-4 space-y-4">
                     <h3 className="font-semibold">IP Metadata</h3>
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" placeholder="Title" value={ipFields.title} onChange={(e) => setIpFields({ ...ipFields, title: e.target.value })} className={inputsClass} required />
-                        <input type="text" placeholder="Description" value={ipFields.description} onChange={(e) => setIpFields({ ...ipFields, description: e.target.value })} className={inputsClass} required />
-                        <input type="text" placeholder="Created At" value={ipFields.createdAt} onChange={(e) => setIpFields({ ...ipFields, createdAt: e.target.value })} className={inputsClass} required />
-                        <input type="file" accept="image/*" onChange={(e) => setIpaImage(e.target.files![0])} className={inputsClass} required />
-                        <input
+                        <label>Name:<input type="text" placeholder="Title" value={ipFields.title} onChange={(e) => setIpFields({ ...ipFields, title: e.target.value })} className={inputsClass} required /></label>
+                        <label>Created At:<input type="text" placeholder="Unix Milliseconds" value={ipFields.createdAt} onChange={(e) => setIpFields({ ...ipFields, createdAt: e.target.value })} className={inputsClass} required /></label>
+                        <label className="col-span-2">Description:<input type="text" placeholder="Description" value={ipFields.description} onChange={(e) => setIpFields({ ...ipFields, description: e.target.value })} className={inputsClass} required /></label>
+                        <label>Image:<input type="file" accept="image/*" onChange={(e) => setIpaImage(e.target.files![0])} className={inputsClass} required /></label>
+                        <label>Media:<input
                             type="file"
                             // accept={mediaTypes.map(mt => mt.value).join(',')}
                             accept="*"
                             onChange={(e) => setIpaMedia(e.target.files![0])}
                             className={inputsClass}
                             required
-                        />
+                        /></label>
                     </div>
                     <div>
                         <h3 className="font-semibold">IP Creators</h3>
@@ -520,12 +520,11 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                 disabled={isLoading}
                 className="bg-primary text-background font-semibold py-2 px-6 rounded-lg w-full hover:opacity-80 transition disabled:cursor-not-allowed"
             >
-                {processType === "fromScratch" && !nftMetadataUri && "Mint NFT"}
-                {processType === "fromNFT" && !nftMetadataUri && "Get NFT"}
+                {processType === "fromScratch" && !nftMetadataUri && "Upload NFT Metadata"}
+                {processType === "fromNFT" && !nftMetadataUri && "Get NFT Metadata"}
                 {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && !ipMetadataUri && "Upload Asset Metadata"}
-                {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && ipMetadataUri && "Create Asset"}
-                {processType === "fromAsset" && "Submit Create Asset Proposal"}
-                {/* {isLoading && <span className="ml-2">Loading...</span>} */}
+                {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && ipMetadataUri && "Submit Asset Proposal"}
+                {processType === "fromAsset" && "Submit Asset Proposal"}
                 {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
             </button>
         </form>

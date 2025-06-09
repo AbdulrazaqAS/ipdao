@@ -177,16 +177,6 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
           <div className="flex flex-col">
             {licensesTerms.map((license, index) => (
               <Section key={index} title={`License Terms #${license.id}`}>
-                <div className="bg-surface p-2 rounded-lg mb-2 border-white border">
-                  <p className="text-muted text-xs">AssetLicenseComRevShare</p>
-                  <p className="text-text font-medium break-words">{assetLicenses[index]?.licensingConfig.commercialRevShare}</p>
-                </div>
-
-                <div className="bg-surface p-4 rounded-lg mb-3 border-white border">
-                  <p className="text-muted text-xs">AssetLicenseMintingFee</p>
-                  <p className="text-text font-medium break-words">{assetLicenses[index]?.licensingConfig.mintingFee}</p>
-                </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {license?.licenseTerms.map((trait, index) => (
                     <TraitCard key={index} trait={trait} />

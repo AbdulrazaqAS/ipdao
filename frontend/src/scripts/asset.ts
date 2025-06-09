@@ -1,6 +1,6 @@
 import { type Address, type PublicClient, getContract } from 'viem'
 import { type LicenseTerms } from "@story-protocol/core-sdk";
-import { type AssetCoreMetadata, type AssetLicenseTerms, type AssetAPIMetadata } from '../utils/utils';
+import { type AssetCoreMetadata, type AssetLicenseTerms, type AssetAPIMetadata, type LicenseTermsMetadata } from '../utils/utils';
 import { storyAeneid } from 'viem/chains';
 import CoreMetadataViewModuleABI from '../assets/abis/CoreMetadataViewModuleABI.json'
 import IPA_MANAGER_ABI from '../assets/abis/IPAManagerABI.json'
@@ -62,7 +62,7 @@ export async function getAssetLicenseTerms(ipId: Address, chainId: number): Prom
     method: 'GET',
     headers: {
       'X-Api-Key': 'MhBsxkU1z9fG6TofE59KqiiWV-YlYE8Q4awlLQehF3U',
-      'X-Chain': chainId === storyAeneid.id ? storyAeneid.network : 'story-mainnet'
+      'X-Chain': chainId === storyAeneid.id ? "story-aeneid" : 'story'
     }
   };
 
@@ -78,7 +78,7 @@ export async function getAssetAPIMetadata(ipId: Address, chainId: number): Promi
     method: 'GET',
     headers: {
       'X-Api-Key': 'MhBsxkU1z9fG6TofE59KqiiWV-YlYE8Q4awlLQehF3U',
-      'X-Chain': chainId === storyAeneid.id ? storyAeneid.network : 'story-mainnet'
+      'X-Chain': chainId === storyAeneid.id ? "story-aeneid" : 'story'
     }
   };
 
@@ -89,12 +89,12 @@ export async function getAssetAPIMetadata(ipId: Address, chainId: number): Promi
   return terms.data as AssetAPIMetadata;
 }
 
-export async function getLicenseTerms(licenseTermId: number, chainId: number): Promise<LicenseTerms> {
+export async function getLicenseTerms(licenseTermId: number, chainId: number): Promise<LicenseTermsMetadata> {
   const options = {
     method: 'GET',
     headers: {
       'X-Api-Key': 'MhBsxkU1z9fG6TofE59KqiiWV-YlYE8Q4awlLQehF3U',
-      'X-Chain': chainId === storyAeneid.id ? storyAeneid.network : 'story-mainnet'
+      'X-Chain': chainId === storyAeneid.id ? "story-aeneid" : 'story'
     }
   };
 
@@ -102,5 +102,6 @@ export async function getLicenseTerms(licenseTermId: number, chainId: number): P
   if (!response.ok) throw new Error(`Response status: ${response.status}`);
 
   const terms = await response.json();  // {data, next, prev}
-  return terms.data as LicenseTerms;
+  
+  return terms.data as LicenseTermsMetadata;
 }
