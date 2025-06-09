@@ -4,6 +4,8 @@ import type { AssetAPIMetadata, AssetLicenseTerms, AssetMetadata, LicenseTermsMe
 import { fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms } from "../scripts/asset";
 import { useChainId } from "wagmi";
 import AttachNewLicenseTermsForm from "./AttachNewLicenseTermsForm";
+import MintLicenseTokenForm from "./MintLicenseTokenForm";
+import type { Address } from "viem";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
@@ -46,9 +48,6 @@ function TraitCard({ trait }: { trait: any }) {
           <Copy size={16} />
         </button>
       </div>
-      {trait.max_value !== undefined && (
-        <div className="mt-1 text-xs text-muted">Max: {trait.max_value}</div>
-      )}
       {copied && (
         <span className="absolute top-1 right-2 text-accent text-xs">Copied</span>
       )}
@@ -68,6 +67,7 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   const [licensesTerms, setLicensesTerms] = useState<LicenseTermsMetadata[]>([]);
   const [nftMetadata, setNftMetadata] = useState<NFTMetadata>();
   const [showNewLicenseForm, setShowNewLicenseForm] = useState(false);
+  const [showLicenseMintForm, setShowLicenseMintForm] = useState<false | number>(false);
 
   const chain = useChainId();
 
@@ -177,13 +177,37 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
           <div className="flex flex-col">
             {licensesTerms.map((license, index) => (
               <Section key={index} title={`License Terms #${license.id}`}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {license?.licenseTerms.map((trait, index) => (
-                    <TraitCard key={index} trait={trait} />
-                  ))}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {license?.licenseTerms.map((trait, index) => (
+                      <TraitCard key={index} trait={trait} />
+                    ))}
+                  </div>
+                  <div>
+                    {showLicenseMintForm !== index ? (
+                      <button
+                        onClick={() => setShowLicenseMintForm(index)}
+                        className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
+                      >
+                        Mint License Token
+                      </button>
+                    ) : (
+                      <MintLicenseTokenForm
+                        assetId={assetMetadata.id}
+                        licenseTermsId={license.id}
+                        mintingFee={license.terms.defaultMintingFee}
+                        mintingFeeToken={license.terms.currency as Address}
+                        revShare={license.terms.commercialRevShare}
+                        setShowLicenseMintForm={setShowLicenseMintForm}
+                      />
+                    )}
+                  </div>
                 </div>
               </Section>
             ))}
+            {licensesTerms.length === 0 && (
+              <p className="text-muted text-sm">No licenses attached to this asset.</p>
+            )}
           </div>
 
           {!showNewLicenseForm ? (
@@ -194,7 +218,7 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
               Add new License
             </button>
           ) : (
-            <AttachNewLicenseTermsForm assetId={assetMetadata.id} />
+            <AttachNewLicenseTermsForm assetId={assetMetadata.id} setShowNewLicenseForm={setShowNewLicenseForm} />
           )}
         </Section>
 

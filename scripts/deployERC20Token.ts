@@ -16,8 +16,8 @@ async function main() {
   await grantTx.wait();
   console.log("Granted minter role to :", initialOwner.address);
 
-  // Minting
-  // Important: Make sure tokens are minted to even one address before changing ownership to governor
+  // Minting: Mint to all initial addresses here. You'll have to propose to mint after transferring ownership to governor.
+  // Important: Make sure tokens are minted to at least one address before changing ownership to governor for voting.
   const amount = ethers.parseEther("1000");
   const mintTx = await token.mint(initialOwner.address, amount);
   await mintTx.wait();

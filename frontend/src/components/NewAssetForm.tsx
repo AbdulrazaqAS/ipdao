@@ -35,8 +35,6 @@ interface Props {
     setShowNewAssetForm: Function;
 }
 
-// TODO: Make sure not all visotors can upload to your Pinata
-
 export default function NewAssetForm({ setShowNewAssetForm }: Props) {
     const [assetId, setAssetId] = useState('');
     const [processType, setProcessType] = useState<AssetCreationProcess>("fromScratch");
