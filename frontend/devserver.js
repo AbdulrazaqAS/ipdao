@@ -6,8 +6,9 @@ import dotenv from "dotenv";
 import axios from "axios";
 import FormData from "form-data";
 import { createPublicClient, getContract, http, createWalletClient } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
 import { story, storyAeneid } from 'viem/chains'
-import QuizManagerABI from "src/assets/abis/QuizManagerABI.json";
+import QuizManagerABI from "./src/assets/abis/QuizManagerABI.json" with { type: "json" };
 
 dotenv.config();
 const app = express();
@@ -109,13 +110,14 @@ app.post("/api/submitQuiz", (req, res) => {
 
     try {
       const { chainId, userAddress, quizId, userAnswers } = fields;
-      if (!chainId || !userAddress || !quizId || !userAnswers) {
+      if (!chainId[0] || !userAddress[0] || !quizId[0] || !userAnswers[0]) {
         return res.status(400).json({ error: "Missing required fields" });
       }
+      console.log("FormData", fields);
 
       let chain;
-      if (chainId === '1315') chain = storyAeneid;
-      else if (chainId === "1514") chain = story;
+      if (chainId[0] === '1315') chain = storyAeneid;
+      else if (chainId[0] === "1514") chain = story;
       else {
         res.status(400).json({ error: "Unsupported chainId" });
         return;
@@ -134,9 +136,9 @@ app.post("/api/submitQuiz", (req, res) => {
         address: QuizManagerAddress,
         abi: QuizManagerABI,
         functionName: 'quizzes',
-        args: [BigInt(quizId)],
+        args: [BigInt(quizId[0])],
       });
-      console.log("Quiz metadata:", quizMetadata);
+      // console.log("Quiz contract metadata:", quizMetadata);
 
       // 2. Check if quiz is active
       if (!quizMetadata[2]) {
@@ -145,20 +147,23 @@ app.post("/api/submitQuiz", (req, res) => {
 
       // 3. Fetch quiz metadata from IPFS
       const quizMetadataUri = quizMetadata[6];
-      const { data: quizData } = await axios.get(quizMetadataUri);
-      console.log("Quiz metadata:", quizData);
+      const quizMetadataUri2 = quizMetadataUri.replace("https://ipfs.io/ipfs/", "https://gateway.pinata.cloud/ipfs/");
+      // console.log("quizMetadataUri", quizMetadataUri2);
 
-      const userAnswersObj = JSON.parse(userAnswers);
+      const { data: quizData } = await axios.get(quizMetadataUri2);
+      // console.log("Quiz metadata:", quizData);
+
+      const userAnswersObj = JSON.parse(userAnswers[0]);
       const selectedQuestions = quizData.questions.filter((_, i) => Object.keys(userAnswersObj).includes(i.toString()));
 
       let score = 0;
-      Object.keys(userAnswersObj).forEach((questionIndex) => {
-        if (selectedQuestions[Number(questionIndex)].answer === userAnswersObj[questionIndex]) {
+      Object.keys(userAnswersObj).forEach((questionIndex, i) => {
+        if (selectedQuestions[i].answer === userAnswersObj[questionIndex].toString()) {
           score += 1;
         }
       });
 
-      console.log("Score:", score);
+      console.log(`${userAddress.slice(-7)} Score:`, score);
 
       // 4. Send the result to the contract
       const account = privateKeyToAccount(`0x${process.env.UPDATER_WALLET_PRIVATE_KEY}`);
@@ -171,7 +176,7 @@ app.post("/api/submitQuiz", (req, res) => {
         address: QuizManagerAddress,
         abi: QuizManagerABI,
         functionName: 'setHasTried',
-        args: [userAddress, BigInt(score), BigInt(quizId)],
+        args: [userAddress[0], BigInt(score), BigInt(quizId[0])],
       });
 
       return res.status(200).json({ success: true, score, txHash });

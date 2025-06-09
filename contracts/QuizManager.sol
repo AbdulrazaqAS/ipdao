@@ -74,6 +74,7 @@ contract QuizManager is AccessControl{
         require(quiz.exists, "Quiz not found");
         require(block.timestamp <= quiz.deadline, "Quiz expired");
         require(trials < quiz.maxTrials, "Max trials reached");
+        require(!hasClaimed[user][quizId], "Already claimed");
         userTrials[user][quizId]++;
 
         if (score >= quiz.minScore) {

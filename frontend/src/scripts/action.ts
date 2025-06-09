@@ -2,12 +2,14 @@ import { type Address, type PublicClient, type WalletClient, getContract } from 
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json'
 import VotesERC721TokenABI from '../assets/abis/VotesERC721TokenABI.json'
+import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
 import type { ProposalArgs, VoteChoice } from '../utils/utils';
 import { type LicenseTerms, StoryClient } from "@story-protocol/core-sdk";
 import axios from "axios";
 
 const IPAGovernorAddress: Address = import.meta.env.VITE_IPA_GOVERNOR!;
 const GovernanceTokenAddress: Address = import.meta.env.VITE_GOVERNANCE_TOKEN!;
+const QuizManagerAddress: Address = import.meta.env.VITE_QUIZ_MANAGER!;
 
 export async function delegateVote(delegate: Address, client: WalletClient): Promise<`0x${string}`> {
     const contract = getContract({
@@ -124,7 +126,7 @@ export async function uploadJsonToIPFS(data: any, filename: string): Promise<str
 
     const endpoint = isDev
         ? "http://localhost:5000/api/uploadJSONToIPFS"
-        : "/api/uploadToIPFS";
+        : "/api/uploadJSONToIPFS";
 
     const response = await axios.post(endpoint, formData, {
         headers: {
@@ -211,4 +213,15 @@ export async function getNFTUri(collectionAddress: Address, tokenId: bigint, cli
 
     const uri = await contract.read.tokenURI([tokenId]);
     return uri as string;
+}
+
+export async function claimQuizReward(quizId: bigint, client: WalletClient): Promise<`0x${string}`> {
+    const contract = getContract({
+        address: QuizManagerAddress,
+        abi: QuizManagerABI,
+        client
+    });
+
+    const txHash = await contract.write.claimPrize([quizId]);
+    return txHash;
 }

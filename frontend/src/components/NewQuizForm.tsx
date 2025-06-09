@@ -149,7 +149,7 @@ export default function NewQuizForm({setShowNewQuizForm}: Props) {
                 if (txReceipt.status === "reverted") console.error("Proposal reverted");
                 else console.log("Proposal mined")
             });
-            // setShowNewQuizForm(false);
+            setShowNewQuizForm(false);
         } catch (error) {
             console.error("Error submitting quiz proposal", error);
         }
