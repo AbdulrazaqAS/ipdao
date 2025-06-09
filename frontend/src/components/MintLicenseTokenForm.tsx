@@ -16,7 +16,7 @@ interface Props {
     setShowLicenseMintForm: Function;
 }
 
-export default function NewAssetForm({ assetId, mintingFee, mintingFeeToken, revShare, licenseTermsId, setShowLicenseMintForm }: Props) {
+export default function MintLicenseTokenForm({ assetId, mintingFee, mintingFeeToken, revShare, licenseTermsId, setShowLicenseMintForm }: Props) {
     const [mintAmount, setMintAmount] = useState(1);
     const [maxMintFee, setMaxMintFee] = useState(formatEther(BigInt(mintingFee)));
     const [maxRevShare, setMaxRevShare] = useState(revShare.toString());

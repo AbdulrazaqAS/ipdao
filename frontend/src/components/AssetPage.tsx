@@ -6,6 +6,7 @@ import { useChainId } from "wagmi";
 import AttachNewLicenseTermsForm from "./AttachNewLicenseTermsForm";
 import MintLicenseTokenForm from "./MintLicenseTokenForm";
 import type { Address } from "viem";
+import RegisterDerivativeForm from "./RegisterDerivativeForm";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
@@ -68,6 +69,7 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   const [nftMetadata, setNftMetadata] = useState<NFTMetadata>();
   const [showNewLicenseForm, setShowNewLicenseForm] = useState(false);
   const [showLicenseMintForm, setShowLicenseMintForm] = useState<false | number>(false);
+  const [showDerivativeForm, setShowDerivativeForm] = useState<false | number>(false);
 
   const chain = useChainId();
 
@@ -184,14 +186,24 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
                     ))}
                   </div>
                   <div>
-                    {showLicenseMintForm !== index ? (
-                      <button
-                        onClick={() => setShowLicenseMintForm(index)}
-                        className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
-                      >
-                        Mint License Token
-                      </button>
-                    ) : (
+                    {showDerivativeForm !== index && showLicenseMintForm !== index && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowLicenseMintForm(index)}
+                          className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
+                        >
+                          Mint License Token
+                        </button>
+                        <button
+                          onClick={() => setShowDerivativeForm(index)}
+                          className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
+                        >
+                          Register Derivative
+                        </button>
+                      </div>
+                    )}
+
+                    {showLicenseMintForm === index && (
                       <MintLicenseTokenForm
                         assetId={assetMetadata.id}
                         licenseTermsId={license.id}
@@ -199,6 +211,14 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
                         mintingFeeToken={license.terms.currency as Address}
                         revShare={license.terms.commercialRevShare}
                         setShowLicenseMintForm={setShowLicenseMintForm}
+                      />
+                    )}
+
+                    {showDerivativeForm === index && (
+                      <RegisterDerivativeForm
+                        parentAssetId={assetMetadata.id}
+                        parentLicenseTermsId={license.id}
+                        setShowDerivativeForm={setShowDerivativeForm}
                       />
                     )}
                   </div>

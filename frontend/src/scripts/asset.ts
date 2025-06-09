@@ -1,5 +1,4 @@
 import { type Address, type PublicClient, getContract } from 'viem'
-import { type LicenseTerms } from "@story-protocol/core-sdk";
 import { type AssetCoreMetadata, type AssetLicenseTerms, type AssetAPIMetadata, type LicenseTermsMetadata } from '../utils/utils';
 import { storyAeneid } from 'viem/chains';
 import CoreMetadataViewModuleABI from '../assets/abis/CoreMetadataViewModuleABI.json'

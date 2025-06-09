@@ -1,17 +1,15 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { ChevronLeft, X } from 'lucide-react'
-import { uploadFileToIPFS, uploadJsonToIPFS, createFileHash, createMetadataHash, getNFTUri, propose } from '../scripts/action';
-import { custom, encodeFunctionData, type Address } from 'viem';
+import { useState, type FormEvent } from 'react'
+import { uploadFileToIPFS, uploadJsonToIPFS, createFileHash, createMetadataHash, getNFTUri } from '../scripts/action';
+import { custom, type Address } from 'viem';
 import { useWalletClient, usePublicClient } from 'wagmi';
 import { StoryClient, type IpMetadata } from '@story-protocol/core-sdk';
-import { AeniedProtocolExplorer, handleError, handleSuccess, MainnetProtocolExplorer, type NFTMetadata, type ProposalArgs } from '../utils/utils';
-import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
-import { getProposalsCount, getProposalThreshold, getUserVotingPower } from '../scripts/proposal';
+import { AeniedProtocolExplorer, handleError, handleSuccess, MainnetProtocolExplorer, type NFTMetadata } from '../utils/utils';
+import { X } from 'lucide-react';
 
-const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER;
+const SPGNFTContractAddress: Address = import.meta.env.VITE_SPGNFTContract;
 
 const inputsClass = "w-full px-4 py-2 rounded-lg bg-background border border-muted placeholder-muted";
-type AssetCreationProcess = "fromScratch" | "fromNFT" | "fromAsset";
+type AssetCreationProcess = "fromScratch" | "fromNFT";
 
 // const mediaTypes = [
 //     {
@@ -32,11 +30,12 @@ interface NFTAttribute {
 }
 
 interface Props {
-    setShowNewAssetForm: Function;
+    parentAssetId: Address;
+    parentLicenseTermsId: string;
+    setShowDerivativeForm: Function;
 }
 
-export default function NewAssetForm({ setShowNewAssetForm }: Props) {
-    const [assetId, setAssetId] = useState('');
+export default function RegisterDerivativeForm({ parentAssetId, parentLicenseTermsId, setShowDerivativeForm }: Props) {
     const [processType, setProcessType] = useState<AssetCreationProcess>("fromScratch");
     const [nftAttributes, setNftAttributes] = useState<NFTAttribute[]>([]);
     const [nftImage, setNftImage] = useState<File>();
@@ -46,9 +45,8 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
     const [nftMetadataUri, setNftMetadataUri] = useState<string>();
     const [ipMetadata, setIpMetadata] = useState<IpMetadata>();
     const [ipMetadataUri, setIpMetadataUri] = useState<string>();
-    const [userVotingPower, setUserVotingPower] = useState(0n);
-    const [proposalThreshold, setProposalThreshold] = useState(0n);
     const [isLoading, setIsLoading] = useState(false);
+    const [childIpUrl, setChildIpUrl] = useState<string>("");
 
     const [ipFields, setIpFields] = useState({
         title: '',
@@ -246,90 +244,46 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
         }
     }
 
-    async function handleProposeAddRegisteredNewAsset() {
+    async function handleRegisterDerivative() {
         try {
-            const ipId = assetId.trim();
-            if (!ipId) throw new Error("Invalid asset id");
+            const storyClient = StoryClient.newClient({
+                wallet: walletClient,
+                transport: custom(walletClient!.transport),
+                chainId: walletClient!.chain.id.toString() as "1315" | "1514",
+            })
 
-            const targets = [IPA_MANAGER_ADDRESS];
-            const values = [0n];
-            const calldatas = [encodeFunctionData({
-                abi: IPAManagerABI,
-                functionName: "addAsset",
-                args: [ipId]
-            })];
-
-            const proposalIndex = await getProposalsCount(publicClient!);
-
-            const network = import.meta.env.VITE_STORY_NETWORK!;
-            const protocolExplorer = network === "mainnet" ? MainnetProtocolExplorer : AeniedProtocolExplorer;
-            const ipUrl = `View on the explorer: ${protocolExplorer}/ipa/${ipId}`;
-
-            // Added # for splitting the value when in use
-            const description = proposalIndex!.toString() +
-                "#Proposal to add new registered asset:\n" +
-                `IP Url: ${ipUrl}`
-
-            const proposalArgs: ProposalArgs = {
-                targets,
-                values,
-                calldatas,
-                description
-            };
-
-            console.log("Proposing to create new asset with args:", proposalArgs);
-            const txHash = await propose(proposalArgs, walletClient!);
-            console.log("Proposal waiting to be indexed. TxHash:", txHash); // TODO: Show this in frontend
-
-            publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
-                if (txReceipt.status === "reverted") console.error("Proposal reverted");
-                else console.log("Proposal mined")
-            });
-            setShowNewAssetForm(false);
-        } catch (error) {
-            console.error("Error proposing to add new asset:", error);
-            handleError(error as Error);
-        }
-    }
-
-    const handleProposeAddNewAsset = async () => {
-        try {
             const ipMetadataHash = await createMetadataHash(ipMetadata!);
             const nftMetadataHash = await createMetadataHash(nftMetadata!);
 
-            const targets = [IPA_MANAGER_ADDRESS];
-            const values = [0n];
-            const calldatas = [encodeFunctionData({
-                abi: IPAManagerABI,
-                functionName: "createAsset",
-                args: [ipMetadataUri, ipMetadataHash, nftMetadataUri, nftMetadataHash]
-            })];
+            const childIp = await storyClient.ipAsset.mintAndRegisterIpAndMakeDerivative({
+                spgNftContract: SPGNFTContractAddress,
+                derivData: {
+                    parentIpIds: [parentAssetId],
+                    licenseTermsIds: [parentLicenseTermsId],
+                },
 
-            const proposalIndex = await getProposalsCount(publicClient!);
-            // Added # for splitting the value when in use
-            const description = proposalIndex!.toString() +
-                "#Proposal to create new asset with:\n" +
-                `IP Metadata: ${ipMetadataUri}\n` +
-                `NFT Metadata: ${nftMetadataUri}`;
+                ipMetadata: {
+                    ipMetadataURI: ipMetadataUri,
+                    ipMetadataHash: ipMetadataHash,
+                    nftMetadataHash: nftMetadataHash,
+                    nftMetadataURI: nftMetadataUri,
+                },
+                txOptions: { waitForTransaction: true },
+            })
 
-            const proposalArgs: ProposalArgs = {
-                targets,
-                values,
-                calldatas,
-                description
-            };
+            handleSuccess("Derivative asset registered successfully!");
+            console.log('Derivative IPA created and linked:', {
+                'Transaction Hash': childIp.txHash,
+                'IPA ID': childIp.ipId,
+            })
 
-            console.log("Proposing to create new asset with args:", proposalArgs);
-            const txHash = await propose(proposalArgs, walletClient!);
+            const network = import.meta.env.VITE_STORY_NETWORK!;
+            const protocolExplorer = network === "mainnet" ? MainnetProtocolExplorer : AeniedProtocolExplorer;
+            const ipUrl = `${protocolExplorer}/ipa/${childIp.ipId}`;
 
-            publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
-                if (txReceipt.status === "reverted") console.error("Proposal reverted");
-                else console.log("Proposal mined")
-            });
-            setShowNewAssetForm(false);
-            handleSuccess("Proposal to create new asset submitted successfully!");
+            setChildIpUrl(ipUrl);
         } catch (error) {
-            console.error("Error proposing to add new asset:", error);
+            console.error("Error registering derivative asset:", error);
             handleError(error as Error);
         }
     }
@@ -338,12 +292,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
         e.preventDefault();
 
         if (!walletClient) {
-            handleError(new Error("Please connect your wallet to create a proposal"));
-            return;
-        }
-
-        if (userVotingPower < proposalThreshold) {
-            handleError(new Error(`No enough voting power to create a proposal`));
+            handleError(new Error("Please connect your wallet"));
             return;
         }
 
@@ -360,41 +309,24 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
         // After getting required data to upload IP metadata
         else if (nftMetadata && nftMetadataUri && !ipMetadataUri) await uploadIPAMetadata();
 
-        // After getting required data to make proposal
-        else if (ipMetadata && ipMetadataUri) await handleProposeAddNewAsset();
-
-        // For fromAsset
-        else if (assetId) handleProposeAddRegisteredNewAsset();
+        // After getting required data to register derivative asset
+        else if (ipMetadata && ipMetadataUri) await handleRegisterDerivative();
 
         setIsLoading(false);
     }
 
-    useEffect(() => {
-        getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
-    }, []);
-
-    useEffect(() => {
-        if (!walletClient) return;
-        getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
-    }, [walletClient]);
-
     return (
-        <form onSubmit={handleSubmit} className="bg-surface text-text max-w-3xl mx-auto p-6 rounded-2xl shadow-lg space-y-6">
-            <label onClick={() => setShowNewAssetForm(false)}><ChevronLeft size={30} className="inline" /> Back</label>
-            <h2 className="text-xl font-bold text-primary">Register New Asset</h2>
-
+        <form onSubmit={handleSubmit} className="bg-surface text-text rounded-2xl shadow-lg space-y-6">
             {/* Process selection */}
             <div className="flex flex-col bg-background rounded-lg p-4">
-                <h3 className="font-semibold pb-4">Select Asset Registration Process</h3>
-                <label><input type="radio" onChange={() => setProcessType("fromScratch")} checked={processType === "fromScratch"} /> Mint a new NFT and create asset with it</label>
-                <label><input type="radio" onChange={() => setProcessType("fromNFT")} checked={processType === "fromNFT"} /> Already have an NFT to use for the new asset</label>
-                <label><input type="radio" onChange={() => setProcessType("fromAsset")} checked={processType === "fromAsset"} /> Already have a Story registered asset</label>
+                <h3 className="font-semibold pb-4">Select Derivative Registration Process</h3>
+                <label><input type="radio" onChange={() => setProcessType("fromScratch")} checked={processType === "fromScratch"} /> Mint a new NFT and create a derivative with it</label>
+                <label><input type="radio" onChange={() => setProcessType("fromNFT")} checked={processType === "fromNFT"} /> Already have an NFT to use for the derivative</label>
             </div>
 
             {processType === "fromNFT" && !nftMetadataUri && (
                 <div className="bg-background rounded-lg p-4">
                     <h3 className="font-semibold">NFT Details</h3>
-                    <p className="text-sm text-muted mt-2">Make sure the NFT is owned by the IPAManager. Transfer it if not.</p>
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <label>NFT Collection Address:<input type="text" placeholder="NFT Collection Address" value={nftFields.collectionAddress} onChange={(e) => setNftFields({ ...nftFields, collectionAddress: e.target.value })} className={inputsClass} /></label>
                         <label>NFT ID:<input type="text" placeholder="NFT ID" value={nftFields.tokenId} onChange={(e) => setNftFields({ ...nftFields, tokenId: e.target.value })} className={inputsClass} /></label>
@@ -485,46 +417,34 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                 </div>
             )}
 
-            {/* Image Preview */}
-            {/*{previewImage && (
-                <div className="mt-4">
-                    <p className="text-muted mb-2">Preview Image:</p>
-                    <img src={previewImage} alt="Preview" className="rounded-lg w-full max-w-md object-contain border border-muted" />
-                </div>
-            )}*/}
-
-            {processType === "fromAsset" && (
-                <div className="bg-background rounded-lg p-4">
-                    <h3 className="font-semibold">Asset ID</h3>
-                    <p className="text-sm text-muted mt-2 pb-3">Make sure the asset's NFT is owned by the IPAManager. Transfer it if not.</p>
-                    <input
-                        type="text"
-                        className="w-full px-4 py-2 rounded-lg bg-background border border-muted placeholder-muted"
-                        placeholder="Enter Asset ID"
-                        value={assetId}
-                        onChange={(e) => setAssetId(e.target.value)}
-                    />
-                </div>
-            )}
-
             {(processType === "fromNFT" || processType === "fromScratch") && !nftMetadataUri && (
                 <p className="text-md text-muted">
-                    Next Step: Create Asset
+                    Next Step: Create Derivative Asset
                 </p>
             )}
 
-            <button
-                type="submit"
-                disabled={isLoading}
-                className="bg-primary text-background font-semibold py-2 px-6 rounded-lg w-full hover:opacity-80 transition disabled:cursor-not-allowed"
-            >
-                {processType === "fromScratch" && !nftMetadataUri && "Upload NFT Metadata"}
-                {processType === "fromNFT" && !nftMetadataUri && "Get NFT Metadata"}
-                {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && !ipMetadataUri && "Upload Asset Metadata"}
-                {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && ipMetadataUri && "Submit Asset Proposal"}
-                {processType === "fromAsset" && "Submit Asset Proposal"}
-                {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
-            </button>
+            <div className="flex space-x-4">
+                <button
+                    type="submit"
+                    disabled={isLoading || childIpUrl !== ""}
+                    className="bg-primary text-background font-semibold py-2 px-6 rounded-lg w-full hover:opacity-80 transition disabled:cursor-not-allowed"
+                >
+                    {processType === "fromScratch" && !nftMetadataUri && "Upload NFT Metadata"}
+                    {processType === "fromNFT" && !nftMetadataUri && "Get NFT Metadata"}
+                    {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && !ipMetadataUri && "Upload Asset Metadata"}
+                    {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && ipMetadataUri && "Create Derivative"}
+                    {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setShowDerivativeForm(false)}
+                    disabled={isLoading}
+                    className="bg-danger text-background font-semibold py-2 px-6 rounded-lg w-full hover:opacity-80 transition disabled:cursor-not-allowed"
+                >
+                    Cancel
+                </button>
+            </div>
+            {childIpUrl && <p className="text-sm text-muted pt-2">Derivative URL: <a href={childIpUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{childIpUrl}</a></p>}
         </form>
     )
 }
