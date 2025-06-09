@@ -5,9 +5,9 @@ import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json'
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 import QiuzManagerABI from '../assets/abis/QuizManagerABI.json'
-import type { ProposalArgs } from "../utils/utils";
+import { handleError, handleSuccess, type ProposalArgs } from "../utils/utils";
 import { propose } from "../scripts/action";
-import { getProposalsCount } from "../scripts/proposal";
+import { getProposalsCount, getProposalThreshold, getUserVotingPower } from "../scripts/proposal";
 import { X } from "lucide-react";
 
 interface Props {
@@ -29,7 +29,7 @@ const ABIS = [
   },
   {
     name: "IP Assets Manager",
-    abi: IPAManagerABI 
+    abi: IPAManagerABI
   },
   {
     name: "Governor",
@@ -44,9 +44,11 @@ const ABIS = [
 
 // TODO: Make it more user friendly. Show availbale contracts and all
 //       possible functions and then inputs based on the func.
-export default function NewProposalForm({setShowNewProposalForm}: Props) {
+export default function NewProposalForm({ setShowNewProposalForm }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [proposalIndex, setProposalIndex] = useState<bigint>();
+  const [userVotingPower, setUserVotingPower] = useState(0n);
+  const [proposalThreshold, setProposalThreshold] = useState(0n);
   const [description, setDescription] = useState("Minting 25 tokens to Dev1");
   const [calls, setCalls] = useState<Array<Call>>([
     {
@@ -58,7 +60,7 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
     }
   ]);
 
-  const {data: walletClient} = useWalletClient();
+  const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
 
   const addCall = () => {
@@ -77,7 +79,7 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
     setCalls(updated);
   };
 
-  const generateProposalArgs = () : ProposalArgs => {
+  const generateProposalArgs = (): ProposalArgs => {
     const targets: Array<`0x${string}`> = [];
     const values: bigint[] = [];
     const calldatas: Array<`0x${string}`> = [];
@@ -88,7 +90,7 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
         if (!abiObj) {
           throw new Error(`ABI not found for ${call.abi}`);
         }
-        
+
         const abi = abiObj.abi;
         const argsParsed = JSON.parse(call.args);
         const calldata = encodeFunctionData({
@@ -109,14 +111,19 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
     const indexedDescription = proposalIndex!.toString() + "#" + description;
 
     console.log({ targets, values, calldatas, description: indexedDescription });
-    return {targets, values, calldatas, description: indexedDescription};
+    return { targets, values, calldatas, description: indexedDescription };
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!walletClient) {
-      console.error("Wallet not connected");
+      handleError(new Error("Please connect your wallet to create a proposal"));
+      return;
+    }
+
+    if (userVotingPower < proposalThreshold) {
+      handleError(new Error(`No enough voting power to create a proposal`));
       return;
     }
 
@@ -124,9 +131,9 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
       setIsLoading(true);
       const args = generateProposalArgs();
       const txHash = await propose(args, walletClient);
-      console.log("Proposal waiting to be indexed. TxHash:", txHash);
-      
-      publicClient?.waitForTransactionReceipt({hash: txHash}).then(() => console.log("Proposal indexed"));
+      handleSuccess("Proposal submitted successfully!");
+
+      publicClient?.waitForTransactionReceipt({ hash: txHash }).then(() => console.log("Proposal indexed"));
       setShowNewProposalForm(false);
     } catch (err: any) {
       console.error(`Encoding error: ${err}`)
@@ -136,14 +143,19 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
   }
 
   useEffect(() => {
-    if (!publicClient) return;
-    getProposalsCount(publicClient).then(setProposalIndex).catch(console.error);
-  }, [publicClient]);
+    getProposalsCount(publicClient!).then(setProposalIndex).catch(console.error);
+    getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (!walletClient) return;
+    getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
+  }, [walletClient]);
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 py-6">
       <h1 className="text-2xl font-bold mb-6">
-        Create New Proposal #{proposalIndex !== undefined ? Number(proposalIndex): " Loading index..."}
+        Create New Proposal #{proposalIndex !== undefined ? Number(proposalIndex) : " Loading index..."}
       </h1>
 
       {calls.map((call, index) => (
@@ -171,15 +183,15 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
             required
           />
           <select
-              className="w-full border p-2 text-sm rounded"
-              value={call.abi}
-              onChange={(e) => updateCall(index, "abi", e.target.value)}
+            className="w-full border p-2 text-sm rounded"
+            value={call.abi}
+            onChange={(e) => updateCall(index, "abi", e.target.value)}
           >
-              {ABIS.map((abi, i) => (
-                  <option key={abi.name} value={abi.name} className="bg-background">
-                      {abi.name}
-                  </option>
-              ))}
+            {ABIS.map((abi) => (
+              <option key={abi.name} value={abi.name} className="bg-background">
+                {abi.name}
+              </option>
+            ))}
           </select>
           <input
             type="text"
@@ -220,7 +232,8 @@ export default function NewProposalForm({setShowNewProposalForm}: Props) {
           className="w-full bg-primary text-white py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
           disabled={isLoading || proposalIndex === undefined}
         >
-          {isLoading ? "Submitting..." : "Submit Proposal"}
+          {isLoading ? "Submitting" : "Submit Proposal"}
+          {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
         </button>
         <button
           className="w-full bg-danger text-white py-2 rounded hover:bg-danger/90 disabled:cursor-not-allowed"

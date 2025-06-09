@@ -1,13 +1,12 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { ChevronLeft, X } from 'lucide-react'
 import { uploadFileToIPFS, uploadJsonToIPFS, createFileHash, createMetadataHash, getNFTUri, propose } from '../scripts/action';
 import { custom, encodeFunctionData, type Address } from 'viem';
 import { useWalletClient, usePublicClient } from 'wagmi';
 import { StoryClient, type IpMetadata } from '@story-protocol/core-sdk';
-import { AeniedProtocolExplorer, MainnetProtocolExplorer, type NFTMetadata, type ProposalArgs } from '../utils/utils';
+import { AeniedProtocolExplorer, handleError, handleSuccess, MainnetProtocolExplorer, type NFTMetadata, type ProposalArgs } from '../utils/utils';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
-import { getProposalsCount } from '../scripts/proposal';
-import { getAssetMetadata } from '../scripts/asset';
+import { getProposalsCount, getProposalThreshold, getUserVotingPower } from '../scripts/proposal';
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER;
 
@@ -49,6 +48,9 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
     const [nftMetadataUri, setNftMetadataUri] = useState<string>();
     const [ipMetadata, setIpMetadata] = useState<IpMetadata>();
     const [ipMetadataUri, setIpMetadataUri] = useState<string>();
+    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [proposalThreshold, setProposalThreshold] = useState(0n);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [ipFields, setIpFields] = useState({
         title: '',
@@ -162,6 +164,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             setNftMetadataUri(metadataUri!);
         } catch (error) {
             console.log("Error uploading NFT metadata:", error);
+            handleError(error as Error);
         }
     }
 
@@ -171,19 +174,20 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             const collectionAddress = nftFields.collectionAddress.trim();
             const tokenId = nftFields.tokenId.trim();
             if (!collectionAddress || !tokenId) throw new Error("Collection address and token ID are required");
-    
+
             const tokenCid = await getNFTUri(collectionAddress as Address, BigInt(tokenId), publicClient!);
             if (!tokenCid) throw new Error("Failed to get NFT URI");
-    
+
             const tokenUri = `https://ipfs.io/ipfs/${tokenCid}`;
             const metadata = await fetch(tokenUri).then(res => res.json());
             if (!metadata) throw new Error("Failed to fetch NFT metadata");
-    
+
             setNftMetadata(metadata);
             setNftMetadataUri(tokenUri);
             console.log("NFT metadata fetched:", metadata);
         } catch (error) {
             console.error("Error fetching NFT metadata:", error);
+            handleError(error as Error);
         }
     }
 
@@ -193,22 +197,22 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             if (!ipaImage) throw new Error("No IP image selected for upload");
             if (ipaMedia.size > 100 * 1024 * 1024) throw new Error("Media size exceeds 100MB limit");
             if (ipaImage.size > 5 * 1024 * 1024) throw new Error("Image size exceeds 5MB limit");
-            
+
             const mediaCid = await handleUploadFile(ipaMedia, 100);
             if (!mediaCid) throw new Error("Failed to upload IPA media");
-            
+
             const imageCid = await handleUploadFile(ipaImage, 5);
             if (!imageCid) throw new Error("Failed to upload IPA image");
-            
+
             const mediaUri = `https://ipfs.io/ipfs/${mediaCid}`;
             const imageUri = `https://ipfs.io/ipfs/${imageCid}`;
-            
+
             const storyClient = StoryClient.newClient({
                 wallet: walletClient!,
                 transport: custom(walletClient!.transport),
                 chainId: walletClient!.chain.id.toString() as "1315" | "1514",
             })
-            
+
             const mediaHash = await createFileHash(ipaMedia);
             const imageHash = await createFileHash(ipaImage);
 
@@ -240,10 +244,11 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             setIpMetadataUri(metadataUri);
         } catch (error) {
             console.error("Error uploading IP metadata:", error);
+            handleError(error as Error);
         }
     }
 
-    async function handleProposeAddRegisteredNewAsset () {
+    async function handleProposeAddRegisteredNewAsset() {
         try {
             const ipId = assetId.trim();
             if (!ipId) throw new Error("Invalid asset id");
@@ -285,6 +290,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             setShowNewAssetForm(false);
         } catch (error) {
             console.error("Error proposing to add new asset:", error);
+            handleError(error as Error);
         }
     }
 
@@ -317,15 +323,16 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
             console.log("Proposing to create new asset with args:", proposalArgs);
             const txHash = await propose(proposalArgs, walletClient!);
-            console.log("Proposal waiting to be indexed. TxHash:", txHash); // TODO: Show this in frontend
 
             publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
                 if (txReceipt.status === "reverted") console.error("Proposal reverted");
                 else console.log("Proposal mined")
             });
             setShowNewAssetForm(false);
+            handleSuccess("Proposal to create new asset submitted successfully!");
         } catch (error) {
             console.error("Error proposing to add new asset:", error);
+            handleError(error as Error);
         }
     }
 
@@ -333,9 +340,16 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
         e.preventDefault();
 
         if (!walletClient) {
-            console.error("Wallet not connected");
+            handleError(new Error("Please connect your wallet to create a proposal"));
             return;
         }
+
+        if (userVotingPower < proposalThreshold) {
+            handleError(new Error(`No enough voting power to create a proposal`));
+            return;
+        }
+
+        setIsLoading(true);
 
         // If !nftMetadataUri for fromScratch when the metadata has not been uploaded.
         // If !nftFields.tokenId for fromNft when the metadata has not been loaded
@@ -353,7 +367,18 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
         // For fromAsset
         else if (assetId) handleProposeAddRegisteredNewAsset();
+
+        setIsLoading(false);
     }
+
+    useEffect(() => {
+        getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
+    }, []);
+
+    useEffect(() => {
+        if (!walletClient) return;
+        getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
+    }, [walletClient]);
 
     return (
         <form onSubmit={handleSubmit} className="bg-surface text-text max-w-3xl mx-auto p-6 rounded-2xl shadow-lg space-y-6">
@@ -492,13 +517,16 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
             <button
                 type="submit"
-                className="bg-primary text-background font-semibold py-2 px-6 rounded-lg w-full hover:opacity-80 transition"
+                disabled={isLoading}
+                className="bg-primary text-background font-semibold py-2 px-6 rounded-lg w-full hover:opacity-80 transition disabled:cursor-not-allowed"
             >
                 {processType === "fromScratch" && !nftMetadataUri && "Mint NFT"}
                 {processType === "fromNFT" && !nftMetadataUri && "Get NFT"}
                 {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && !ipMetadataUri && "Upload Asset Metadata"}
                 {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && ipMetadataUri && "Create Asset"}
-                {processType === "fromAsset" && "Create Asset"}
+                {processType === "fromAsset" && "Submit Create Asset Proposal"}
+                {/* {isLoading && <span className="ml-2">Loading...</span>} */}
+                {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
             </button>
         </form>
     )

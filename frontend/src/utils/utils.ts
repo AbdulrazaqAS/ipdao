@@ -1,8 +1,10 @@
 import { parseEther, zeroAddress, type Address } from "viem";
 import { type LicenseTerms } from "@story-protocol/core-sdk";
+import { toast } from "sonner";
 
 export const AeniedProtocolExplorer = 'https://aeneid.explorer.story.foundation';
 export const MainnetProtocolExplorer = 'https://explorer.story.foundation';
+export const MinParticipationThreshold = 25n * 1000000000000000000n; // 10 Governance Tokens
 
 export enum NavItems {
     Dashboard = "Dashboard",
@@ -289,4 +291,14 @@ export function getCreativeCommonsAttributionTerms(royaltyPolicy: Address, curre
         currency,
         uri: "https://github.com/piplabs/pil-document/blob/998c13e6ee1d04eb817aefd1fe16dfe8be3cd7a2/off-chain-terms/CC-BY.json",
     }
+}
+
+export function handleError(error: Error) {
+    console.error("Error:", error);
+    toast.error(`Error: ${error.message}`);
+}
+
+export function handleSuccess(message: string) {
+    console.log("Success:", message);
+    toast.success(message);
 }

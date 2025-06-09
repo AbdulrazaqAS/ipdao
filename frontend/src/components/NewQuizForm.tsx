@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { encodeFunctionData, parseEther, type Address } from 'viem';
 import { propose, uploadJsonToIPFS } from '../scripts/action';
-import { getProposalsCount, getQuizzesCount } from '../scripts/proposal';
+import { getProposalsCount, getProposalThreshold, getQuizzesCount, getUserVotingPower } from '../scripts/proposal';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
-import type { ProposalArgs, QuizQuestion, QuizMetadata } from '../utils/utils';
+import { type ProposalArgs, type QuizQuestion, type QuizMetadata, handleError, handleSuccess } from '../utils/utils';
 
 const QuizManagerAddress: Address = import.meta.env.VITE_QUIZ_MANAGER!;
 
@@ -12,7 +12,7 @@ interface Props {
     setShowNewQuizForm: Function;
 }
 
-export default function NewQuizForm({setShowNewQuizForm}: Props) {
+export default function NewQuizForm({ setShowNewQuizForm }: Props) {
     const [title, setTitle] = useState("");
     const [maxTrials, setMaxTrials] = useState("");
     const [minScore, setMinScore] = useState("");
@@ -20,6 +20,9 @@ export default function NewQuizForm({setShowNewQuizForm}: Props) {
     const [prizeAmount, setPrizeAmount] = useState("");
     const [questionsPerUser, setQuestionsPerUser] = useState("");
     const [questions, setQuestions] = useState<QuizQuestion[]>([{ question: '', answer: '', options: [''] }]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const publicClient = usePublicClient();
     const { data: walletClient } = useWalletClient();
@@ -79,7 +82,7 @@ export default function NewQuizForm({setShowNewQuizForm}: Props) {
         }
 
         const deadlineMilSecs = new Date(deadline).getTime();
-        if (deadlineMilSecs <= Date.now()){
+        if (deadlineMilSecs <= Date.now()) {
             throw new Error("Deadline must be in the future");
         }
 
@@ -99,11 +102,17 @@ export default function NewQuizForm({setShowNewQuizForm}: Props) {
         e.preventDefault();
 
         if (!walletClient) {
-            console.error("Wallet not connected");
+            handleError(new Error("Please connect your wallet to create a proposal"));
+            return;
+        }
+
+        if (userVotingPower < proposalThreshold) {
+            handleError(new Error(`No enough voting power to create a proposal`));
             return;
         }
 
         try {
+            setIsLoading(true);
             const quizzesCount = await getQuizzesCount(publicClient!);
             const quizMetadata = generateQuizMetadata(Number(quizzesCount));
             const metadataFileName = "QuizMetadata" + quizzesCount;
@@ -128,7 +137,7 @@ export default function NewQuizForm({setShowNewQuizForm}: Props) {
             })];
 
             const proposalIndex = await getProposalsCount(publicClient!);
-            
+
             // Added # for splitting the value when in use
             const description = proposalIndex!.toString() +
                 "#Proposal to create new airdrop by quiz.\n" +
@@ -143,17 +152,30 @@ export default function NewQuizForm({setShowNewQuizForm}: Props) {
 
             console.log("Proposing to create new quiz with args:", proposalArgs);
             const txHash = await propose(proposalArgs, walletClient);
-            console.log("Proposal waiting to be indexed. TxHash:", txHash); // TODO: Show this in frontend
 
             publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
-                if (txReceipt.status === "reverted") console.error("Proposal reverted");
-                else console.log("Proposal mined")
+                if (txReceipt.status === "reverted") handleError(new Error("Quiz proposal reverted"));
+                else {
+                    handleSuccess("Quiz proposal submitted successfully!");
+                }
             });
             setShowNewQuizForm(false);
         } catch (error) {
             console.error("Error submitting quiz proposal", error);
+            handleError(error as Error);
+        } finally {
+            setIsLoading(false);
         }
     };
+
+    useEffect(() => {
+        getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
+    }, []);
+
+    useEffect(() => {
+        if (!walletClient) return;
+        getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
+    }, [walletClient]);
 
     return (
         <form
@@ -291,12 +313,12 @@ export default function NewQuizForm({setShowNewQuizForm}: Props) {
                         </div>
                         <div className="flex space-x-2">
                             <button
-                                    type="button"
-                                    className="bg-secondary text-background p-1 text-sm rounded hover:opacity-90 transition"
-                                    onClick={() => addQuestionOption(index)}
-                                >
-                                    Add Option
-                                </button>
+                                type="button"
+                                className="bg-secondary text-background p-1 text-sm rounded hover:opacity-90 transition"
+                                onClick={() => addQuestionOption(index)}
+                            >
+                                Add Option
+                            </button>
                             <button
                                 type="button"
                                 className="text-background p-1 bg-danger text-sm rounded"
@@ -318,15 +340,18 @@ export default function NewQuizForm({setShowNewQuizForm}: Props) {
 
             <div className=" gap-3 flex flex-col md:flex-row">
                 <button
+                    disabled={isLoading}
                     type="submit"
-                    className="bg-primary text-background px-6 py-2 rounded hover:opacity-90 transition"
+                    className="bg-primary text-background px-6 py-2 rounded hover:opacity-90 transition disabled:cursor-not-allowed"
                 >
                     Submit Proposal
+                    {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
                 </button>
                 <button
                     type="button"
                     onClick={() => setShowNewQuizForm(false)}
-                    className="bg-danger text-background px-6 py-2 rounded hover:opacity-90 transition"
+                    disabled={isLoading}
+                    className="bg-danger text-background px-6 py-2 rounded hover:opacity-90 transition disabled:cursor-not-allowed"
                 >
                     Close Form
                 </button>

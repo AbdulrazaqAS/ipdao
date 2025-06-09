@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { registerLicenseTerms } from "../scripts/action";
 import { StoryClient, type LicenseTerms } from "@story-protocol/core-sdk";
-import { getCommercialRemixTerms, getCommercialUseTerms } from "../utils/utils";
+import { getCommercialRemixTerms, getCommercialUseTerms, handleError, handleSuccess } from "../utils/utils";
 import { usePublicClient, useWalletClient } from "wagmi";
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import type { ProposalArgs } from "../utils/utils";
 import { propose } from "../scripts/action";
-import { getProposalsCount } from "../scripts/proposal";
+import { getProposalsCount, getProposalThreshold, getUserVotingPower } from "../scripts/proposal";
 import { encodeFunctionData, type Address, parseEther, custom } from "viem";
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER!;
@@ -55,17 +55,18 @@ interface Props {
 }
 
 // TODO: Add input checks before submitting
-export default function AttachNewLicenseTermsForm({assetId}: Props) {
+export default function AttachNewLicenseTermsForm({ assetId }: Props) {
     const [licenseType, setLicenseType] = useState<LicenseTermsType>("NonCommercial");
     const [licenseRegistered, setLicenseRegistered] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [licenseAttached, setLicenseAttached] = useState(false);
-    const [txIndexed, setTxIndexed] = useState(false);
     const [licenseTermsId, setLicenseTermsId] = useState<bigint>();
+    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const [formData, setFormData] = useState<any>({});
 
-    const {data: walletClient} = useWalletClient();
+    const { data: walletClient } = useWalletClient();
     const publicClient = usePublicClient();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,7 +86,7 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
         let licenseTerms: LicenseTerms;
 
         if (licenseType === "NonCommercial") {
-            console.log("Non Commercial terms registered successfully:"); // ALready registered by Story with Id 1
+            handleSuccess("Non Commercial terms already registered with Id 1");
             setLicenseRegistered(true);
             setLicenseTermsId(1n);
             return;
@@ -109,7 +110,7 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
             licenseType,
             ...licenseTerms,
         });
-        
+
         try {
             setIsLoading(true);
             const storyClient = StoryClient.newClient({
@@ -123,8 +124,9 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
             console.log("License terms registered successfully. ID: ", licenseTermsId);
             setLicenseRegistered(true);
             setLicenseTermsId(licenseTermsId);
+            handleSuccess("License terms registered successfully!");
         } catch (error) {
-            console.error("Error registering license terms:", error);
+            handleError(error as Error);
         } finally {
             setIsLoading(false);
         }
@@ -144,7 +146,7 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
             const proposalIndex = await getProposalsCount(publicClient!);
             // Added # for splitting the value when in use
             const description = proposalIndex!.toString() + "#" + `Proposal to attach license terms with ID ${licenseTermsId} to asset with ID ${assetId}`;
-            
+
             const proposalArgs: ProposalArgs = {
                 targets,
                 values,
@@ -155,15 +157,16 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
             console.log("Proposing to attach license terms with args:", proposalArgs);
             const txHash = await propose(proposalArgs, walletClient!);
             setLicenseAttached(true);
-            console.log("Proposal waiting to be indexed. TxHash:", txHash); // TODO: Show this in frontend
-            
-            publicClient?.waitForTransactionReceipt({hash: txHash}).then((txReceipt) => {
-                if (txReceipt.status === "reverted") console.error("Proposal reverted");
-                else console.log("Proposal mined")
-                setTxIndexed(true);
+
+            publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
+                if (txReceipt.status === "reverted") handleError(new Error("License attachment proposal reverted"));
+                else {
+                    handleSuccess("License attachment proposal submitted successfully!");
+                }
+                // TODO: Close the form after successful proposal
             });
         } catch (error) {
-            console.error("Error proposing to attach license terms:", error);
+            handleError(error as Error);
         } finally {
             setIsLoading(false);
         }
@@ -173,7 +176,12 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
         e.preventDefault();
 
         if (!walletClient) {
-            console.error("Wallet not connected");
+            handleError(new Error("Please connect your wallet to create a proposal"));
+            return;
+        }
+
+        if (userVotingPower < proposalThreshold) {
+            handleError(new Error(`No enough voting power to create a proposal`));
             return;
         }
 
@@ -183,6 +191,15 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
             handleProposeAttachLicenseTerms();
         }
     }
+
+      useEffect(() => {
+        getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
+      }, []);
+    
+      useEffect(() => {
+        if (!walletClient) return;
+        getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
+      }, [walletClient]);
 
     return (
         <div className="mx-auto p-6 bg-surface text-text rounded-xl shadow-lg">
@@ -204,22 +221,16 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
                 <>
                     <p className="text-muted">Non-commercial licenses do not require additional inputs.</p>
                     <div className="sm:col-span-2 md:col-span-3 flex justify-end mt-4">
-                        {!licenseAttached ? (
+                        {!licenseAttached && (
                             <button
                                 type="submit"
                                 onClick={handleSubmit}
-                                className="bg-primary text-white px-6 py-2 rounded hover:bg-opacity-90 transition"
+                                className="bg-primary text-white px-6 py-2 rounded hover:bg-opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={isLoading}
                             >
-                                {licenseRegistered ? "Propose Attach License" : "Register License"}{isLoading && "..." }
+                                {licenseRegistered ? "Propose Attach License" : "Register License"}
+                                {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
                             </button>
-                        ) : (
-                            <p className="text-green-500 font-semibold">
-                                {txIndexed ?
-                                    "License Terms Attached Successfully!" :
-                                    "Attaching license terms..."
-                                }
-                            </p>
                         )}
                     </div>
                 </>
@@ -298,7 +309,7 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
                             <div className="flex flex-col">
                                 <p className="mb-2">Royalty Policy</p>
                                 <label>
-                                    <input type="radio" name="royaltyPolicy" value={ROYALTY_POLICY_LRP} onChange={handleChange} className="mr-3"/>
+                                    <input type="radio" name="royaltyPolicy" value={ROYALTY_POLICY_LRP} onChange={handleChange} className="mr-3" />
                                     Liquid Relative Percentage (LRP)
                                 </label>
                                 <label>
@@ -310,22 +321,16 @@ export default function AttachNewLicenseTermsForm({assetId}: Props) {
                     </>
 
                     <div className="sm:col-span-2 md:col-span-3 flex justify-end mt-4">
-                        {!licenseAttached ? (
+                        {!licenseAttached && (
                             <button
                                 type="submit"
                                 onClick={handleSubmit}
-                                className="bg-primary text-white px-6 py-2 rounded hover:bg-opacity-90 transition"
+                                className="bg-primary text-white px-6 py-2 rounded hover:bg-opacity-90 transition disabled:cursor-not-allowed"
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Sending Tx..." : licenseRegistered ? "Propose Attach License" : "Register License"}
+                                {licenseRegistered ? "Propose Attach License" : "Register License"}
+                                {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
                             </button>
-                        ) : (
-                            <p className="text-green-500 font-semibold">
-                                {txIndexed ?
-                                    "License Terms Attachment Proposal Submitted" :
-                                    "Making New Proposal..."
-                                }
-                            </p>
                         )}
                     </div>
                 </form>

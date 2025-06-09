@@ -1,9 +1,10 @@
 import { Hourglass, Zap, XCircle, CheckCircle, Clock3 } from "lucide-react";
 import { useState, useEffect, type JSX } from "react";
 import { usePublicClient, useWalletClient } from 'wagmi'
-import { ProposalState, VoteChoice, type ProposalData } from "../utils/utils";
+import { handleError, handleSuccess, MinParticipationThreshold, ProposalState, VoteChoice, type ProposalData } from "../utils/utils";
 import { cancelProposal, executeProposal } from "../scripts/action";
 import { formatEther } from "viem";
+import { getUserVotingPower } from "../scripts/proposal";
 
 const StatusColor: Record<ProposalState, string> = {
     [ProposalState.Pending]: "bg-yellow-100 text-yellow-800",
@@ -42,6 +43,7 @@ interface Props {
 export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, setSelectedProposal, setShowModal }: Props) {
     const [timeleft, setTimeleft] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [userVotingPower, setUserVotingPower] = useState(0n);
 
     const totalVotes = Number(proposal.for + proposal.against + proposal.abstain) || 1; // Avoid division by zero
     const forPct = Math.round((Number(proposal.for) / totalVotes) * 100);
@@ -93,9 +95,19 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
         }, 1000);
     }, []);
 
+    useEffect(() => {
+        if (!walletClient) return;
+        getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
+    }, [walletClient]);
+
     async function handleExecute() {
         if (!walletClient) {
-            console.error("Wallet not connected");
+            handleError(new Error("Please connect your wallet"));
+            return;
+        }
+
+        if (userVotingPower < MinParticipationThreshold) {
+            handleError(new Error(`No enough voting power to participate`));
             return;
         }
 
@@ -105,22 +117,27 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
             console.log("Execution tx sent. TxHash:", txHash);
 
             publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
-                if (txReceipt.status === "reverted") console.error("Failed to execute proposal");
+                if (txReceipt.status === "reverted") handleError(new Error("Failed to execute proposal"));
                 else {
-                    console.log("Proposal executed");
                     // TODO: update state and remove btn
+                    handleSuccess("Proposal executed successfully!");
                 }
             });
         } catch (error) {
-            console.error("Error executing proposal:", error);
+            handleError(error as Error);
         } finally {
             setIsLoading(false);
         }
     }
-    
+
     async function handleCancel() {
         if (!walletClient) {
-            console.error("Wallet not connected");
+            handleError(new Error("Please connect your wallet"));
+            return;
+        }
+
+        if (userVotingPower < MinParticipationThreshold) {
+            handleError(new Error(`No enough voting power to participate`));
             return;
         }
 
@@ -130,15 +147,14 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
             console.log("Cancel tx sent. TxHash:", txHash);
 
             publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
-                if (txReceipt.status === "reverted") console.error("Failed to cancel proposal");
+                if (txReceipt.status === "reverted") handleError(new Error("Failed to cancel proposal"));
                 else {
-                    console.log("Proposal cancelled");
+                    handleSuccess("Proposal cancelled successfully!");
                     // TODO: update state and remove btn
                 }
             });
-
         } catch (error) {
-            console.error("Error cancelling proposal:", error);
+            handleError(error as Error);
         } finally {
             setIsLoading(false);
         }
@@ -254,7 +270,8 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
                         onClick={handleExecute}
                         disabled={isLoading}
                     >
-                        {isLoading ? "Sending..." : "Execute"}
+                        {isLoading ? "Sending" : "Execute"}
+                        {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
                     </button>
                 </div>
             )}
@@ -267,7 +284,8 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
                         onClick={handleCancel}
                         disabled={isLoading}
                     >
-                        {isLoading ? "Sending..." : "Cancel"}
+                        {isLoading ? "Sending" : "Cancel"}
+                        {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
                     </button>
                 </div>
             )}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { type QuizMetadata, type QuizQuestion } from '../utils/utils';
-import { getGovernanceTokenSymbol, getQuizzes, getQuizzesCount, getQuizzesUserCanClaim, getQuizzesUserHasClaimed, getQuizzesUserTrials } from '../scripts/proposal';
+import { handleError, handleSuccess, type QuizMetadata, type QuizQuestion } from '../utils/utils';
+import { getGovernanceTokenSymbol, getQuizzes, getQuizzesCount, getQuizzesUserCanClaim, getQuizzesUserHasClaimed, getQuizzesUserTrials, getUserVotingPower } from '../scripts/proposal';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { fetchMetadata } from '../scripts/asset';
 import { formatEther } from 'viem';
@@ -12,8 +12,6 @@ const quizTabs = {
     finished: "Finished",
     claimable: "Claimable"
 }
-
-// const quizTabs = ['All', 'Active', 'Finished', 'Claimable'];
 
 type QuizMetadataPlus = QuizMetadata & {
     canClaim?: boolean;
@@ -29,11 +27,14 @@ export default function QuizPage() {
     const [selectedQuestions, setSelectedQuestions] = useState<QuizQuestion[]>([]);
     const [questionAnswers, setQuestionAnswers] = useState<any>({});
     const [filteredQuizzes, setFilteredQuizzes] = useState<QuizMetadataPlus[]>([]);
+    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [isLoading, setIsLoading] = useState(false);
+
     const publicClient = usePublicClient();
     const { data: walletClient } = useWalletClient();
 
     function handleAnswerChange(idx: number, i: number): void {
-        const indexInAllQuestions = filteredQuizzes[expandedQuiz].questions.findIndex((q) => q.question === selectedQuestions[idx].question);
+        const indexInAllQuestions = filteredQuizzes[expandedQuiz!].questions.findIndex((q) => q.question === selectedQuestions[idx].question);
         if (indexInAllQuestions < 0) {
             console.error("Can't find question in expanded quiz questions");
             return;
@@ -48,34 +49,41 @@ export default function QuizPage() {
 
     async function handleClaimPrize(quizId: number) {
         if (!walletClient) {
-            console.error("Wallet client not connected");
+            handleError(new Error("Please connect your wallet"));
             return;
         }
 
         try {
+            setIsLoading(true);
             console.log("Claiming reward for quiz:", quizId);
             const txHash = await claimQuizReward(BigInt(quizId), walletClient);
             console.log("Waiting for claim tx. TxHash:", txHash); // TODO: Show this in frontend
 
             publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
-                if (txReceipt.status === "reverted") console.error("Claim tx reverted");
-                else console.log("Prize Claim successfull");
+                if (txReceipt.status === "reverted") handleError(new Error("Claim transaction reverted"));
+                else {
+                    handleSuccess("Prize claimed successfully!");
+                    // TODO: Update quiz hasClaimed
+                }
             });
-            // TODO: Update quiz hasClaimed
         } catch (error) {
             console.error("Error claiming prize:", error);
+            handleError(error as Error);
+        } finally {
+            setIsLoading(false);
         }
     }
 
-    async function handleSubmitAnswers(e) {
+    async function handleSubmitAnswers(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
         if (!walletClient) {
-            console.error("Wallet client not connected");
+            handleError(new Error("Please connect your wallet"));
             return;
         }
-        
+
         try {
+            setIsLoading(true);
             console.log("Answers for quiz:", questionAnswers);
 
             const result = await sendScoreToServer(
@@ -84,14 +92,20 @@ export default function QuizPage() {
                 expandedQuiz!,
                 questionAnswers
             );
-            
+
             if (!result) {
                 throw new Error("Failed to submit answers");
             }
-            
+
             console.log(`Submitting answers for quiz ${expandedQuiz}:`, `Score: ${result.score}`, `TxHash: ${result.txHash}`);
+            handleSuccess("Answers submitted successfully!");
+            // TODO: Update quiz userTrials and canClaim status
+            setExpandedQuiz(undefined);  // Reset expanded quiz after submission
         } catch (error) {
             console.error("Error submitting answers:", error);
+            handleError(error as Error);
+        } finally {
+            setIsLoading(false);
         }
     }
 
@@ -136,8 +150,9 @@ export default function QuizPage() {
         }
 
         fetchUserQuizzesData();
-
-        setExpandedQuiz(null);
+        
+        getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
+        setExpandedQuiz(undefined);  // reset expanded quiz
         setQuestionAnswers({});
     }, [walletClient]);
 
@@ -214,15 +229,17 @@ export default function QuizPage() {
                                         className="bg-primary text-background px-4 py-2 rounded hover:opacity-90 disabled:cursor-not-allowed"
                                     >
                                         {quiz.hasClaimed ? 'Prize Claimed' : 'Claim Prize'}
+                                        {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
                                     </button>
                                 )}
                                 <button
                                     onClick={() =>
-                                        setExpandedQuiz(expandedQuiz === quiz.quizId ? null : quiz.quizId)
+                                        setExpandedQuiz(expandedQuiz === quiz.quizId ? undefined : quiz.quizId)
                                     }
                                     className="bg-primary text-background px-4 py-2 rounded hover:opacity-90"
                                 >
                                     {expandedQuiz === quiz.quizId ? 'Hide Quiz' : 'Take Quiz'}
+
                                 </button>
                             </div>
                         </div>
@@ -248,9 +265,10 @@ export default function QuizPage() {
                                 ))}
                                 <button
                                     type="submit"
-                                    disabled={quiz?.userTrials && (quiz.userTrials >= quiz.maxTrials || quiz.hasClaimed)}  // if quiz?.userTrials is true, no need to check whether hasClaimed is undefined
+                                    disabled={!!quiz?.userTrials && (quiz.userTrials >= quiz.maxTrials || quiz.hasClaimed  || quiz.canClaim)}  // if quiz?.userTrials is true, no need to check whether hasClaimed is undefined
                                     className="mt-2 bg-accent text-background px-4 py-2 rounded hover:opacity-90 disabled:cursor-not-allowed">
-                                    {!walletClient ? "Wallet not connected" :  quiz.userTrials >= quiz.maxTrials ? "Max trials reached" : "Submit"}
+                                    {(walletClient && quiz.userTrials! >= quiz.maxTrials) ? "Max trials reached" : "Submit"}
+                                    {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
                                 </button>
                             </form>
                         )}

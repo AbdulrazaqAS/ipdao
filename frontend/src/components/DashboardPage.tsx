@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Users, PieChart, ListOrdered, Clock, Hourglass, BarChartHorizontal, Coins } from "lucide-react";
 import NewProposalForm from "./NewProposalForm";
-import { usePublicClient, useWalletClient } from "wagmi";
-import { getDAOName, getGovernanceTokenHolders, getGovernanceTokenSupply, getProposalsCount, getProposalThreshold, getQuorum, getUserVotingPower, getVotingDelay, getVotingPeriod } from "../scripts/proposal";
+import { usePublicClient } from "wagmi";
+import { getDAOName, getGovernanceTokenHolders, getGovernanceTokenSupply, getProposalsCount, getProposalThreshold, getQuorum, getVotingDelay, getVotingPeriod } from "../scripts/proposal";
 import { formatEther } from "viem";
+import { MinParticipationThreshold } from "../utils/utils";
 
 export default function Dashboard() {
   const [showNewProposalForm, setShowNewProposalForm] = useState(false);
@@ -12,13 +13,10 @@ export default function Dashboard() {
   const [proposalThreshold, setProposalThreshold] = useState("");
   const [totalProposals, setTotalProposals] = useState(0n);
   const [quorum, setQuorum] = useState(0n);
-  // const [userBalance, setUserBalance] = useState(0n);
-  const [userVotingPower, setUserVotingPower] = useState(0n);
   const [daoName, setDaoName] = useState("");
   const [governanceTokenSupply, setGovernanceTokenSupply] = useState("");
   const [governanceTokenHolders, setGovernanceTokenHolders] = useState(0);
 
-  const {data: walletClient} = useWalletClient();
   const publicClient = usePublicClient();
 
   useEffect(()=>{
@@ -53,11 +51,6 @@ export default function Dashboard() {
       getGovernanceTokenHolders("mainnet").then(setGovernanceTokenHolders).catch(console.error);
   }, []);
   
-  useEffect(()=>{
-    if (!walletClient) return;
-    // getGovernanceTokenBalance(walletClient.account.address, publicClient!).then(setUserBalance).catch(console.error);
-    getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
-  }, [walletClient]);
   return (
     <div className="p-6 max-w-6xl bg-background mx-auto text-text">
       {/* DAO Header */}
@@ -108,6 +101,13 @@ export default function Dashboard() {
           <div>
             <p className="text-sm text-muted-foreground">Proposal Threshold</p>
             <p className="text-xl font-semibold">{proposalThreshold} Votes</p>
+          </div>
+        </div>
+        <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
+          <BarChartHorizontal className="w-8 h-8 text-green-500" />
+          <div>
+            <p className="text-sm text-muted-foreground">Participation Threshold</p>
+            <p className="text-xl font-semibold">{formatEther(MinParticipationThreshold)} Votes</p>
           </div>
         </div>
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
