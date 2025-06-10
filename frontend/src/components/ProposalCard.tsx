@@ -1,10 +1,10 @@
 import { Hourglass, Zap, XCircle, CheckCircle, Clock3 } from "lucide-react";
 import { useState, useEffect, type JSX } from "react";
 import { usePublicClient, useWalletClient } from 'wagmi'
-import { handleError, handleSuccess, MinParticipationThreshold, ProposalState, VoteChoice, type ProposalData } from "../utils/utils";
+import { handleError, handleSuccess, ProposalState, VoteChoice, type ProposalData } from "../utils/utils";
 import { cancelProposal, executeProposal } from "../scripts/action";
 import { formatEther } from "viem";
-import { getUserVotingPower } from "../scripts/proposal";
+import { getParticipationThreshold, getUserVotingPower } from "../scripts/proposal";
 
 const StatusColor: Record<ProposalState, string> = {
     [ProposalState.Pending]: "bg-yellow-100 text-yellow-800",
@@ -44,6 +44,7 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
     const [timeleft, setTimeleft] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [participationThreshold, setParticipationThreshold] = useState(0n);
 
     const totalVotes = Number(proposal.for + proposal.against + proposal.abstain) || 1; // Avoid division by zero
     const forPct = Math.round((Number(proposal.for) / totalVotes) * 100);
@@ -93,6 +94,10 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
             const timeleft = `${days}d ${hours}h ${minutes}m ${seconds}s`;
             setTimeleft(timeleft);
         }, 1000);
+
+        getParticipationThreshold(publicClient!).then(setParticipationThreshold).catch(console.error);
+
+        return () => clearInterval(updateTime);
     }, []);
 
     useEffect(() => {
@@ -106,7 +111,7 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
             return;
         }
 
-        if (userVotingPower < MinParticipationThreshold) {
+        if (userVotingPower < participationThreshold) {
             handleError(new Error(`No enough voting power to participate`));
             return;
         }
@@ -136,7 +141,7 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
             return;
         }
 
-        if (userVotingPower < MinParticipationThreshold) {
+        if (userVotingPower < participationThreshold) {
             handleError(new Error(`No enough voting power to participate`));
             return;
         }

@@ -5,7 +5,7 @@ import { type AssetMetadata, type CreatorMetadata } from '../utils/utils';
 import AssetPage from './AssetPage';
 import NewAssetForm from './NewAssetForm';
 
-interface AssetInitialMetadata {
+export interface AssetInitialMetadata {
     createdAt: string;
     creators: CreatorMetadata[];
     description: string;

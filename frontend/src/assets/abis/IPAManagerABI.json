@@ -38,7 +38,7 @@
       },
       {
         "internalType": "address",
-        "name": "_revenueToken",
+        "name": "_royaltyModule",
         "type": "address"
       },
       {
@@ -81,7 +81,7 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "assetId",
         "type": "address"
@@ -94,7 +94,7 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
         "name": "assetId",
         "type": "address"
@@ -126,6 +126,19 @@
     "inputs": [
       {
         "indexed": false,
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "DaoRevenueTokensChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "address",
         "name": "childIpId",
         "type": "address"
@@ -156,7 +169,63 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
         "indexed": false,
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "name": "Execute",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "licensorIpId",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "licenseTermsId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "receiver",
+        "type": "address"
+      }
+    ],
+    "name": "LicenseTokensMinted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "address",
         "name": "collection",
         "type": "address"
@@ -200,13 +269,25 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "address",
-        "name": "newRevenueToken",
+        "name": "ipId",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "recipients",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256[]",
+        "name": "amounts",
+        "type": "uint256[]"
       }
     ],
-    "name": "RevenueTokenUpdated",
+    "name": "RoyaltyTokensTransferred",
     "type": "event"
   },
   {
@@ -308,6 +389,19 @@
   },
   {
     "inputs": [],
+    "name": "ROYALTY_MODULE",
+    "outputs": [
+      {
+        "internalType": "contract IRoyaltyModule",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "SPG_NFT",
     "outputs": [
       {
@@ -390,6 +484,16 @@
         "internalType": "string",
         "name": "_nftMetadataHash",
         "type": "string"
+      },
+      {
+        "internalType": "address[]",
+        "name": "creators",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "royaltyShares",
+        "type": "uint256[]"
       }
     ],
     "name": "createAsset",
@@ -434,6 +538,42 @@
         "type": "address"
       }
     ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "daoRevenueTokens",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "target",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "data",
+        "type": "bytes"
+      }
+    ],
+    "name": "execute",
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -609,27 +749,14 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "revenueToken",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "newRevenueToken",
-        "type": "address"
+        "internalType": "uint256",
+        "name": "_amount",
+        "type": "uint256"
       }
     ],
-    "name": "setRevenueToken",
+    "name": "setRevenueTokenPercentage",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -658,6 +785,29 @@
       }
     ],
     "name": "transferAsset",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "ipId",
+        "type": "address"
+      },
+      {
+        "internalType": "address[]",
+        "name": "recipients",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "amounts",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "transferIPARoyaltyTokens",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

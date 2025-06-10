@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import { Users, PieChart, ListOrdered, Clock, Hourglass, BarChartHorizontal, Coins } from "lucide-react";
 import NewProposalForm from "./NewProposalForm";
 import { usePublicClient } from "wagmi";
-import { getDAOName, getGovernanceTokenHolders, getGovernanceTokenSupply, getProposalsCount, getProposalThreshold, getQuorum, getVotingDelay, getVotingPeriod } from "../scripts/proposal";
+import { getDAOName, getGovernanceTokenHolders, getGovernanceTokenSupply, getParticipationThreshold, getProposalsCount, getProposalThreshold, getQuorum, getVotingDelay, getVotingPeriod } from "../scripts/proposal";
 import { formatEther } from "viem";
-import { MinParticipationThreshold } from "../utils/utils";
 
 export default function Dashboard() {
   const [showNewProposalForm, setShowNewProposalForm] = useState(false);
@@ -16,6 +15,7 @@ export default function Dashboard() {
   const [daoName, setDaoName] = useState("");
   const [governanceTokenSupply, setGovernanceTokenSupply] = useState("");
   const [governanceTokenHolders, setGovernanceTokenHolders] = useState(0);
+  const [participationThreshold, setParticipationThreshold] = useState(0n);
 
   const publicClient = usePublicClient();
 
@@ -44,6 +44,7 @@ export default function Dashboard() {
     getQuorum(publicClient!).then(setQuorum).catch(console.error);
     // getGovernanceToken(publicClient!).then(setGovernanceToken).catch(console.error);
     getProposalsCount(publicClient!).then(setTotalProposals).catch(console.error);
+    getParticipationThreshold(publicClient!).then(setParticipationThreshold).catch(console.error);
 
     if (publicClient?.chain.id === 1315)
       getGovernanceTokenHolders("aeneid").then(setGovernanceTokenHolders).catch(console.error);
@@ -107,7 +108,7 @@ export default function Dashboard() {
           <BarChartHorizontal className="w-8 h-8 text-green-500" />
           <div>
             <p className="text-sm text-muted-foreground">Participation Threshold</p>
-            <p className="text-xl font-semibold">{formatEther(MinParticipationThreshold)} Votes</p>
+            <p className="text-xl font-semibold">{formatEther(participationThreshold)} Votes</p>
           </div>
         </div>
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
