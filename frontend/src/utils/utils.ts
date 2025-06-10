@@ -4,14 +4,13 @@ import { toast } from "sonner";
 
 export const AeniedProtocolExplorer = 'https://aeneid.explorer.story.foundation';
 export const MainnetProtocolExplorer = 'https://explorer.story.foundation';
-export const MinParticipationThreshold = 25n * 1000000000000000000n; // 10 Governance Tokens
 
 export enum NavItems {
     Dashboard = "Dashboard",
     Airdrops = "Airdrops",
     Proposals = "Proposals",
     Assets = "Assets",
-    Profile = "Profile",
+    Governance = "Governance",
 }
 
 export interface ProposalDetails {

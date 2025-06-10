@@ -3,7 +3,7 @@ import { useWalletClient } from "wagmi"
 import { delegateVote } from "../scripts/action";
 import NewQuizForm from "./NewQuizForm";
 
-export default function ProfilePage() {
+export default function GovernancePage() {
     const [delegateAddress, setDelegateAddress] = useState("");
     const [showNewQuizForm, setShowNewQuizForm] = useState(false);
 

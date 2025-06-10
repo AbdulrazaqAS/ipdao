@@ -166,7 +166,7 @@ app.post("/api/submitQuiz", (req, res) => {
       console.log(`${userAddress.slice(-7)} Score:`, score);
 
       // 4. Send the result to the contract
-      const account = privateKeyToAccount(`0x${process.env.UPDATER_WALLET_PRIVATE_KEY}`);
+      const account = privateKeyToAccount(`0x${process.env.SUBMITTER_WALLET_PRIVATE_KEY}`);
       const walletClient = createWalletClient({
         ...clientConfig,
         account,

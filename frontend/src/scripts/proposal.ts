@@ -175,6 +175,17 @@ export async function getProposalThreshold(client: PublicClient): Promise<bigint
     return threshold as bigint;
 }
 
+export async function getParticipationThreshold(client: PublicClient): Promise<bigint> {
+    const contract = getContract({
+        address: IPAGovernorAddress,
+        abi: IPAGovernorABI,
+        client
+    });
+
+    const value = await contract.read.participationThreshold();
+    return value as bigint;
+}
+
 export async function getQuorum(client: PublicClient): Promise<bigint> {
     const contract = getContract({
         address: IPAGovernorAddress,

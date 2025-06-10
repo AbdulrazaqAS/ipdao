@@ -4,7 +4,7 @@ import { NavItems } from "./utils/utils";
 import Navbar from './components/Navbar';
 import DashboardPage from './components/DashboardPage';
 import ProposalsPage from "./components/ProposalsPage";
-import ProfilePage from './components/ProfilePage';
+import GovernancePage from './components/GovernancePage';
 import AssetsPage from './components/AssetsPage';
 import AirdropPage from './components/AirdropPage';
 
@@ -17,7 +17,7 @@ function App() {
       {currentPage === NavItems.Dashboard && <DashboardPage />}
       {currentPage === NavItems.Proposals && <ProposalsPage />}
       {currentPage === NavItems.Assets && <AssetsPage />}
-      {currentPage === NavItems.Profile && <ProfilePage />}
+      {currentPage === NavItems.Governance && <GovernancePage />}
       {currentPage === NavItems.Airdrops && <AirdropPage />}
 
       <Toaster />

@@ -56,6 +56,17 @@ export async function getAssetsIds(client: PublicClient): Promise<Array<Address>
     return assets as Array<Address>;
 }
 
+export async function getDaoRevenueTokens(client: PublicClient): Promise<bigint> {
+    const contract = getContract({
+        address: IPA_MANAGER_ADDRESS,
+        abi: IPA_MANAGER_ABI,
+        client
+    });
+
+    const amount = await contract.read.daoRevenueTokens();
+    return amount as bigint;
+}
+
 export async function getAssetLicenseTerms(ipId: Address, chainId: number): Promise<AssetLicenseTerms[]> {
   const options = {
     method: 'GET',
