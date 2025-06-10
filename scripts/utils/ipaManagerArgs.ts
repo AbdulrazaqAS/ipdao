@@ -7,7 +7,7 @@ module.exports = [
 	process.env.CoreMetadataViewModule!,
 	process.env.REGISTRATION_WORKFLOWS!,
 	process.env.DERIVATIVE_WORKFLOWS!,
-	process.env.REVENUE_TOKEN!,
-  	process.env.SPG_NFT_CONTRACT_NAME!,
-  	process.env.SPG_NFT_CONTRACT_SYMBOL!,
+	process.env.ROYALTY_MODULE!,
+  	"CreatorDAOSPGNFT",
+  	"CRTSPGNFT",
 ];

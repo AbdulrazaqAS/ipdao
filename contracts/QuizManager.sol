@@ -22,7 +22,8 @@ contract QuizManager is AccessControl{
     }
 
     uint256 public totalQuizzes;
-    address public ipaManager;
+    address public immutable ipaManager;
+    
     mapping(uint256 => Quiz) public quizzes;
     mapping(address user => mapping(uint256 quizId => uint8 trials)) public userTrials;
     mapping(address user => mapping(uint256 quizId => bool)) public canClaim;

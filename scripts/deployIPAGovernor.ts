@@ -8,6 +8,7 @@ async function main() {
   const votingPeriod = 5 * 60; // 5 minutes
   const proposalThreshold = ethers.parseEther("100"); // 100 tokens minimum to create a proposal
   const quorum = 4; // 4% of total supply
+  const participationThreshold = ethers.parseEther("25"); // 1000 tokens minimum for non-proposal actions
 
   const Governor = await ethers.getContractFactory("IPAGovernor");
   const governor = await Governor.deploy(
@@ -16,6 +17,7 @@ async function main() {
     votingPeriod,
     proposalThreshold,
     quorum,
+    participationThreshold,
     governanceToken,
   );
 

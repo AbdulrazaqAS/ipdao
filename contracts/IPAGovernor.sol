@@ -21,13 +21,17 @@ contract IPAGovernor is Governor, GovernorSettings, GovernorCountingSimple, Gove
         uint32 initialVotingPeriod,
         uint256 initialProposalThreshold,
         uint256 quorumNumeratorValue,
+        uint256 _participationThreshold,
         IVotes _token
     )
         Governor(name)
         GovernorSettings(initialVotingDelay, initialVotingPeriod, initialProposalThreshold)
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(quorumNumeratorValue)
-    {}
+    {
+        participationThreshold = _participationThreshold;
+        emit ParticipationThresholdUpdated(_participationThreshold);
+    }
 
     function setParticipationThreshold(uint256 _participationThreshold) external onlyGovernance {
         participationThreshold = _participationThreshold;
