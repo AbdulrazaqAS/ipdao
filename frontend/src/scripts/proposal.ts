@@ -3,6 +3,7 @@ import { type ProposalDetails, type ProposalVotes, type QuizContractMetadata} fr
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json';
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
+import type { StoryClient } from '@story-protocol/core-sdk';
 
 const IPAGovernorAddress: Address = import.meta.env.VITE_IPA_GOVERNOR!;
 const GovernanceTokenAddress: Address = import.meta.env.VITE_GOVERNANCE_TOKEN!;
@@ -403,4 +404,19 @@ export async function getQuizzesUserHasClaimed(quizIds: Array<number>, user: Add
     );
 
     return hasClaimeds as boolean[];
+}
+
+export async function getClaimableRevenue(storyClient: StoryClient, claimer: Address, ipId: Address, token: Address): Promise<bigint> {
+    const amount = await storyClient.royalty.claimableRevenue({
+        royaltyVaultIpId: ipId,
+        claimer,
+        token,
+    })
+    
+    return amount;
+}
+
+export async function getRoyaltyVaultAddress(storyClient: StoryClient, ipId: Address): Promise<Address> {
+    const addr = await storyClient.royalty.getRoyaltyVaultAddress(ipId);
+    return addr;
 }

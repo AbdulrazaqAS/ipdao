@@ -48,7 +48,7 @@ Now this is the contract that will be governed. Copy its address from the consol
 # Deploy QuizManager
 yarn hardhat run scripts/deployQuizManager.ts --network aeneid
 ```
-Then copy the contract address from the console and paste it as the `QUIZ_MANAGER` inside *.env*. The governor is also given quiz creator role for creating quizzes. And an address, `QUIZ_UPDATER`, is given updater role for marking and submitting quiz results to the `QuizManager`.
+Then copy the contract address from the console and paste it as the `QUIZ_MANAGER` inside *.env*. The governor is also given quiz creator role for creating quizzes. And an address, `QUIZ_SUBMITTER`, is given submitter role for marking and submitting quiz results to the `QuizManager`. Marking and submission is done on a server.
 
 ```bash
 # Set roles and transfer ownership to governor

@@ -11,6 +11,8 @@ const IPAGovernorAddress: Address = import.meta.env.VITE_IPA_GOVERNOR!;
 const GovernanceTokenAddress: Address = import.meta.env.VITE_GOVERNANCE_TOKEN!;
 const QuizManagerAddress: Address = import.meta.env.VITE_QUIZ_MANAGER!;
 
+// Note: Some of these functions are from Story's Typescript repo (Protecting IP :)
+
 export async function delegateVote(delegate: Address, client: WalletClient): Promise<`0x${string}`> {
     const contract = getContract({
         address: GovernanceTokenAddress,
@@ -224,4 +226,30 @@ export async function claimQuizReward(quizId: bigint, client: WalletClient): Pro
 
     const txHash = await contract.write.claimPrize([quizId]);
     return txHash;
+}
+
+export async function claimIPRevenue(storyClient: StoryClient, claimer: Address, ipId: Address, tokens: Address[]): Promise<bigint[] | undefined> {
+    const response = await storyClient.royalty.claimAllRevenue({
+        ancestorIpId: ipId,
+        claimer: claimer,
+        childIpIds: [],
+        royaltyPolicies: [],
+        currencyTokens: tokens,
+    })
+    
+    console.log("Claimed tokens:", response.claimedTokens);
+    return response.claimedTokens as unknown as bigint[];
+}
+
+export async function claimIPPredecessorsRevenue(storyClient: StoryClient, claimer: Address, ipId: Address, childIpIds: Address[], royaltyPolicies: Address[], tokens: Address[]): Promise<bigint[] | undefined> {
+    const response = await storyClient.royalty.claimAllRevenue({
+        ancestorIpId: ipId,
+        claimer: claimer,
+        childIpIds: childIpIds,
+        royaltyPolicies: royaltyPolicies,
+        currencyTokens: tokens,
+    })
+    
+    console.log("Claimed tokens:", response.claimedTokens);
+    return response.claimedTokens as unknown as bigint[];
 }

@@ -299,10 +299,4 @@ contract IPAManager is Ownable, ERC721Holder {
     function getAssetCount() external view returns (uint256) {
         return assets.length;
     }
-
-    function getRoyaltyVaultAddress(
-        address ipId
-    ) external view returns (address) {
-        return ROYALTY_MODULE.ipRoyaltyVaults(ipId);
-    }
 }

@@ -5,14 +5,14 @@ import "dotenv/config";
 async function main() {
   const [admin] = await ethers.getSigners();
   const quizCreator = process.env.IPA_GOVERNOR!;  // Governor is the quiz creator
-  const quizUpdater = process.env.QUIZ_UPDATER!;
+  const quizSubmitter = process.env.QUIZ_SUBMITTER!;
   const ipaManager = process.env.IPA_MANAGER!;
 
   const QuizManager = await ethers.getContractFactory("QuizManager");
   const quizManager = await QuizManager.deploy(
     admin.address,
     quizCreator,
-    quizUpdater,
+    quizSubmitter,
     ipaManager
   );
   
