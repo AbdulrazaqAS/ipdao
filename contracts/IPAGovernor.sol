@@ -11,6 +11,10 @@ import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/ex
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
 contract IPAGovernor is Governor, GovernorSettings, GovernorCountingSimple, GovernorStorage, GovernorVotes, GovernorVotesQuorumFraction {
+    uint256 public participationThreshold;  // Minimum participation threshold for non-proposal actions
+
+    event ParticipationThresholdUpdated(uint256 newThreshold);
+
     constructor(
         string memory name,
         uint48 initialVotingDelay,
@@ -24,6 +28,11 @@ contract IPAGovernor is Governor, GovernorSettings, GovernorCountingSimple, Gove
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(quorumNumeratorValue)
     {}
+
+    function setParticipationThreshold(uint256 _participationThreshold) external onlyGovernance {
+        participationThreshold = _participationThreshold;
+        emit ParticipationThresholdUpdated(_participationThreshold);
+    }
 
     // The following functions are overrides required by Solidity.
 

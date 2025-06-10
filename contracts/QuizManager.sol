@@ -4,27 +4,25 @@ pragma solidity ^0.8.26;
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface MintableERC20 is IERC20 {
-    function mint(address to, uint256 amount) external;
-}
-
 contract QuizManager is AccessControl{
     bytes32 public constant CREATOR_ROLE = keccak256("CREATOR_ROLE");
     bytes32 public constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
-
-    MintableERC20 public immutable TOKEN;
 
     struct Quiz {
         uint8 maxTrials;
         uint8 minScore;
         bool exists;
         uint256 winners;
+        uint256 maxWinners;
+        uint256 createdAt;
         uint256 deadline;
         uint256 prizeAmount;
+        address prizetoken;
         string metadataURI;
     }
 
     uint256 public totalQuizzes;
+    address public ipaManager;
     mapping(uint256 => Quiz) public quizzes;
     mapping(address user => mapping(uint256 quizId => uint8 trials)) public userTrials;
     mapping(address user => mapping(uint256 quizId => bool)) public canClaim;
@@ -34,9 +32,12 @@ contract QuizManager is AccessControl{
     event PrizeClaimed(uint256 indexed quizId, address indexed user);
     event QuizWon(uint256 indexed quizId, address indexed user);
 
-    constructor(address admin, address token) {
-        TOKEN = MintableERC20(token);
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+    constructor(address _admin, address _creator, address _updater, address _ipaManager) {
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        _grantRole(CREATOR_ROLE, _creator);
+        _grantRole(UPDATER_ROLE, _updater);
+
+        ipaManager = _ipaManager;
     }
 
     function createQuiz(
@@ -44,6 +45,8 @@ contract QuizManager is AccessControl{
         uint8 minScore,
         uint256 deadline,
         uint256 prizeAmount,
+        uint256 maxWinners,
+        address prizetoken,
         string calldata metadataURI
     ) external onlyRole(CREATOR_ROLE) returns (uint256) {
         require(deadline > block.timestamp, "Deadline must be in the future");
@@ -54,6 +57,9 @@ contract QuizManager is AccessControl{
         quizzes[quizId] = Quiz({
             maxTrials: maxTrials,
             minScore: minScore,
+            maxWinners: maxWinners,
+            prizetoken: prizetoken,
+            createdAt: block.timestamp,
             winners: 0,
             deadline: deadline,
             metadataURI: metadataURI,
@@ -73,6 +79,7 @@ contract QuizManager is AccessControl{
 
         require(quiz.exists, "Quiz not found");
         require(block.timestamp <= quiz.deadline, "Quiz expired");
+        require(quiz.winners < quiz.maxWinners, "Max winners reached");
         require(trials < quiz.maxTrials, "Max trials reached");
         require(!hasClaimed[user][quizId], "Already claimed");
         userTrials[user][quizId]++;
@@ -92,8 +99,13 @@ contract QuizManager is AccessControl{
         require(!hasClaimed[msg.sender][quizId], "Already claimed");
 
         hasClaimed[msg.sender][quizId] = true;
-        TOKEN.mint(msg.sender, quiz.prizeAmount);
+        IERC20(quiz.prizetoken).transferFrom(ipaManager, msg.sender, quiz.prizeAmount);
 
         emit PrizeClaimed(quizId, msg.sender);
+    }
+
+    function getQuizMetadataURI(uint256 quizId) external view returns (string memory) {
+        require(quizzes[quizId].exists, "Quiz not found");
+        return quizzes[quizId].metadataURI;
     }
 }
