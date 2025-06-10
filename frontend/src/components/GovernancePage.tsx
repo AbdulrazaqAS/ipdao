@@ -4,9 +4,9 @@ import { handleError, handleSuccess, type AssetMetadata, type ProposalArgs } fro
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata } from '../scripts/asset';
 import type { AssetInitialMetadata } from './AssetsPage';
-import { getProposalsCount, getProposalThreshold, getUserVotingPower } from '../scripts/proposal';
-import { encodeFunctionData, type Address } from 'viem';
-import { propose } from '../scripts/action';
+import { getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/proposal';
+import { encodeFunctionData, formatEther, type Address } from 'viem';
+import { delegateVote, propose } from '../scripts/action';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER;
@@ -40,6 +40,10 @@ export default function GovernancePage() {
   const [userVotingPower, setUserVotingPower] = useState(0n);
   const [proposalThreshold, setProposalThreshold] = useState(0n);
   const [assetTransferRecipient, setAssetTransferRecipient] = useState<string>("");
+  const [delegateTo, setDelegateTo] = useState('');
+  const [currentDelegate, setCurrentDelegate] = useState<string>();
+  const [tokenHolders, setTokenHolders] = useState<{ address: string; value: string }[]>([]);
+  const [votingPowers, setVotingPowers] = useState<bigint[]>([]);
 
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -112,6 +116,36 @@ export default function GovernancePage() {
     }
   }
 
+  async function handleDelegateVotes() {
+    if (!walletClient) {
+      handleError(new Error("Please connect your wallet to delegate votes"));
+      return;
+    }
+
+    if (!delegateTo) {
+      handleError(new Error("Please enter a valid address to delegate votes"));
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const txHash = await delegateVote(delegateTo as `0x${string}`, walletClient);
+      publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
+        if (txReceipt.status === "reverted") console.error("Failed to delegate votes");
+        else {
+          handleSuccess("Votes delegated successfully!");
+          setDelegateTo('');
+          // Refresh delegated to address
+        }
+      });
+    } catch (error) {
+      console.error("Error delegating votes:", error);
+      handleError(error as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   useEffect(() => {
     async function fetchAssets() {
       try {
@@ -140,11 +174,26 @@ export default function GovernancePage() {
 
     fetchAssets();
     getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
+    
+    if (publicClient?.chain.id === 1315)
+      getGovernanceTokenHolders("aeneid").then((holders) => {
+        const descendingHolders = holders.sort((a, b) => +formatEther(BigInt(b.value)) - +formatEther(BigInt(a.value)));
+        setTokenHolders(descendingHolders);
+      }).catch(console.error);
+    else if (publicClient?.chain.id === 1514)
+      getGovernanceTokenHolders("mainnet").then(setTokenHolders).catch(console.error);
   }, []);
 
   useEffect(() => {
+    if (!tokenHolders || tokenHolders.length === 0) return;
+
+    getUsersVotingPower(tokenHolders.map(holder => holder.address as Address), publicClient!).then(setVotingPowers).catch(console.error);
+  }, [tokenHolders]);
+  
+  useEffect(() => {
     if (!walletClient) return;
     getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
+    getUserDelegate(walletClient.account.address, publicClient!).then(setCurrentDelegate).catch(console.error);
   }, [walletClient]);
 
   const ipAssets = [
@@ -163,56 +212,52 @@ export default function GovernancePage() {
     },
   ];
 
-  const tokenHolders = [
-    { address: '0x1234...abcd', amount: 120, votingPower: '12%' },
-    { address: '0x5678...efgh', amount: 80, votingPower: '8%' },
-  ];
-
   const daoTokens = [
     { symbol: 'USDC', amount: '1,200.50' },
     { symbol: 'DAI', amount: '980.00' },
   ];
 
-  const [delegateTo, setDelegateTo] = useState('');
-  const currentDelegate = '0xabcd...1234';
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-text mb-6">Governance</h1>
 
       <Section title="Transfer Assets">
-        <form onSubmit={handleProposeTransferAsset} className="space-y-4">
-          {assets.map((asset) => (
-            <div key={asset.id} className="mb-3">
-              <label>
-                <input type='radio' name='transferAsset' value={asset.id} onChange={() => setSelectedAsset(asset)} />
-                {asset.title} - <span className="text-muted">{asset.id.slice(0, 6)}...{asset.id.slice(-6)}</span>
-              </label>
+        {assets.length === 0 && <p className="text-muted">No assets available for transfer</p>}
+        {assets.length > 0 && (
+          <form onSubmit={handleProposeTransferAsset} className="space-y-4">
+            {assets.map((asset) => (
+              <div key={asset.id} className="mb-3">
+                <label>
+                  <input type='radio' name='transferAsset' value={asset.id} onChange={() => setSelectedAsset(asset)} className='mr-2'/>
+                  {asset.title} - <span className="text-muted">{asset.id.slice(0, 6)}...{asset.id.slice(-6)}</span>
+                </label>
+              </div>
+            ))}
+            <div>
+              <input
+                type="text"
+                value={assetTransferRecipient}
+                minLength={42}
+                maxLength={42}
+                pattern="^0x[a-fA-F0-9]{40}$"
+                onChange={(e) => setAssetTransferRecipient(e.target.value)}
+                placeholder="0xRecipientAddress"
+                className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
+                required
+              />
             </div>
-          ))}
-          <div>
-            <input
-              type="text"
-              value={assetTransferRecipient}
-              minLength={42}
-              maxLength={42}
-              pattern="^0x[a-fA-F0-9]{40}$"
-              onChange={(e) => setAssetTransferRecipient(e.target.value)}
-              placeholder="0xRecipientAddress"
-              className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
-              required
-            />
-          </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
-          >
-            Propose Transfer
-            {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
+            >
+              Propose Transfer
+              {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
+            </button>
+          </form>
+        )}
       </Section>
 
       <Section title="Claim Revenue">
@@ -241,16 +286,20 @@ export default function GovernancePage() {
 
       <Section title="Delegate Votes">
         <div className="space-y-2">
-          <div className="text-sm">Current Delegate: <span className="font-mono text-muted">{currentDelegate}</span></div>
+          <div className="text-sm">Current Delegate: <span className="font-mono text-muted">{currentDelegate || "Wallet not connected"}</span></div>
           <div className="flex flex-col sm:flex-row items-center gap-2">
             <input
               type="text"
               value={delegateTo}
+              minLength={42}
+              maxLength={42}
+              pattern="^0x[a-fA-F0-9]{40}$"
               onChange={(e) => setDelegateTo(e.target.value)}
               placeholder="0xDelegateAddress"
               className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
             />
-            <button className="px-4 py-2 bg-primary text-white text-sm rounded">Delegate</button>
+            <button onClick={handleDelegateVotes} className="px-4 py-2 bg-primary text-white text-sm rounded">Delegate</button>
+            {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
           </div>
         </div>
       </Section>
@@ -266,11 +315,11 @@ export default function GovernancePage() {
               </tr>
             </thead>
             <tbody>
-              {tokenHolders.map((holder) => (
-                <tr key={holder.address} className="border-b border-muted/10">
+              {tokenHolders.map((holder, idx) => (
+                <tr key={idx} className="border-b border-muted/10">
                   <td className="py-2 px-2 font-mono">{holder.address}</td>
-                  <td className="py-2 px-2">{holder.amount}</td>
-                  <td className="py-2 px-2">{holder.votingPower}</td>
+                  <td className="py-2 px-2">{formatEther(BigInt(holder.value))}</td>
+                  <td className="py-2 px-2">{formatEther(BigInt(votingPowers[idx] ?? "0"))}</td>
                 </tr>
               ))}
             </tbody>

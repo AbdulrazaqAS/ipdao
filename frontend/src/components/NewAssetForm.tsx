@@ -279,13 +279,14 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
             console.log("Proposing to create new asset with args:", proposalArgs);
             const txHash = await propose(proposalArgs, walletClient!);
-            console.log("Proposal waiting to be indexed. TxHash:", txHash); // TODO: Show this in frontend
 
             publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
-                if (txReceipt.status === "reverted") console.error("Proposal reverted");
-                else console.log("Proposal mined")
+                if (txReceipt.status === "reverted") handleError(new Error("New asset proposal reverted"));
+                else {
+                    handleSuccess("Proposal to create new asset submitted successfully!");
+                    setShowNewAssetForm(false);
+                }
             });
-            setShowNewAssetForm(false);
         } catch (error) {
             console.error("Error proposing to add new asset:", error);
             handleError(error as Error);
@@ -323,11 +324,12 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             const txHash = await propose(proposalArgs, walletClient!);
 
             publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
-                if (txReceipt.status === "reverted") console.error("Proposal reverted");
-                else console.log("Proposal mined")
+                if (txReceipt.status === "reverted") handleError(new Error("New asset proposal reverted"));
+                else {
+                    handleSuccess("Proposal to create new asset submitted successfully!");
+                    setShowNewAssetForm(false);
+                }
             });
-            setShowNewAssetForm(false);
-            handleSuccess("Proposal to create new asset submitted successfully!");
         } catch (error) {
             console.error("Error proposing to add new asset:", error);
             handleError(error as Error);
@@ -349,23 +351,28 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
         setIsLoading(true);
 
-        // If !nftMetadataUri for fromScratch when the metadata has not been uploaded.
-        // If !nftFields.tokenId for fromNft when the metadata has not been loaded
-        // but tokenId is inputted, it should skip this.
-        if (!nftMetadataUri && !nftFields.tokenId) await uploadNFTMetadata();
-
-        // For fromNft to load the metadata ( if tokenId is inputted (checked by the form))
-        else if (!nftMetadataUri) await loadNftMetadata();
-
-        // After getting required data to upload IP metadata
-        else if (nftMetadata && nftMetadataUri && !ipMetadataUri) await uploadIPAMetadata();
-
-        // After getting required data to make proposal
-        else if (ipMetadata && ipMetadataUri) await handleProposeAddNewAsset();
-
-        // For fromAsset
-        else if (assetId) handleProposeAddRegisteredNewAsset();
-
+        if (processType === "fromAsset") {
+            if (assetId) handleProposeAddRegisteredNewAsset();
+            else {
+                handleError(new Error("Asset ID is required for 'fromAsset' process"));
+                setIsLoading(false);
+                return;
+            }
+        } else {
+            // If !nftMetadataUri for fromScratch when the metadata has not been uploaded.
+            // If !nftFields.tokenId for fromNft when the metadata has not been loaded
+            // but tokenId is inputted, it should skip this.
+            if (!nftMetadataUri && !nftFields.tokenId) await uploadNFTMetadata();
+    
+            // For fromNft to load the metadata ( if tokenId is inputted (checked by the form))
+            else if (!nftMetadataUri) await loadNftMetadata();
+    
+            // After getting required data to upload IP metadata
+            else if (nftMetadata && nftMetadataUri && !ipMetadataUri) await uploadIPAMetadata();
+    
+            // After getting required data to make proposal
+            else if (ipMetadata && ipMetadataUri) await handleProposeAddNewAsset();
+        }
         setIsLoading(false);
     }
 

@@ -289,6 +289,17 @@ export async function getGovernanceTokenSupply(client: PublicClient): Promise<bi
     return supply as bigint;
 }
 
+export async function getUserDelegate(addr: Address, client: PublicClient): Promise<Address> {
+    const contract = getContract({
+        address: GovernanceTokenAddress,
+        abi: VotesERC20TokenABI,
+        client
+    });
+
+    const delegate = await contract.read.delegates([addr]);
+    return delegate as Address;
+}
+
 export async function getUserVotingPower(addr: Address, client: PublicClient): Promise<bigint> {
     const contract = getContract({
         address: IPAGovernorAddress,
@@ -299,6 +310,21 @@ export async function getUserVotingPower(addr: Address, client: PublicClient): P
     const now = Math.floor(Date.now() / 1000);
     const power = await contract.read.getVotes([addr, now]);
     return power as bigint;
+}
+
+export async function getUsersVotingPower(addrs: Address[], client: PublicClient): Promise<bigint[]> {
+    const contract = getContract({
+        address: IPAGovernorAddress,
+        abi: IPAGovernorABI,
+        client
+    });
+
+    const now = Math.floor(Date.now() / 1000);
+    const powers = await Promise.all(
+        addrs.map((addr) => contract.read.getVotes([addr, now]))
+    );
+
+    return powers as bigint[];
 }
 
 export async function hasVoted(proposalId: bigint, addr: Address, client: PublicClient): Promise<boolean> {
@@ -323,7 +349,26 @@ export async function getDAOName(client: PublicClient): Promise<string> {
     return power as string;
 }
 
-export async function getGovernanceTokenHolders(chain: "aeneid" | "mainnet"): Promise<number> {
+export async function getGovernanceTokenHolders(chain: "aeneid" | "mainnet"): Promise<{value: string, address: string}[]> {
+    const chainPart = chain === "aeneid" ? "aeneid." : "";
+    const url = `https://${chainPart}storyscan.io/api/v2/tokens/${GovernanceTokenAddress}/holders`;
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            "accept": "application/json"
+        }
+    });
+
+    const holdersMetadata = await response.json();
+    console.log("Holders Metadata:", holdersMetadata);
+    return holdersMetadata.items.map((item: any) => ({
+        value: item.value,
+        address: item.address.hash,
+    })) as {value: string, address: string}[];
+
+}
+
+export async function getGovernanceTokenTotalHolders(chain: "aeneid" | "mainnet"): Promise<number> {
     const chainPart = chain === "aeneid" ? "aeneid." : "";
     const url = `https://${chainPart}storyscan.io/api/v2/tokens/${GovernanceTokenAddress}/holders`;
     const response = await fetch(url, {

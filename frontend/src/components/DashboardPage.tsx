@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Users, PieChart, ListOrdered, Clock, Hourglass, BarChartHorizontal, Coins } from "lucide-react";
 import NewProposalForm from "./NewProposalForm";
 import { usePublicClient } from "wagmi";
-import { getDAOName, getGovernanceTokenHolders, getGovernanceTokenSupply, getParticipationThreshold, getProposalsCount, getProposalThreshold, getQuorum, getVotingDelay, getVotingPeriod } from "../scripts/proposal";
+import { getDAOName, getGovernanceTokenSupply, getGovernanceTokenTotalHolders, getParticipationThreshold, getProposalsCount, getProposalThreshold, getQuorum, getVotingDelay, getVotingPeriod } from "../scripts/proposal";
 import { formatEther } from "viem";
 
 export default function Dashboard() {
@@ -47,9 +47,9 @@ export default function Dashboard() {
     getParticipationThreshold(publicClient!).then(setParticipationThreshold).catch(console.error);
 
     if (publicClient?.chain.id === 1315)
-      getGovernanceTokenHolders("aeneid").then(setGovernanceTokenHolders).catch(console.error);
+      getGovernanceTokenTotalHolders("aeneid").then(setGovernanceTokenHolders).catch(console.error);
     else if (publicClient?.chain.id === 1514)
-      getGovernanceTokenHolders("mainnet").then(setGovernanceTokenHolders).catch(console.error);
+      getGovernanceTokenTotalHolders("mainnet").then(setGovernanceTokenHolders).catch(console.error);
   }, []);
   
   return (
