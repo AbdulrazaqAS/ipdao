@@ -216,7 +216,7 @@ export default function RegisterDerivativeForm({ parentAssetId, parentLicenseTer
             const ipMetadata = storyClient.ipAsset.generateIpMetadata({
                 title: ipFields.title.trim(),
                 description: ipFields.description.trim(),
-                createdAt: ipFields.createdAt.trim(),
+                createdAt: new Date(ipFields.createdAt.trim()).getTime().toString(),
                 creators: ipCreators.map((creator) => ({
                     name: creator.name.trim(),
                     address: creator.address.trim() as Address,
@@ -288,6 +288,55 @@ export default function RegisterDerivativeForm({ parentAssetId, parentLicenseTer
         }
     }
 
+    async function handleRegisterDerivativeFromNFT() {
+        try {
+            const collectionAddress = nftFields.collectionAddress.trim();
+            const tokenId = nftFields.tokenId.trim();
+            if (!collectionAddress || !tokenId) throw new Error("Collection address and token ID are required");
+
+            const storyClient = StoryClient.newClient({
+                wallet: walletClient,
+                transport: custom(walletClient!.transport),
+                chainId: walletClient!.chain.id.toString() as "1315" | "1514",
+            })
+
+            const ipMetadataHash = await createMetadataHash(ipMetadata!);
+            const nftMetadataHash = await createMetadataHash(nftMetadata!);
+
+            const childIp = await storyClient.ipAsset.registerDerivativeIp({
+                nftContract: collectionAddress as Address,
+                tokenId: tokenId,
+                derivData: {
+                    parentIpIds: [parentAssetId],
+                    licenseTermsIds: [parentLicenseTermsId],
+                },
+
+                ipMetadata: {
+                    ipMetadataURI: ipMetadataUri,
+                    ipMetadataHash: ipMetadataHash,
+                    nftMetadataHash: nftMetadataHash,
+                    nftMetadataURI: nftMetadataUri,
+                },
+                txOptions: { waitForTransaction: true },
+            })
+
+            handleSuccess("Derivative asset registered successfully!");
+            console.log('Derivative IPA created and linked:', {
+                'Transaction Hash': childIp.txHash,
+                'IPA ID': childIp.ipId,
+            })
+
+            const network = import.meta.env.VITE_STORY_NETWORK!;
+            const protocolExplorer = network === "mainnet" ? MainnetProtocolExplorer : AeniedProtocolExplorer;
+            const ipUrl = `${protocolExplorer}/ipa/${childIp.ipId}`;
+
+            setChildIpUrl(ipUrl);
+        } catch (error) {
+            console.error("Error registering derivative asset:", error);
+            handleError(error as Error);
+        }
+    }
+
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
 
@@ -310,7 +359,10 @@ export default function RegisterDerivativeForm({ parentAssetId, parentLicenseTer
         else if (nftMetadata && nftMetadataUri && !ipMetadataUri) await uploadIPAMetadata();
 
         // After getting required data to register derivative asset
-        else if (ipMetadata && ipMetadataUri) await handleRegisterDerivative();
+        else if (ipMetadata && ipMetadataUri){
+            if (processType === "fromNFT") await handleRegisterDerivativeFromNFT();
+            else if (processType === "fromScratch") await handleRegisterDerivative();
+        }
 
         setIsLoading(false);
     }
@@ -380,7 +432,7 @@ export default function RegisterDerivativeForm({ parentAssetId, parentLicenseTer
                     <h3 className="font-semibold">IP Metadata</h3>
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <label>Name:<input type="text" placeholder="Title" value={ipFields.title} onChange={(e) => setIpFields({ ...ipFields, title: e.target.value })} className={inputsClass} required /></label>
-                        <label>Created At:<input type="text" placeholder="Unix Milliseconds" value={ipFields.createdAt} onChange={(e) => setIpFields({ ...ipFields, createdAt: e.target.value })} className={inputsClass} required /></label>
+                        <label>Created At:<input type="datetime-local" value={ipFields.createdAt} onChange={(e) => setIpFields({ ...ipFields, createdAt: e.target.value })} className={inputsClass} required /></label>
                         <label className="col-span-2">Description:<input type="text" placeholder="Description" value={ipFields.description} onChange={(e) => setIpFields({ ...ipFields, description: e.target.value })} className={inputsClass} required /></label>
                         <label>Image:<input type="file" accept="image/*" onChange={(e) => setIpaImage(e.target.files![0])} className={inputsClass} required /></label>
                         <label>Media:<input

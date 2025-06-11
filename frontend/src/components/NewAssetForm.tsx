@@ -175,28 +175,28 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
         }
     }
 
-    async function loadNftMetadata() {
-        try {
-            // TODO: Add checks
-            const collectionAddress = nftFields.collectionAddress.trim();
-            const tokenId = nftFields.tokenId.trim();
-            if (!collectionAddress || !tokenId) throw new Error("Collection address and token ID are required");
+    // async function loadNftMetadata() {
+    //     try {
+    //         // TODO: Add checks
+    //         const collectionAddress = nftFields.collectionAddress.trim();
+    //         const tokenId = nftFields.tokenId.trim();
+    //         if (!collectionAddress || !tokenId) throw new Error("Collection address and token ID are required");
 
-            const tokenCid = await getNFTUri(collectionAddress as Address, BigInt(tokenId), publicClient!);
-            if (!tokenCid) throw new Error("Failed to get NFT URI");
+    //         const tokenCid = await getNFTUri(collectionAddress as Address, BigInt(tokenId), publicClient!);
+    //         if (!tokenCid) throw new Error("Failed to get NFT URI");
 
-            const tokenUri = `https://ipfs.io/ipfs/${tokenCid}`;
-            const metadata = await fetch(tokenUri).then(res => res.json());
-            if (!metadata) throw new Error("Failed to fetch NFT metadata");
+    //         const tokenUri = `https://ipfs.io/ipfs/${tokenCid}`;
+    //         const metadata = await fetch(tokenUri).then(res => res.json());
+    //         if (!metadata) throw new Error("Failed to fetch NFT metadata");
 
-            setNftMetadata(metadata);
-            setNftMetadataUri(tokenUri);
-            console.log("NFT metadata fetched:", metadata);
-        } catch (error) {
-            console.error("Error fetching NFT metadata:", error);
-            handleError(error as Error);
-        }
-    }
+    //         setNftMetadata(metadata);
+    //         setNftMetadataUri(tokenUri);
+    //         console.log("NFT metadata fetched:", metadata);
+    //     } catch (error) {
+    //         console.error("Error fetching NFT metadata:", error);
+    //         handleError(error as Error);
+    //     }
+    // }
 
     async function uploadIPAMetadata() {
         try {
@@ -229,7 +229,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             const ipMetadata = storyClient.ipAsset.generateIpMetadata({
                 title: ipFields.title.trim(),
                 description: ipFields.description.trim(),
-                createdAt: ipFields.createdAt.trim(),
+                createdAt: new Date(ipFields.createdAt.trim()).getTime().toString(),
                 creators: ipCreators.map((creator) => ({
                     name: creator.name.trim(),
                     address: creator.address.trim() as Address,
@@ -253,6 +253,49 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             setIpMetadataUri(metadataUri);
         } catch (error) {
             console.error("Error uploading IP metadata:", error);
+            handleError(error as Error);
+        }
+    }
+
+    async function handleProposeAddNewAssetFromNFT() {
+        try {
+            const collectionAddress = nftFields.collectionAddress.trim();
+            const tokenId = nftFields.tokenId.trim();
+            if (!collectionAddress || !tokenId) throw new Error("Collection address and token ID are required");
+
+            const targets = [IPA_MANAGER_ADDRESS];
+            const values = [0n];
+            const calldatas = [encodeFunctionData({
+                abi: IPAManagerABI,
+                functionName: "createAssetFromNFT",
+                args: [collectionAddress, tokenId]
+            })];
+
+            const proposalIndex = await getProposalsCount(publicClient!);
+
+            // Added # for splitting the value when in use
+            const description = proposalIndex!.toString() +
+                "#Proposal to add a new asset from NFT:\n" +
+                `Contract: ${collectionAddress}\n` +
+                `Token ID: ${tokenId}`;
+
+            const proposalArgs: ProposalArgs = {
+                targets,
+                values,
+                calldatas,
+                description
+            };
+
+            const txHash = await propose(proposalArgs, walletClient!);
+            publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
+                if (txReceipt.status === "reverted") handleError(new Error("New asset proposal reverted"));
+                else {
+                    handleSuccess("Proposal to create new asset submitted successfully!");
+                    setShowNewAssetForm(false);
+                }
+            });
+        } catch (error) {
+            console.error("Error proposing to add new asset:", error);
             handleError(error as Error);
         }
     }
@@ -304,49 +347,17 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
         }
     }
 
-    const getCreatorsRoyaltyShares = () => {
-        return ipCreators.map((creator) => {
-            const contributionPercent = parseInt(creator.contributionPercent);
-            if (isNaN(contributionPercent) || contributionPercent < 0 || contributionPercent > 100) {
-                throw new Error("Invalid contribution percent for creator: " + creator.name);
-            }
-
-            const remainingTokens = 100n * 10n ** 6n - daoRoyaltyTokens; // Convert to basis points
-            const share = (BigInt(contributionPercent) * remainingTokens) / 100n;
-            if (share < 0) {
-                throw new Error("Invalid share for creator: " + creator.name);
-            }
-            return {
-                address: creator.address.trim() as Address,
-                share: share
-            };
-        });
-    }
-
     const handleProposeAddNewAsset = async () => {
         try {
             const ipMetadataHash = await createMetadataHash(ipMetadata!);
             const nftMetadataHash = await createMetadataHash(nftMetadata!);
-            const creatorsRoyaltyShares = getCreatorsRoyaltyShares();
-            const creatorsAddresses = creatorsRoyaltyShares.map(share => share.address);
-            const creatorsShares = creatorsRoyaltyShares.map(share => share.share);
-            creatorsAddresses.push(IPA_MANAGER_ADDRESS); // Add IPAManager address for DAO royalty
-            creatorsShares.push(daoRoyaltyTokens); // Add DAO royalty tokens
-
-            if(creatorsShares.reduce((a, b) => a + b, 0n) !== 100n * 10n ** 6n) {
-                handleError(new Error("Total shares must sum to 100%"));
-                return;
-            }
-
-            console.log("Creators addresses:", creatorsAddresses);
-            console.log("Creators shares:", creatorsShares);
 
             const targets = [IPA_MANAGER_ADDRESS];
             const values = [0n];
             const calldatas = [encodeFunctionData({
                 abi: IPAManagerABI,
                 functionName: "createAsset",
-                args: [ipMetadataUri, ipMetadataHash, nftMetadataUri, nftMetadataHash, creatorsAddresses, creatorsShares]
+                args: [ipMetadataUri, ipMetadataHash, nftMetadataUri, nftMetadataHash]
             })];
 
             const proposalIndex = await getProposalsCount(publicClient!);
@@ -394,21 +405,11 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
         setIsLoading(true);
 
-        if (processType === "fromAsset") {
-            if (assetId) handleProposeAddRegisteredNewAsset();
-            else {
-                handleError(new Error("Asset ID is required for 'fromAsset' process"));
-                setIsLoading(false);
-                return;
-            }
-        } else {
+        if (processType === "fromAsset") handleProposeAddRegisteredNewAsset();
+        else if (processType === "fromNFT") handleProposeAddNewAssetFromNFT();
+        else {
             // If !nftMetadataUri for fromScratch when the metadata has not been uploaded.
-            // If !nftFields.tokenId for fromNft when the metadata has not been loaded
-            // but tokenId is inputted, it should skip this.
-            if (!nftMetadataUri && !nftFields.tokenId) await uploadNFTMetadata();
-
-            // For fromNft to load the metadata ( if tokenId is inputted (checked by the form))
-            else if (!nftMetadataUri) await loadNftMetadata();
+            if (!nftMetadataUri) await uploadNFTMetadata();
 
             // After getting required data to upload IP metadata
             else if (nftMetadata && nftMetadataUri && !ipMetadataUri) await uploadIPAMetadata();
@@ -447,7 +448,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                     <h3 className="font-semibold">NFT Details</h3>
                     <p className="text-sm text-muted mt-2">Make sure the NFT is owned by the IPAManager. Transfer it if not.</p>
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <label>NFT Collection Address:<input type="text" placeholder="NFT Collection Address" value={nftFields.collectionAddress} onChange={(e) => setNftFields({ ...nftFields, collectionAddress: e.target.value })} className={inputsClass} /></label>
+                        <label>NFT Collection Address:<input type="text" placeholder="NFT Collection Address" minLength={42} maxLength={42} value={nftFields.collectionAddress} onChange={(e) => setNftFields({ ...nftFields, collectionAddress: e.target.value })} className={inputsClass} /></label>
                         <label>NFT ID:<input type="text" placeholder="NFT ID" value={nftFields.tokenId} onChange={(e) => setNftFields({ ...nftFields, tokenId: e.target.value })} className={inputsClass} /></label>
                     </div>
                 </div>
@@ -499,7 +500,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                     <h3 className="font-semibold">IP Metadata</h3>
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <label>Name:<input type="text" placeholder="Title" value={ipFields.title} onChange={(e) => setIpFields({ ...ipFields, title: e.target.value })} className={inputsClass} required /></label>
-                        <label>Created At:<input type="text" placeholder="Unix Milliseconds" value={ipFields.createdAt} onChange={(e) => setIpFields({ ...ipFields, createdAt: e.target.value })} className={inputsClass} required /></label>
+                        <label>Created At:<input type="datetime-local" value={ipFields.createdAt} onChange={(e) => setIpFields({ ...ipFields, createdAt: e.target.value })} className={inputsClass} required /></label>
                         <label className="col-span-2">Description:<input type="text" placeholder="Description" value={ipFields.description} onChange={(e) => setIpFields({ ...ipFields, description: e.target.value })} className={inputsClass} required /></label>
                         <label>Image:<input type="file" accept="image/*" onChange={(e) => setIpaImage(e.target.files![0])} className={inputsClass} required /></label>
                         <label>Media:<input
@@ -551,21 +552,10 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             )}
 
             <div className='space-y-2'>
-                {(processType === "fromNFT" || processType === "fromScratch") && !nftMetadataUri && (
+                {(processType === "fromScratch") && !nftMetadataUri && (
                     <p className="text-sm text-muted">
                         Next Step: Create Asset
                     </p>
-                )}
-
-                {(processType === "fromNFT" || processType === "fromScratch") && (
-                    <div className="space-y-0">
-                        <p className="text-sm text-muted">
-                            DAO Royalty Tokens: {daoRoyaltyTokens / BigInt(10 ** 6)}%
-                        </p>
-                        <p className="text-sm text-muted">
-                            The percentage of royalty tokens that will be distributed to the DAO for each asset.
-                        </p>
-                    </div>
                 )}
             </div>
 
@@ -575,10 +565,9 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                 className="bg-primary text-background font-semibold py-2 px-6 rounded-lg w-full hover:opacity-80 transition disabled:cursor-not-allowed"
             >
                 {processType === "fromScratch" && !nftMetadataUri && "Upload NFT Metadata"}
-                {processType === "fromNFT" && !nftMetadataUri && "Get NFT Metadata"}
-                {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && !ipMetadataUri && "Upload Asset Metadata"}
-                {(processType === "fromNFT" || processType === "fromScratch") && nftMetadataUri && ipMetadataUri && "Submit Asset Proposal"}
-                {processType === "fromAsset" && "Submit Asset Proposal"}
+                {processType === "fromScratch" && nftMetadataUri && !ipMetadataUri && "Upload Asset Metadata"}
+                {processType === "fromScratch" && nftMetadataUri && ipMetadataUri && "Submit Asset Proposal"}
+                {(processType === "fromAsset" || processType === "fromNFT") && "Submit Asset Proposal"}
                 {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
             </button>
         </form>
