@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { handleError, handleSuccess, type AssetMetadata, type ProposalArgs } from '../utils/utils';
 import { usePublicClient, useWalletClient } from 'wagmi';
-import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata } from '../scripts/asset';
+import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms } from '../scripts/asset';
 import type { AssetInitialMetadata } from './AssetsPage';
 import { getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/proposal';
 import { encodeFunctionData, formatEther, type Address } from 'viem';
@@ -176,12 +176,15 @@ export default function GovernancePage() {
     getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
     
     if (publicClient?.chain.id === 1315)
-      getGovernanceTokenHolders("aeneid").then((holders) => {
+      getGovernanceTokenHolders("aeneid").then(holders => {
         const descendingHolders = holders.sort((a, b) => +formatEther(BigInt(b.value)) - +formatEther(BigInt(a.value)));
         setTokenHolders(descendingHolders);
       }).catch(console.error);
     else if (publicClient?.chain.id === 1514)
-      getGovernanceTokenHolders("mainnet").then(setTokenHolders).catch(console.error);
+      getGovernanceTokenHolders("mainnet").then(holders => {
+        const descendingHolders = holders.sort((a, b) => +formatEther(BigInt(b.value)) - +formatEther(BigInt(a.value)));
+        setTokenHolders(descendingHolders);
+      }).catch(console.error);
   }, []);
 
   useEffect(() => {

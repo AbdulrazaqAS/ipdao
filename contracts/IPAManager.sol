@@ -13,9 +13,10 @@ import { ISPGNFT } from "@storyprotocol/periphery/interfaces/ISPGNFT.sol";
 import { IRegistrationWorkflows } from "@storyprotocol/periphery/interfaces/workflows/IRegistrationWorkflows.sol";
 import { IDerivativeWorkflows } from "@storyprotocol/periphery/interfaces/workflows/IDerivativeWorkflows.sol";
 import { WorkflowStructs } from "@storyprotocol/periphery/lib/WorkflowStructs.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IIPAccount} from "@storyprotocol/core/interfaces/IIPAccount.sol";
-import {IRoyaltyModule} from "@storyprotocol/core/interfaces/modules/royalty/IRoyaltyModule.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IIPAccount } from "@storyprotocol/core/interfaces/IIPAccount.sol";
+import { IRoyaltyModule } from "@storyprotocol/core/interfaces/modules/royalty/IRoyaltyModule.sol";
+import { IIpRoyaltyVault } from "@storyprotocol/core/interfaces/modules/royalty/policies/IIpRoyaltyVault.sol";
 
 contract IPAManager is Ownable, ERC721Holder {
     IIPAssetRegistry public immutable IP_ASSET_REGISTRY;
@@ -28,13 +29,18 @@ contract IPAManager is Ownable, ERC721Holder {
     ISPGNFT public immutable SPG_NFT;
 
     address[] public assets;
-    uint256 public daoRevenueTokens;  // Revenue tokens to be given to DAO for each ipa
+    uint256 public daoRevenueTokens; // Revenue tokens to be given to DAO for each ipa
 
     event AssetAdded(address indexed assetId);
     event AssetTransferred(address indexed assetId, address collection, address to, uint256 tokenId);
     event TermsAttached(address indexed assetId, uint256 licenseTermsId);
     event NFTReceived(address indexed collection, address from, uint256 tokenId);
-    event DerivativeAssetCreated(address indexed childIpId, uint256 childTokenId, address[] parentIpIds, uint256[] licenseTermsIds);
+    event DerivativeAssetCreated(
+        address indexed childIpId,
+        uint256 childTokenId,
+        address[] parentIpIds,
+        uint256[] licenseTermsIds
+    );
     event LicenseTokensMinted(address indexed licensorIpId, uint256 licenseTermsId, uint256 amount, address receiver);
     event RoyaltyTokensTransferred(address indexed ipId, address[] recipients, uint256[] amounts);
     event Execute(address indexed target, uint256 value, bytes data);
@@ -112,7 +118,7 @@ contract IPAManager is Ownable, ERC721Holder {
         uint256 licenseTermsId
     ) external onlyOwner returns (address ipId) {
         // require(IERC721(tokenCollection).ownerOf(tokenId) == address(this), "Contract must own the NFT");
-        ipId = IP_ASSET_REGISTRY.register(block.chainid, address(tokenCollection), tokenId);  // Checks for ownership
+        ipId = IP_ASSET_REGISTRY.register(block.chainid, address(tokenCollection), tokenId); // Checks for ownership
         addAsset(ipId);
         attachLicenseTerms(ipId, licenseTermsId);
     }
@@ -125,25 +131,21 @@ contract IPAManager is Ownable, ERC721Holder {
         string memory _nftMetadataHash,
         address[] memory creators,
         uint256[] memory royaltyShares
-    ) external onlyOwner returns (address ipId, uint256 tokenId){
+    ) external onlyOwner returns (address ipId, uint256 tokenId) {
         (ipId, tokenId) = REGISTRATION_WORKFLOWS.mintAndRegisterIp(
             address(SPG_NFT),
-            address(this),  // receiver
+            address(this), // receiver
             WorkflowStructs.IPMetadata({
                 ipMetadataURI: _ipMetadataURI,
                 ipMetadataHash: bytes32(bytes(_ipMetadataHash)),
                 nftMetadataURI: _nftMetadataURI,
                 nftMetadataHash: bytes32(bytes(_nftMetadataHash))
             }),
-            true  // allow duplicates with same metadata
+            true // allow duplicates with same metadata
         );
 
         addAsset(ipId);
-        transferIPARoyaltyTokens(
-            ipId,
-            creators,
-            royaltyShares
-        );
+        transferIPARoyaltyTokens(ipId, creators, royaltyShares);
     }
 
     function transferAsset(address assetId, address collection, address to, uint256 tokenId) external onlyOwner {
@@ -213,7 +215,7 @@ contract IPAManager is Ownable, ERC721Holder {
                 nftMetadataHash: bytes32(bytes(_nftMetadataHash))
             }),
             address(this),
-            false  // allow duplicates
+            false // allow duplicates
         );
 
         addAsset(childIpId);
@@ -229,22 +231,19 @@ contract IPAManager is Ownable, ERC721Holder {
     ) public onlyOwner {
         require(hasAsset(ipId), "Asset does not exist");
         address royaltyVaultAddress = ROYALTY_MODULE.ipRoyaltyVaults(ipId);
-        
+
         bytes memory tranferData;
         for (uint256 i = 0; i < recipients.length; i++) {
             // TODO: Make sure amounts sums to max royalty tokens and DAO is among recipients
-            if (recipients[i] == address(this)) require(amounts[i] == daoRevenueTokens, "Invalid tokens amount for DAO");
+            if (recipients[i] == address(this))
+                require(amounts[i] == daoRevenueTokens, "Invalid tokens amount for DAO");
 
             // Encode the transfer call data
-            tranferData = abi.encodeWithSelector(
-                IERC20.transfer.selector,
-                recipients[i],
-                amounts[i]
-            );
+            tranferData = abi.encodeWithSelector(IERC20.transfer.selector, recipients[i], amounts[i]);
 
             IIPAccount(payable(ipId)).execute(
                 royaltyVaultAddress,
-                0,  // value: 0 ETH
+                0, // value: 0 ETH
                 tranferData
             );
         }
@@ -254,12 +253,8 @@ contract IPAManager is Ownable, ERC721Holder {
 
     // For owner to execute arbitrary calls.
     // Like giving allowance to QuizManager, transferring tokens, etc.
-    function execute (
-        address target,
-        uint256 value,
-        bytes calldata data
-    ) external onlyOwner {
-        (bool success, bytes memory returnData) = target.call{value: value}(data);
+    function execute(address target, uint256 value, bytes calldata data) external onlyOwner {
+        (bool success, bytes memory returnData) = target.call{ value: value }(data);
         require(success, "Execution failed");
 
         emit Execute(target, value, data);
@@ -296,7 +291,12 @@ contract IPAManager is Ownable, ERC721Holder {
         return false;
     }
 
-    function getAssetCount() external view returns (uint256) {
+    function getAssetsCount() external view returns (uint256) {
         return assets.length;
+    }
+
+    function getAssetVaultTokens(address assetId) external view returns (address[] memory) {
+        require(hasAsset(assetId), "Asset does not exist");
+        return IIpRoyaltyVault(ROYALTY_MODULE.ipRoyaltyVaults(assetId)).tokens();
     }
 }

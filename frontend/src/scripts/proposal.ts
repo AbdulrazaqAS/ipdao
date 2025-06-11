@@ -360,7 +360,6 @@ export async function getGovernanceTokenHolders(chain: "aeneid" | "mainnet"): Pr
     });
 
     const holdersMetadata = await response.json();
-    console.log("Holders Metadata:", holdersMetadata);
     return holdersMetadata.items.map((item: any) => ({
         value: item.value,
         address: item.address.hash,
