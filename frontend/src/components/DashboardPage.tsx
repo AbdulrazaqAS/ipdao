@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Users, PieChart, ListOrdered, Clock, Hourglass, BarChartHorizontal, Coins } from "lucide-react";
 import NewProposalForm from "./NewProposalForm";
-import { usePublicClient } from "wagmi";
-import { getDAOName, getGovernanceTokenSupply, getGovernanceTokenTotalHolders, getParticipationThreshold, getProposalsCount, getProposalThreshold, getQuorum, getVotingDelay, getVotingPeriod } from "../scripts/proposal";
+import { usePublicClient, useWalletClient } from "wagmi";
+import { getDAOName, getGovernanceTokenSupply, getGovernanceTokenTotalHolders, getParticipationThreshold, getProposalsCount, getProposalThreshold, getQuorum, getUserVotingPower, getVotingDelay, getVotingPeriod } from "../scripts/proposal";
 import { formatEther } from "viem";
 
 export default function Dashboard() {
@@ -16,25 +16,27 @@ export default function Dashboard() {
   const [governanceTokenSupply, setGovernanceTokenSupply] = useState("");
   const [governanceTokenHolders, setGovernanceTokenHolders] = useState(0);
   const [participationThreshold, setParticipationThreshold] = useState(0n);
+  const [userVotingPower, setUserVotingPower] = useState(0n);
 
   const publicClient = usePublicClient();
+  const {data: walletClient} = useWalletClient();
 
-  useEffect(()=>{
+  useEffect(() => {
     getVotingPeriod(publicClient!).then((period) => {
       const periodMins = Math.floor(Number(period) / 60);
       setVotingPeriod(periodMins);
     }).catch(console.error);
-    
+
     getVotingDelay(publicClient!).then((delay) => {
       const delayMins = Math.floor(Number(delay) / 60);
       setVotingDelay(delayMins);
     }).catch(console.error);
-    
+
     getProposalThreshold(publicClient!).then((value) => {
       const valueEth = formatEther(value);
       setProposalThreshold(valueEth);
     }).catch(console.error);
-    
+
     getGovernanceTokenSupply(publicClient!).then((supply) => {
       const supplyEth = formatEther(supply);
       setGovernanceTokenSupply(supplyEth);
@@ -51,7 +53,12 @@ export default function Dashboard() {
     else if (publicClient?.chain.id === 1514)
       getGovernanceTokenTotalHolders("mainnet").then(setGovernanceTokenHolders).catch(console.error);
   }, []);
-  
+
+  useEffect(() => {
+    if (!walletClient) return;
+    getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
+  }, [walletClient]);
+
   return (
     <div className="p-6 max-w-6xl bg-background mx-auto text-text">
       {/* DAO Header */}
@@ -70,56 +77,56 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
-          <Coins className="w-8 h-8 text-yellow-500" />
+          <Coins className="w-8 h-8 text-primary" />
           <div>
             <p className="text-sm text-muted-foreground">Token Total Supply</p>
             <p className="text-xl font-semibold">{governanceTokenSupply}</p>
           </div>
         </div>
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
-          <PieChart className="w-8 h-8 text-yellow-500" />
+          <PieChart className="w-8 h-8 text-primary" />
           <div>
             <p className="text-sm text-muted-foreground">Quorum</p>
             <p className="text-xl font-semibold">{quorum}%</p>
           </div>
         </div>
-        {/* <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
-          <CheckCircle className="w-8 h-8 text-green-500" />
-          <div>
-            <p className="text-sm text-muted-foreground">Proposals Passed</p>
-            <p className="text-xl font-semibold">42</p>
-          </div>
-        </div> */}
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
-          <ListOrdered className="w-8 h-8 text-green-500" />
+          <ListOrdered className="w-8 h-8 text-primary" />
           <div>
             <p className="text-sm text-muted-foreground">Total Proposals</p>
             <p className="text-xl font-semibold">{totalProposals}</p>
           </div>
         </div>
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
-          <BarChartHorizontal className="w-8 h-8 text-green-500" />
+          <BarChartHorizontal className="w-8 h-8 text-primary" />
           <div>
             <p className="text-sm text-muted-foreground">Proposal Threshold</p>
             <p className="text-xl font-semibold">{proposalThreshold} Votes</p>
           </div>
         </div>
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
-          <BarChartHorizontal className="w-8 h-8 text-green-500" />
+          <BarChartHorizontal className="w-8 h-8 text-primary" />
           <div>
             <p className="text-sm text-muted-foreground">Participation Threshold</p>
             <p className="text-xl font-semibold">{formatEther(participationThreshold)} Votes</p>
           </div>
         </div>
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
-          <Clock className="w-8 h-8 text-green-500" />
+          <Users className="w-8 h-8 text-primary" />
+          <div>
+            <p className="text-sm text-muted-foreground">Your Voting Power</p>
+            <p className="text-xl font-semibold">{formatEther(userVotingPower)} Votes</p>
+          </div>
+        </div>
+        <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
+          <Clock className="w-8 h-8 text-primary" />
           <div>
             <p className="text-sm text-muted-foreground">Voting Period</p>
             <p className="text-xl font-semibold">{votingPeriod} mins</p>
           </div>
         </div>
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
-          <Hourglass className="w-8 h-8 text-green-500" />
+          <Hourglass className="w-8 h-8 text-primary" />
           <div>
             <p className="text-sm text-muted-foreground">Voting Delay</p>
             <p className="text-xl font-semibold">{votingDelay} mins</p>
@@ -130,10 +137,10 @@ export default function Dashboard() {
       {/* CTA */}
       <div className="text-center">
         {showNewProposalForm ?
-          <NewProposalForm setShowNewProposalForm={setShowNewProposalForm}/>
+          <NewProposalForm setShowNewProposalForm={setShowNewProposalForm} />
           :
           <button
-            onClick={() => {setShowNewProposalForm(true)}}
+            onClick={() => { setShowNewProposalForm(true) }}
             className="bg-primary text-white px-6 py-3 rounded-xl text-lg font-medium hover:bg-primary/90 transition"
           >
             Create Proposal

@@ -254,7 +254,7 @@ export default function GovernancePage() {
   }, [walletClient, assets]);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-text mb-6">Governance</h1>
 
       <Section title="Transfer Assets">
@@ -378,7 +378,8 @@ export default function GovernancePage() {
                 <tr key={idx} className="border-b border-muted/10">
                   <td className="py-2 px-2 font-mono">{token.name}</td>
                   <td className="py-2 px-2">{token.symbol}</td>
-                  <td className="py-2 px-2">{token.address.slice(0, 6)}...{token.address.slice(-4)}</td>
+                  {/* <td className="py-2 px-2">{token.address.slice(0, 6)}...{token.address.slice(-4)}</td> */}
+                  <td className="py-2 px-2">{token.address}</td>
                   <td className="py-2 px-2">{formatEther(BigInt(token.value))}</td>
                 </tr>
               ))}
@@ -404,7 +405,8 @@ export default function GovernancePage() {
                 <tr key={idx} className="border-b border-muted/10">
                   <td className="py-2 px-2 font-mono">{token.name}</td>
                   <td className="py-2 px-2">{token.symbol}</td>
-                  <td className="py-2 px-2">{token.address.slice(0, 6)}...{token.address.slice(-4)}</td>
+                  {/* <td className="py-2 px-2">{token.address.slice(0, 6)}...{token.address.slice(-4)}</td> */}
+                  <td className="py-2 px-2">{token.address}</td>
                   <td className="py-2 px-2">{token.value}</td>
                 </tr>
               ))}
