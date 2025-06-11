@@ -115,26 +115,12 @@ contract IPAManager is Ownable, ERC721Holder {
         assets.pop();
     }
 
-    function createAssetFromNFT(
-        address tokenCollection,
-        uint256 tokenId,
-        address[] memory creators,
-        uint256[] memory royaltyShares
-    ) external onlyOwner returns (address ipId) {
-        // require(IERC721(tokenCollection).ownerOf(tokenId) == address(this), "Contract must own the NFT");
-        ipId = IP_ASSET_REGISTRY.register(block.chainid, address(tokenCollection), tokenId); // Checks for ownership
-        addAsset(ipId);
-        transferIPARoyaltyTokens(ipId, creators, royaltyShares);
-    }
-
     // Mint an NFT and register it in the same call via the Story Protocol Gateway.
     function createAsset(
         string memory _ipMetadataURI,
         string memory _ipMetadataHash,
         string memory _nftMetadataURI,
-        string memory _nftMetadataHash,
-        address[] memory creators,
-        uint256[] memory royaltyShares
+        string memory _nftMetadataHash
     ) external onlyOwner returns (address ipId, uint256 tokenId) {
         (ipId, tokenId) = REGISTRATION_WORKFLOWS.mintAndRegisterIp(
             address(SPG_NFT),
@@ -149,7 +135,15 @@ contract IPAManager is Ownable, ERC721Holder {
         );
 
         addAsset(ipId);
-        transferIPARoyaltyTokens(ipId, creators, royaltyShares);
+    }
+
+    function createAssetFromNFT(
+        address tokenCollection,
+        uint256 tokenId
+    ) external onlyOwner returns (address ipId) {
+        // require(IERC721(tokenCollection).ownerOf(tokenId) == address(this), "Contract must own the NFT");
+        ipId = IP_ASSET_REGISTRY.register(block.chainid, address(tokenCollection), tokenId); // Checks for ownership
+        addAsset(ipId);
     }
 
     function transferAsset(address assetId, address collection, address to, uint256 tokenId) external onlyOwner {
@@ -167,101 +161,6 @@ contract IPAManager is Ownable, ERC721Holder {
         require(hasAsset(assetId), "Asset does not exist");
         LICENSING_MODULE.attachLicenseTerms(assetId, address(PIL_TEMPLATE), licenseTermsId);
         emit TermsAttached(assetId, licenseTermsId);
-    }
-
-    // For owner to mint custom licnese tokens only. Not for public use.
-    function mintLicenseTokens(
-        address licensorIpId,
-        uint256 licenseTermsId,
-        uint256 amount,
-        address receiver
-    ) external onlyOwner returns (uint256 startLicenseTokenId) {
-        require(hasAsset(licensorIpId), "Asset does not exist");
-
-        startLicenseTokenId = LICENSING_MODULE.mintLicenseTokens(
-            licensorIpId,
-            address(PIL_TEMPLATE),
-            licenseTermsId,
-            amount,
-            receiver,
-            "",
-            0,
-            100 // Won't hurt because this is only for owner
-        );
-
-        emit LicenseTokensMinted(licensorIpId, licenseTermsId, amount, receiver);
-    }
-
-    // For owner to create derivatives for own or other assets.
-    function mintAndRegisterAndMakeDerivative(
-        address[] calldata _parentIpIds,
-        uint256[] calldata _licenseTermsIds,
-        string memory _ipMetadataURI,
-        string memory _ipMetadataHash,
-        string memory _nftMetadataURI,
-        string memory _nftMetadataHash
-    ) external onlyOwner {
-        (address childIpId, uint256 childTokenId) = DERIVATIVE_WORKFLOWS.mintAndRegisterIpAndMakeDerivative(
-            address(SPG_NFT),
-            WorkflowStructs.MakeDerivative({
-                parentIpIds: _parentIpIds,
-                licenseTemplate: address(PIL_TEMPLATE),
-                licenseTermsIds: _licenseTermsIds,
-                royaltyContext: "",
-                maxMintingFee: 0,
-                maxRts: 0,
-                maxRevenueShare: 30
-            }),
-            WorkflowStructs.IPMetadata({
-                ipMetadataURI: _ipMetadataURI,
-                ipMetadataHash: bytes32(bytes(_ipMetadataHash)),
-                nftMetadataURI: _nftMetadataURI,
-                nftMetadataHash: bytes32(bytes(_nftMetadataHash))
-            }),
-            address(this),
-            false // allow duplicates
-        );
-
-        addAsset(childIpId);
-
-        emit DerivativeAssetCreated(childIpId, childTokenId, _parentIpIds, _licenseTermsIds);
-    }
-
-    // For owner to transfer royalty tokens from the royalty vault to recipients.
-    function transferAllRoyaltyTokens(
-        address ipId,
-        address[] memory recipients,
-        uint256[] memory amounts
-    ) public onlyOwner {
-        require(hasAsset(ipId), "Asset does not exist");
-        require(recipients.length == amounts.length, "Recipients and amounts length mismatch");
-        require(recipients.length > 0, "No recipients provided");
-
-        address royaltyVaultAddress = ROYALTY_MODULE.ipRoyaltyVaults(ipId);
-        bytes memory tranferData;
-        bool daoIsGiven = false;
-        uint256 totalAmount = 0;
-        for (uint256 i = 0; i < recipients.length; i++) {
-            if (recipients[i] == address(this)) {
-                require(amounts[i] == daoRoyaltyTokens, "Invalid tokens amount for DAO");
-                require(!daoIsGiven, "DAO already given royalty tokens");
-                daoIsGiven = true;
-            }
-
-            // Encode the transfer call data
-            tranferData = abi.encodeWithSelector(IERC20.transfer.selector, recipients[i], amounts[i]);
-            IIPAccount(payable(ipId)).execute(
-                royaltyVaultAddress,
-                0, // value: 0 ETH
-                tranferData
-            );
-            totalAmount += amounts[i];
-        }
-
-        require(daoIsGiven, "DAO must be among recipients");
-        require(totalAmount == 100 * 10 ** 6, "Total amount must sum to total royalty tokens");
-
-        emit RoyaltyTokensTransferred(ipId, recipients, amounts);
     }
 
     function transferRoyaltyTokens(
@@ -333,7 +232,6 @@ contract IPAManager is Ownable, ERC721Holder {
     }
 
     function getAssetVault(address assetId) external view returns (address) {
-        require(hasAsset(assetId), "Asset does not exist");
         return ROYALTY_MODULE.ipRoyaltyVaults(assetId);
     }
 }
