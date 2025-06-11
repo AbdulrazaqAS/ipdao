@@ -4,7 +4,7 @@ import { handleError, handleSuccess, type AssetMetadata, type ProposalArgs } fro
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms } from '../scripts/asset';
 import type { AssetInitialMetadata } from './AssetsPage';
-import { getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenSymbol, getTokenUserBalance, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/proposal';
+import { getAddressERC20s, getAddressNFTs, getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenSymbol, getTokenUserBalance, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/proposal';
 import { custom, encodeFunctionData, formatEther, zeroAddress, type Address } from 'viem';
 import { delegateVote, propose } from '../scripts/action';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
@@ -46,6 +46,8 @@ export default function GovernancePage() {
   const [tokenHolders, setTokenHolders] = useState<{ address: string; value: string }[]>([]);
   const [votingPowers, setVotingPowers] = useState<bigint[]>([]);
   const [assetsTokens, setAssetsTokens] = useState<{ symbol: string; amount: string }[][]>([[]]);
+  const [daoERC20Tokens, setDaoERC20Tokens] = useState<{ value: string; address: string; name: string; symbol: string, decimals: string }[]>([]);
+  const [daoERC721Tokens, setDaoERC721Tokens] = useState<{ value: string; address: string; name: string; symbol: string }[]>([]);
 
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -177,16 +179,32 @@ export default function GovernancePage() {
     fetchAssets();
     getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
 
-    if (publicClient?.chain.id === 1315)
-      getGovernanceTokenHolders("aeneid").then(holders => {
-        const descendingHolders = holders.sort((a, b) => +formatEther(BigInt(b.value)) - +formatEther(BigInt(a.value)));
-        setTokenHolders(descendingHolders);
-      }).catch(console.error);
-    else if (publicClient?.chain.id === 1514)
-      getGovernanceTokenHolders("mainnet").then(holders => {
-        const descendingHolders = holders.sort((a, b) => +formatEther(BigInt(b.value)) - +formatEther(BigInt(a.value)));
-        setTokenHolders(descendingHolders);
-      }).catch(console.error);
+    let chainName: "aeneid" | "mainnet";
+    if (publicClient?.chain.id === 1315) chainName = "aeneid";
+    else if (publicClient?.chain.id === 1514) chainName = "mainnet";
+    else {
+      console.error("Unsupported chain ID:", publicClient?.chain.id);
+      handleError(new Error("Unsupported chain ID. Please switch to Story - Aeneid or Mainnet."));
+      return;
+    }
+
+    getGovernanceTokenHolders(chainName).then(holders => {
+      const descendingHolders = holders.sort((a, b) => +formatEther(BigInt(b.value)) - +formatEther(BigInt(a.value)));
+      setTokenHolders(descendingHolders);
+    }).catch(console.error);
+
+    getAddressERC20s(IPA_MANAGER_ADDRESS, chainName).then(setDaoERC20Tokens).catch(console.error);
+    getAddressNFTs(IPA_MANAGER_ADDRESS, chainName).then(setDaoERC721Tokens).catch(console.error);
+
+    // getAddressERC20s(publicClient!, IPA_MANAGER_ADDRESS).then(tokens => {
+    //   const erc20Tokens = tokens.map(token => ({
+    //     Name: token.name,
+    //     symbol: token.symbol,
+    //     amount: formatEther(BigInt(token.balance))
+    //   }));
+    //   setDaoERC20Tokens(erc20Tokens);
+    // }
+    // ).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -211,7 +229,7 @@ export default function GovernancePage() {
 
     async function fetchAssetsTokens() {
       const storyClient = StoryClient.newClient({
-        account: "0xDaaE14a470e36796ADf9c75766D3d8ADD0a3D94c",
+        account: "0xDaaE14a470e36796ADf9c75766D3d8ADD0a3D94c",  // just an address
         transport: custom(publicClient!.transport),
         chainId: publicClient!.chain.id.toString() as "1315" | "1514",
       })
@@ -234,11 +252,6 @@ export default function GovernancePage() {
     }
     fetchAssetsTokens().catch(console.error);
   }, [walletClient, assets]);
-
-  const daoTokens = [
-    { symbol: 'USDC', amount: '1,200.50' },
-    { symbol: 'DAI', amount: '980.00' },
-  ];
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -349,18 +362,56 @@ export default function GovernancePage() {
         </div>
       </Section>
 
-      <Section title="DAO Balance">
-        <ul className="space-y-2">
-          {daoTokens.map((token) => (
-            <li
-              key={token.symbol}
-              className="flex justify-between bg-muted/10 px-4 py-2 rounded text-sm"
-            >
-              <span>{token.symbol}</span>
-              <span>{token.amount}</span>
-            </li>
-          ))}
-        </ul>
+      <Section title="DAO Tokens (ERC-20)">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm text-left">
+            <thead>
+              <tr className="text-muted border-b border-muted/20">
+                <th className="py-2 px-2">Name</th>
+                <th className="py-2 px-2">Symbol</th>
+                <th className="py-2 px-2">Address</th>
+                <th className="py-2 px-2">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daoERC20Tokens.map((token, idx) => (
+                <tr key={idx} className="border-b border-muted/10">
+                  <td className="py-2 px-2 font-mono">{token.name}</td>
+                  <td className="py-2 px-2">{token.symbol}</td>
+                  <td className="py-2 px-2">{token.address.slice(0, 6)}...{token.address.slice(-4)}</td>
+                  <td className="py-2 px-2">{formatEther(BigInt(token.value))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+
+      <Section title="DAO Tokens (ERC-721)">
+        <p className='text-muted'>These are the NFTs owned by the IP Assets Manager (DAO). Not all might have been registered/added as IP assets</p>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm text-left">
+            <thead>
+              <tr className="text-muted border-b border-muted/20">
+                <th className="py-2 px-2">Name</th>
+                <th className="py-2 px-2">Symbol</th>
+                <th className="py-2 px-2">Address</th>
+                <th className="py-2 px-2">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daoERC721Tokens.map((token, idx) => (
+                <tr key={idx} className="border-b border-muted/10">
+                  <td className="py-2 px-2 font-mono">{token.name}</td>
+                  <td className="py-2 px-2">{token.symbol}</td>
+                  <td className="py-2 px-2">{token.address.slice(0, 6)}...{token.address.slice(-4)}</td>
+                  <td className="py-2 px-2">{token.value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
       </Section>
     </div>
   );

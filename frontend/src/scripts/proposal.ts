@@ -392,6 +392,63 @@ export async function getGovernanceTokenTotalHolders(chain: "aeneid" | "mainnet"
     return holdersMetadata.items.length as number;
 }
 
+export async function getAddressTokens(addr: Address, chain: "aeneid" | "mainnet"): Promise<any[]> {
+    const chainPart = chain === "aeneid" ? "aeneid." : "";
+    const url = `https://${chainPart}storyscan.io/api/v2/addresses/${addr}/token-balances`;
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            "accept": "application/json"
+        }
+    });
+
+    const holdersMetadata = await response.json();
+    return holdersMetadata.items as any[];
+}
+
+export async function getAddressNFTs(addr: Address, chain: "aeneid" | "mainnet"): Promise<{value: string, address: string, name: string, symbol: string}[]> {
+    const chainPart = chain === "aeneid" ? "aeneid." : "";
+    const url = `https://${chainPart}storyscan.io/api/v2/addresses/${addr}/tokens?type=ERC-721`;
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            "accept": "application/json"
+        }
+    });
+
+    const holdersMetadata = await response.json();
+    return holdersMetadata.items.map((item: any) => {
+        return {
+            value: item.value,
+            address: item.token.hash || item.token.address_hash,
+            name: item.token.name,
+            symbol: item.token.symbol,
+        }
+    }) as [{value: string, address: string, name: string, symbol: string}];
+}
+
+export async function getAddressERC20s(addr: Address, chain: "aeneid" | "mainnet"): Promise<{value: string, address: string, name: string, symbol: string, decimals: string}[]> {
+    const chainPart = chain === "aeneid" ? "aeneid." : "";
+    const url = `https://${chainPart}storyscan.io/api/v2/addresses/${addr}/tokens?type=ERC-20`;
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            "accept": "application/json"
+        }
+    });
+
+    const holdersMetadata = await response.json();
+    return holdersMetadata.items.map((item: any) => {
+        return {
+            value: item.value,
+            address: item.token.hash || item.token.address_hash,
+            name: item.token.name,
+            symbol: item.token.symbol,
+            decimals: item.token.decimals
+        }
+    }) as [{value: string, address: string, name: string, symbol: string, decimals: string}];
+}
+
 export async function getQuizzesCount(client: PublicClient): Promise<bigint> {
     const contract = getContract({
         address: QuizManagerAddress,
