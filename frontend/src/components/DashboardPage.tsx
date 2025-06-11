@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Users, PieChart, ListOrdered, Clock, Hourglass, BarChartHorizontal, Coins } from "lucide-react";
 import NewProposalForm from "./NewProposalForm";
 import { usePublicClient, useWalletClient } from "wagmi";
-import { getDAOName, getGovernanceTokenSupply, getGovernanceTokenTotalHolders, getParticipationThreshold, getProposalsCount, getProposalThreshold, getQuorum, getUserVotingPower, getVotingDelay, getVotingPeriod } from "../scripts/proposal";
+import { getDAOName, getGovernanceTokenSupply, getGovernanceTokenTotalHolders, getParticipationThreshold, getProposalsCount, getProposalThreshold, getQuorum, getUserVotingPower, getVotingDelay, getVotingPeriod } from "../scripts/getters";
 import { formatEther } from "viem";
 
 export default function Dashboard() {

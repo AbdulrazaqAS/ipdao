@@ -6,8 +6,8 @@ import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json'
 import QiuzManagerABI from '../assets/abis/QuizManagerABI.json'
 import { handleError, handleSuccess, type ProposalArgs } from "../utils/utils";
-import { propose } from "../scripts/action";
-import { getProposalsCount, getProposalThreshold, getUserVotingPower } from "../scripts/proposal";
+import { propose } from "../scripts/actions";
+import { getProposalsCount, getProposalThreshold, getUserVotingPower } from "../scripts/getters";
 import { X } from "lucide-react";
 
 interface Props {

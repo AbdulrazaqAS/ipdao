@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { encodeFunctionData, parseEther, type Address } from 'viem';
-import { propose, uploadJsonToIPFS } from '../scripts/action';
-import { getProposalsCount, getProposalThreshold, getQuizzesCount, getUserVotingPower } from '../scripts/proposal';
+import { propose, uploadJsonToIPFS } from '../scripts/actions';
+import { getProposalsCount, getProposalThreshold, getQuizzesCount, getUserVotingPower } from '../scripts/getters';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
 import { type ProposalArgs, type QuizQuestion, type QuizMetadata, handleError, handleSuccess } from '../utils/utils';

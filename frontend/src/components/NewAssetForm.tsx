@@ -1,13 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { ChevronLeft, X } from 'lucide-react'
-import { uploadFileToIPFS, uploadJsonToIPFS, createFileHash, createMetadataHash, getNFTUri, propose } from '../scripts/action';
+import { uploadFileToIPFS, uploadJsonToIPFS, createFileHash, createMetadataHash, getNFTUri, propose } from '../scripts/actions';
 import { custom, encodeFunctionData, type Address } from 'viem';
 import { useWalletClient, usePublicClient } from 'wagmi';
 import { StoryClient, type IpMetadata } from '@story-protocol/core-sdk';
 import { AeniedProtocolExplorer, handleError, handleSuccess, MainnetProtocolExplorer, type NFTMetadata, type ProposalArgs } from '../utils/utils';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
-import { getProposalsCount, getProposalThreshold, getUserVotingPower } from '../scripts/proposal';
-import { getDaoRevenueTokens } from '../scripts/asset';
+import { getProposalsCount, getProposalThreshold, getUserVotingPower, getDaoRevenueTokens } from '../scripts/getters';
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER;
 

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { usePublicClient, useWalletClient } from "wagmi";
-import { getProposals, getProposalsCount, getProposalsDeadlines, getProposalsDescriptions, getProposalsProposers, getProposalsStates, getProposalsVotes, getVotingPeriod, hasVoted } from "../scripts/proposal";
+import { getProposals, getProposalsCount, getProposalsDeadlines, getProposalsDescriptions, getProposalsProposers, getProposalsStates, getProposalsVotes, getVotingPeriod, hasVoted } from "../scripts/getters";
 import { ProposalState, type ProposalData, VoteChoice, handleError, handleSuccess } from "../utils/utils";
 import ProposalCard from "./ProposalCard";
-import { castVote } from "../scripts/action";
+import { castVote } from "../scripts/actions";
 
 export default function ProposalsPage() {
   const [selectedTab, setSelectedTab] = useState("All");

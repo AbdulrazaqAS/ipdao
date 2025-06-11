@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchMetadata, getAssetsIds, getAssetsMetadata } from "../scripts/asset";
+import { fetchMetadata, getAssetsIds, getAssetsMetadata } from "../scripts/getters";
 import { usePublicClient } from "wagmi";
 import { type AssetMetadata, type CreatorMetadata } from '../utils/utils';
 import AssetPage from './AssetPage';

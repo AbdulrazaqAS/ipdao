@@ -3,7 +3,7 @@ import { custom, formatEther, parseEther, zeroAddress, type Address } from 'viem
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { handleError, handleSuccess } from '../utils/utils';
 import { StoryClient } from '@story-protocol/core-sdk';
-import { getTokenSymbol } from '../scripts/proposal';
+import { getTokenSymbol } from '../scripts/getters';
 
 const inputsClass = "w-full px-4 py-2 rounded-lg bg-background border border-muted placeholder-muted";
 

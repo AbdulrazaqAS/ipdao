@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWalletClient } from "wagmi"
-import { delegateVote } from "../scripts/action";
+import { delegateVote } from "../scripts/actions";
 import NewQuizForm from "./NewQuizForm";
 
 export default function GovernancePage() {

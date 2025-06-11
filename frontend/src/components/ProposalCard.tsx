@@ -2,9 +2,9 @@ import { Hourglass, Zap, XCircle, CheckCircle, Clock3 } from "lucide-react";
 import { useState, useEffect, type JSX } from "react";
 import { usePublicClient, useWalletClient } from 'wagmi'
 import { handleError, handleSuccess, ProposalState, VoteChoice, type ProposalData } from "../utils/utils";
-import { cancelProposal, executeProposal } from "../scripts/action";
+import { cancelProposal, executeProposal } from "../scripts/actions";
 import { formatEther } from "viem";
-import { getParticipationThreshold, getUserVotingPower } from "../scripts/proposal";
+import { getParticipationThreshold, getUserVotingPower } from "../scripts/getters";
 
 const StatusColor: Record<ProposalState, string> = {
     [ProposalState.Pending]: "bg-yellow-100 text-yellow-800",

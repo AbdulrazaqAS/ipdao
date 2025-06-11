@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { uploadFileToIPFS, uploadJsonToIPFS, createFileHash, createMetadataHash, getNFTUri } from '../scripts/action';
+import { uploadFileToIPFS, uploadJsonToIPFS, createFileHash, createMetadataHash, getNFTUri } from '../scripts/actions';
 import { custom, type Address } from 'viem';
 import { useWalletClient, usePublicClient } from 'wagmi';
 import { StoryClient, type IpMetadata } from '@story-protocol/core-sdk';

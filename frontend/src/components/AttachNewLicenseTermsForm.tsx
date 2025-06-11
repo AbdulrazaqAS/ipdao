@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { registerLicenseTerms } from "../scripts/action";
+import { registerLicenseTerms } from "../scripts/actions";
 import { StoryClient, type LicenseTerms } from "@story-protocol/core-sdk";
 import { getCommercialRemixTerms, getCommercialUseTerms, handleError, handleSuccess } from "../utils/utils";
 import { usePublicClient, useWalletClient } from "wagmi";
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import type { ProposalArgs } from "../utils/utils";
-import { propose } from "../scripts/action";
-import { getProposalsCount, getProposalThreshold, getUserVotingPower } from "../scripts/proposal";
+import { propose } from "../scripts/actions";
+import { getProposalsCount, getProposalThreshold, getUserVotingPower } from "../scripts/getters";
 import { encodeFunctionData, type Address, parseEther, custom } from "viem";
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER!;

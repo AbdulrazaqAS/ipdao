@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, ChevronLeft, Copy } from "lucide-react";
 import type { AssetAPIMetadata, AssetLicenseTerms, AssetMetadata, LicenseTermsMetadata, NFTMetadata } from "../utils/utils";
-import { fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms } from "../scripts/asset";
+import { fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms } from "../scripts/getters";
 import { useChainId } from "wagmi";
 import AttachNewLicenseTermsForm from "./AttachNewLicenseTermsForm";
 import MintLicenseTokenForm from "./MintLicenseTokenForm";

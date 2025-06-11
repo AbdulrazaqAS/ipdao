@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { handleError, handleSuccess, type QuizMetadata, type QuizQuestion } from '../utils/utils';
-import { getGovernanceTokenSymbol, getQuizzes, getQuizzesCount, getQuizzesUserCanClaim, getQuizzesUserHasClaimed, getQuizzesUserTrials, getUserVotingPower } from '../scripts/proposal';
+import { fetchMetadata, getGovernanceTokenSymbol, getQuizzes, getQuizzesCount, getQuizzesUserCanClaim, getQuizzesUserHasClaimed, getQuizzesUserTrials, getUserVotingPower } from '../scripts/getters';
 import { usePublicClient, useWalletClient } from 'wagmi';
-import { fetchMetadata } from '../scripts/asset';
 import { formatEther } from 'viem';
-import { sendScoreToServer, claimQuizReward } from '../scripts/action';
+import { sendScoreToServer, claimQuizReward } from '../scripts/actions';
 
 const quizTabs = {
     all: "All",

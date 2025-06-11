@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { handleError, handleSuccess, type AssetMetadata, type ProposalArgs } from '../utils/utils';
 import { usePublicClient, useWalletClient } from 'wagmi';
-import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms } from '../scripts/asset';
 import type { AssetInitialMetadata } from './AssetsPage';
-import { getAddressERC20s, getAddressNFTs, getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenName, getTokenSymbol, getTokenUserBalance, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/proposal';
-import { custom, encodeFunctionData, formatEther, zeroAddress, type Address } from 'viem';
-import { claimIPRevenue, delegateVote, propose } from '../scripts/action';
+import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAddressERC20s, getAddressNFTs, getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenName, getTokenSymbol, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/getters';
+import { custom, encodeFunctionData, formatEther, parseEther, type Address } from 'viem';
+import { claimIPRevenue, delegateVote, propose } from '../scripts/actions';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import { StoryClient } from '@story-protocol/core-sdk';
+import DaoContractsList from './DaoContractsList';
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER;
 
@@ -48,6 +48,7 @@ export default function GovernancePage() {
   const [assetsTokens, setAssetsTokens] = useState<{ address: String; symbol: string; daoAmount: string; userAmount: bigint | undefined; name: string }[][]>([[]]);
   const [daoERC20Tokens, setDaoERC20Tokens] = useState<{ value: string; address: string; name: string; symbol: string, decimals: string }[]>([]);
   const [daoERC721Tokens, setDaoERC721Tokens] = useState<{ value: string; address: string; name: string; symbol: string }[]>([]);
+  const [royaltyTransfer, setRoyaltyTransfer] = useState<{ recipient: string; amount: string }[]>([{ recipient: "", amount: "" }]);
 
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -92,7 +93,7 @@ export default function GovernancePage() {
       const proposalIndex = await getProposalsCount(publicClient!);
       // Added # for splitting the value when in use
       const description = proposalIndex!.toString() +
-        "#Proposal to transfer with:\n" +
+        "#Proposal to transfer asset with:\n" +
         `- ID: ${selectedAsset.id}\n` +
         `- To: ${assetTransferRecipient}\n`
 
@@ -107,8 +108,79 @@ export default function GovernancePage() {
       const txHash = await propose(proposalArgs, walletClient!);
 
       publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
-        if (txReceipt.status === "reverted") console.error("Proposal reverted");
-        else console.log("Proposal mined")
+        if (txReceipt.status === "reverted") handleError(new Error("Proposal to transfer asset reverted"));
+        else {
+          handleSuccess("Proposal to transfer asset submitted successfully!");
+        }
+      });
+
+    } catch (error) {
+      console.error("Error proposing to transfer asset:", error);
+      handleError(error as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+  
+  async function handleProposeTransferRoyalTokens(event: React.FormEvent) {
+    event.preventDefault();
+
+    if (!walletClient) {
+      handleError(new Error("Please connect your wallet to create a proposal"));
+      return;
+    }
+
+    if (userVotingPower < proposalThreshold) {
+      handleError(new Error(`No enough voting power to create a proposal`));
+      return;
+    }
+
+    if (!selectedAsset) {
+      handleError(new Error("Please select an asset to transfer its royalty tokens"));
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const recipients = royaltyTransfer.map(transfer => transfer.recipient);
+      const amounts = royaltyTransfer.map(transfer => transfer.amount);
+      const totalAmount = amounts.reduce((acc, amount) => acc + BigInt(amount), 0n);
+      if (totalAmount > 100n) {
+        // TODO: Check if the vault has enough tokens to transfer
+        handleError(new Error("Total amount of royalty transfers cannot exceed 100%"));
+        return;
+      }
+      const amountsWei = amounts.map(amount => parseEther(amount));
+      const targets = [IPA_MANAGER_ADDRESS];
+      const values = [0n];
+      const calldatas = [encodeFunctionData({
+        abi: IPAManagerABI,
+        functionName: "transferRoyaltyTokens",
+        args: [selectedAsset.id, recipients, amountsWei]
+      })];
+
+      const proposalIndex = await getProposalsCount(publicClient!);
+      // Added # for splitting the value when in use
+      const description = proposalIndex!.toString() +
+        "#Proposal to transfer royalty tokens:\n" +
+        `- ID: ${selectedAsset.id}\n` +
+        `- To: ${recipients.join(", ")}\n` +
+        `- Amounts: ${amounts.join(", ")}\n`
+
+      const proposalArgs: ProposalArgs = {
+        targets,
+        values,
+        calldatas,
+        description
+      };
+
+      const txHash = await propose(proposalArgs, walletClient!);
+      publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
+        if (txReceipt.status === "reverted") handleError(new Error("Proposal to transfer royalty tokens reverted"));
+        else {
+          handleSuccess("Proposal to transfer royalty tokens submitted successfully!");
+          setRoyaltyTransfer([{ recipient: "", amount: "" }]); // Reset the transfers
+        }
       });
 
       handleSuccess("Proposal to transfer asset submitted successfully!");
@@ -155,7 +227,7 @@ export default function GovernancePage() {
       handleError(new Error("Invalid asset ID, token or claimer address"));
       return;
     }
-    
+
     if (!walletClient) {
       handleError(new Error("Please connect your wallet to claim revenue"));
       return;
@@ -327,52 +399,68 @@ export default function GovernancePage() {
       <Section title="Transfer Royalty Tokens">
         {assets.length === 0 && <p className="text-muted">No assets available</p>}
         {assets.length > 0 && (
-          <form onSubmit={handleProposeTransferAsset} className="space-y-4">
+          <form onSubmit={handleProposeTransferRoyalTokens} className="space-y-4">
             {assets.map((asset) => (
               <div key={asset.id} className="mb-3">
                 <label>
-                  <input type='radio' name='transferAsset' value={asset.id} onChange={() => setSelectedAsset(asset)} className='mr-2' />
+                  <input type='radio' name='royaltyTransferAsset' value={asset.id} onChange={() => setSelectedAsset(asset)} className='mr-2' />
                   {asset.title} - <span className="text-muted">{asset.id.slice(0, 6)}...{asset.id.slice(-6)}</span>
                 </label>
               </div>
             ))}
             <div>
-              <div>
-              <input
-                type="text"
-                value={assetTransferRecipient}
-                minLength={42}
-                maxLength={42}
-                pattern="^0x[a-fA-F0-9]{40}$"
-                onChange={(e) => setAssetTransferRecipient(e.target.value)}
-                placeholder="0xRecipientAddress"
-                className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
-                required
-              />
+              {royaltyTransfer.map((transfer, index) => (
+                <div key={index} className="flex items-center gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={transfer.recipient}
+                    minLength={42}
+                    maxLength={42}
+                    pattern="^0x[a-fA-F0-9]{40}$"
+                    onChange={(e) => {
+                      const newTransfers = [...royaltyTransfer];
+                      newTransfers[index].recipient = e.target.value;
+                      setRoyaltyTransfer(newTransfers);
+                    }}
+                    placeholder="0xRecipientAddress"
+                    className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
+                    required
+                  />
+                  <input
+                    type="number"
+                    value={transfer.amount}
+                    min={0}
+                    max={100}
+                    onChange={(e) => {
+                      const newTransfers = [...royaltyTransfer];
+                      newTransfers[index].amount = e.target.value;
+                      setRoyaltyTransfer(newTransfers);
+                    }}
+                    placeholder="Amount (0-100)"
+                    className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
+                    required
+                  />
+                </div>
+              ))}
             </div>
-            <div>
-              <input
-                type="text"
-                value={assetTransferRecipient}
-                minLength={42}
-                maxLength={42}
-                pattern="^0x[a-fA-F0-9]{40}$"
-                onChange={(e) => setAssetTransferRecipient(e.target.value)}
-                placeholder="0xRecipientAddress"
-                className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
-                required
-              />
+            
+            <div className='flex items-center gap-2'>
+              <button
+                type="button"
+                onClick={() => setRoyaltyTransfer([...royaltyTransfer, { recipient: "", amount: "" }])}
+                className="bg-secondary text-white px-3 py-2 rounded hover:bg-secondary/90"
+              >
+                Add Transfer
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
+              >
+                Propose Transfer
+                {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
+              </button>
             </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
-            >
-              Propose Transfer
-              {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
-            </button>
           </form>
         )}
       </Section>
@@ -517,6 +605,10 @@ export default function GovernancePage() {
           </table>
         </div>
 
+      </Section>
+
+      <Section title="DAO Contracts">
+        <DaoContractsList />
       </Section>
     </div>
   );
