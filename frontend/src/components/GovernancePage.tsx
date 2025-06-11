@@ -324,6 +324,59 @@ export default function GovernancePage() {
         )}
       </Section>
 
+      <Section title="Transfer Royalty Tokens">
+        {assets.length === 0 && <p className="text-muted">No assets available</p>}
+        {assets.length > 0 && (
+          <form onSubmit={handleProposeTransferAsset} className="space-y-4">
+            {assets.map((asset) => (
+              <div key={asset.id} className="mb-3">
+                <label>
+                  <input type='radio' name='transferAsset' value={asset.id} onChange={() => setSelectedAsset(asset)} className='mr-2' />
+                  {asset.title} - <span className="text-muted">{asset.id.slice(0, 6)}...{asset.id.slice(-6)}</span>
+                </label>
+              </div>
+            ))}
+            <div>
+              <div>
+              <input
+                type="text"
+                value={assetTransferRecipient}
+                minLength={42}
+                maxLength={42}
+                pattern="^0x[a-fA-F0-9]{40}$"
+                onChange={(e) => setAssetTransferRecipient(e.target.value)}
+                placeholder="0xRecipientAddress"
+                className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <input
+                type="text"
+                value={assetTransferRecipient}
+                minLength={42}
+                maxLength={42}
+                pattern="^0x[a-fA-F0-9]{40}$"
+                onChange={(e) => setAssetTransferRecipient(e.target.value)}
+                placeholder="0xRecipientAddress"
+                className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
+                required
+              />
+            </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
+            >
+              Propose Transfer
+              {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
+            </button>
+          </form>
+        )}
+      </Section>
+
       <Section title="Claim Revenue">
         {assets.map((asset, index) => (
           <div key={index} className="mb-4">

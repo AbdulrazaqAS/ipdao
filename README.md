@@ -58,6 +58,12 @@ Governor will now be the admin of QuizManager and Token. Admins are responsible 
 
 From now on, granting and revoking roles can only be done through proposals. Quiz creation and minting tokens by the governor too can only be done through proposals.
 
+```bash
+# Deploy SPG NFT Contract
+yarn hardhat run scripts/deploySPGNFTContract.ts --network aeneid
+```
+Copy the contract address and save it as the `SPGNFTContract` value inside *env*. This contract is currenty only used in frontend.
+
 ## Frontend setup
 ```bash
 # Change dir
