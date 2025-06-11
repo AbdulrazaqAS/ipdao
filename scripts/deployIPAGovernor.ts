@@ -24,7 +24,6 @@ async function main() {
   await governor.waitForDeployment();
   const deploymentTx = governor.deploymentTransaction();
   const deploymentReceipt = await deploymentTx!.wait();
-  const governorAddress = deploymentReceipt?.contractAddress;
   console.log("Governor Address:", deploymentReceipt?.contractAddress);
   console.log("Governor Block:", deploymentReceipt?.blockNumber);
 }

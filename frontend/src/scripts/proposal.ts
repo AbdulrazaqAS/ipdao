@@ -1,9 +1,9 @@
-import { type Address, type PublicClient, getContract, parseAbiItem } from 'viem'
-import { type ProposalDetails, type ProposalVotes, type QuizContractMetadata} from '../utils/utils';
+import { type Address, type PublicClient, getContract, parseAbiItem, zeroAddress } from 'viem'
+import { type ProposalDetails, type ProposalVotes, type QuizContractMetadata } from '../utils/utils';
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json';
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
-import type { StoryClient } from '@story-protocol/core-sdk';
+import { StoryClient } from '@story-protocol/core-sdk';
 
 const IPAGovernorAddress: Address = import.meta.env.VITE_IPA_GOVERNOR!;
 const GovernanceTokenAddress: Address = import.meta.env.VITE_GOVERNANCE_TOKEN!;
@@ -256,15 +256,26 @@ export async function getGovernanceTokenSymbol(client: PublicClient): Promise<st
     return sym as string;
 }
 
-export async function getTokenSymbol(addr: Address, client: PublicClient): Promise<string> {
+export async function getTokenSymbol(token: Address, client: PublicClient): Promise<string> {
     const contract = getContract({
-        address: addr,
+        address: token,
         abi: VotesERC20TokenABI,
         client
     });
 
     const sym = await contract.read.symbol();
     return sym as string;
+}
+
+export async function getTokenUserBalance(userAddr: Address, token: Address, client: PublicClient): Promise<string> {
+    const contract = getContract({
+        address: token,
+        abi: VotesERC20TokenABI,
+        client
+    });
+
+    const balance = await contract.read.balanceOf([userAddr]);
+    return balance as string;
 }
 
 export async function getGovernanceTokenName(client: PublicClient): Promise<string> {
@@ -349,7 +360,7 @@ export async function getDAOName(client: PublicClient): Promise<string> {
     return power as string;
 }
 
-export async function getGovernanceTokenHolders(chain: "aeneid" | "mainnet"): Promise<{value: string, address: string}[]> {
+export async function getGovernanceTokenHolders(chain: "aeneid" | "mainnet"): Promise<{ value: string, address: string }[]> {
     const chainPart = chain === "aeneid" ? "aeneid." : "";
     const url = `https://${chainPart}storyscan.io/api/v2/tokens/${GovernanceTokenAddress}/holders`;
     const response = await fetch(url, {
@@ -363,7 +374,7 @@ export async function getGovernanceTokenHolders(chain: "aeneid" | "mainnet"): Pr
     return holdersMetadata.items.map((item: any) => ({
         value: item.value,
         address: item.address.hash,
-    })) as {value: string, address: string}[];
+    })) as { value: string, address: string }[];
 
 }
 
@@ -403,7 +414,7 @@ export async function getQuizzes(indices: Array<number>, client: PublicClient): 
     // TODO: Limit the range so as not to exceed provider limits
     const details = await Promise.all(
         indices.map((i) => contract.read.quizzes([i]))
-    ) as { 0: number, 1: number, 2: boolean, 3: bigint, 4: bigint, 5: bigint, 6: string}[];
+    ) as { 0: number, 1: number, 2: boolean, 3: bigint, 4: bigint, 5: bigint, 6: string }[];
 
     const proposals = details.map((proposal): QuizContractMetadata => {
         return {
@@ -467,11 +478,40 @@ export async function getClaimableRevenue(storyClient: StoryClient, claimer: Add
         claimer,
         token,
     })
-    
+
     return amount;
 }
 
 export async function getRoyaltyVaultAddress(storyClient: StoryClient, ipId: Address): Promise<Address> {
     const addr = await storyClient.royalty.getRoyaltyVaultAddress(ipId);
     return addr;
+}
+
+export async function getAssetsVaultsAddresses(ipIds: Address[], client: StoryClient): Promise<Address[]> {
+    const vaultAddresses = await Promise.all(
+        ipIds.map((ipId) => client.royalty.getRoyaltyVaultAddress(ipId))
+    );
+    return vaultAddresses;
+}
+
+export async function getAssetsVaultsTokens(vaults: Address[], client: PublicClient): Promise<Address[][]> {
+    const tokens = await Promise.all(
+        vaults.map((vaultAddress) => {
+            if (vaultAddress === zeroAddress) return Promise.resolve([]);
+            return client.readContract({
+                address: vaultAddress,
+                abi: [
+                    {
+                        "inputs": [],
+                        "name": "tokens",
+                        "outputs": [{ "type": "address[]" }],
+                        "stateMutability": "view",
+                        "type": "function"
+                    }
+                ],
+                functionName: "tokens"
+            })
+        })
+    );
+    return tokens.map(arr => [...arr]);
 }

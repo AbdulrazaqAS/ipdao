@@ -7,6 +7,7 @@ import { StoryClient, type IpMetadata } from '@story-protocol/core-sdk';
 import { AeniedProtocolExplorer, handleError, handleSuccess, MainnetProtocolExplorer, type NFTMetadata, type ProposalArgs } from '../utils/utils';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import { getProposalsCount, getProposalThreshold, getUserVotingPower } from '../scripts/proposal';
+import { getDaoRevenueTokens } from '../scripts/asset';
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER;
 
@@ -49,6 +50,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
     const [userVotingPower, setUserVotingPower] = useState(0n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
     const [isLoading, setIsLoading] = useState(false);
+    const [daoRoyaltyTokens, setDaoRoyaltyTokens] = useState(0n);
 
     const [ipFields, setIpFields] = useState({
         title: '',
@@ -99,6 +101,14 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
     const removeNftAttribute = (index: number) => {
         const updated = nftAttributes.filter((_, i) => i !== index);
         setNftAttributes(updated);
+    }
+
+    const checkTotalContributionPercent = () => {
+        const total = ipCreators.reduce((sum, creator) => sum + (parseInt(creator.contributionPercent) || 0), 0);
+        if (total !== 100) {
+            handleError(new Error("Total contribution percent must be 100%"));
+            return false;
+        }
     }
 
     const getNftAttributes = () => {
@@ -191,6 +201,8 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
     async function uploadIPAMetadata() {
         try {
+            checkTotalContributionPercent();
+
             if (!ipaMedia) throw new Error("No IP media selected for upload");
             if (!ipaImage) throw new Error("No IP image selected for upload");
             if (ipaMedia.size > 100 * 1024 * 1024) throw new Error("Media size exceeds 100MB limit");
@@ -378,6 +390,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
     useEffect(() => {
         getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
+        getDaoRevenueTokens(publicClient!).then(setDaoRoyaltyTokens).catch(console.error);
     }, []);
 
     useEffect(() => {
@@ -519,6 +532,10 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                     Next Step: Create Asset
                 </p>
             )}
+            
+            <p className="text-md text-muted">
+                DAO Royalty Tokens: {daoRoyaltyTokens / BigInt(10 ** 6)}%
+            </p>
 
             <button
                 type="submit"

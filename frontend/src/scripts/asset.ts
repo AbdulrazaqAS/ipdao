@@ -56,18 +56,18 @@ export async function getAssetsIds(client: PublicClient): Promise<Array<Address>
     return assets as Array<Address>;
 }
 
-export async function getAssetsVaultsTokens(ipIds: Address[], client: PublicClient): Promise<Array<Address[]>> {
+export async function getAssetsVaults(ipIds: Address[], client: PublicClient): Promise<Array<Address>> {
     const contract = getContract({
         address: IPA_MANAGER_ADDRESS,
         abi: IPA_MANAGER_ABI,
         client
     });
 
-    const assets = await Promise.all(
-      ipIds.map((ipId) => contract.read.getAssetVaultTokens([ipId]))
+    const vaults = await Promise.all(
+      ipIds.map((ipId) => contract.read.getAssetVault([ipId]))
     );
 
-    return assets as Array<Address[]>;
+    return vaults as Array<Address>;
 }
 
 export async function getDaoRevenueTokens(client: PublicClient): Promise<bigint> {

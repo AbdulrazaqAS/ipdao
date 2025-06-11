@@ -21,6 +21,7 @@ export default function AssetsPage() {
     const [assets, setAssets] = useState<AssetMetadata[]>([]);
     const [selectedAsset, setSelectedAsset] = useState<AssetMetadata>();
     const [showNewAssetForm, setShowNewAssetForm] = useState(false);
+    const [isLoadingAssets, setIsLoadingAssets] = useState(true);
 
     const publicClient = usePublicClient();
 
@@ -49,6 +50,8 @@ export default function AssetsPage() {
                 console.log("Assets", assets);
             } catch (error) {
                 console.error("Error fetching assets:", error);
+            } finally {
+                setIsLoadingAssets(false);
             }
         }
 
@@ -88,6 +91,10 @@ export default function AssetsPage() {
                                     </div>
                                 </div>
                             ))}
+                        </div>
+                    ) : isLoadingAssets ? (
+                        <div className="text-center text-muted">
+                            <p>Loading assets...</p>
                         </div>
                     ) : (
                         <div className="text-center text-muted">

@@ -16,7 +16,6 @@ import { WorkflowStructs } from "@storyprotocol/periphery/lib/WorkflowStructs.so
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IIPAccount } from "@storyprotocol/core/interfaces/IIPAccount.sol";
 import { IRoyaltyModule } from "@storyprotocol/core/interfaces/modules/royalty/IRoyaltyModule.sol";
-import { IIpRoyaltyVault } from "@storyprotocol/core/interfaces/modules/royalty/policies/IIpRoyaltyVault.sol";
 
 contract IPAManager is Ownable, ERC721Holder {
     IIPAssetRegistry public immutable IP_ASSET_REGISTRY;
@@ -29,7 +28,7 @@ contract IPAManager is Ownable, ERC721Holder {
     ISPGNFT public immutable SPG_NFT;
 
     address[] public assets;
-    uint256 public daoRevenueTokens; // Revenue tokens to be given to DAO for each ipa
+    uint256 public daoRoyaltyTokens; // Royalty tokens to be given to DAO for each ipa
 
     event AssetAdded(address indexed assetId);
     event AssetTransferred(address indexed assetId, address collection, address to, uint256 tokenId);
@@ -44,9 +43,10 @@ contract IPAManager is Ownable, ERC721Holder {
     event LicenseTokensMinted(address indexed licensorIpId, uint256 licenseTermsId, uint256 amount, address receiver);
     event RoyaltyTokensTransferred(address indexed ipId, address[] recipients, uint256[] amounts);
     event Execute(address indexed target, uint256 value, bytes data);
-    event DaoRevenueTokensChanged(uint256 _amount);
+    event DaoRoyaltyTokensChanged(uint256 _amount);
 
     constructor(
+        uint256 _daoRoyaltyTokens,
         address _initialOwner,
         address _ipAssetRegistry,
         address _licensingModule,
@@ -83,6 +83,9 @@ contract IPAManager is Ownable, ERC721Holder {
                 })
             )
         );
+
+        daoRoyaltyTokens = _daoRoyaltyTokens;
+        emit DaoRoyaltyTokensChanged(_daoRoyaltyTokens);
     }
 
     // For adding already registered assets
@@ -260,9 +263,9 @@ contract IPAManager is Ownable, ERC721Holder {
         emit Execute(target, value, data);
     }
 
-    function setRevenueTokenPercentage(uint256 _amount) external onlyOwner {
-        daoRevenueTokens = _amount;
-        emit DaoRevenueTokensChanged(_amount);
+    function setDAORoyaltyToken(uint256 _amount) external onlyOwner {
+        daoRoyaltyTokens = _amount;
+        emit DaoRoyaltyTokensChanged(_amount);
     }
 
     function onERC721Received(
@@ -295,8 +298,8 @@ contract IPAManager is Ownable, ERC721Holder {
         return assets.length;
     }
 
-    function getAssetVaultTokens(address assetId) external view returns (address[] memory) {
+    function getAssetVault(address assetId) external view returns (address memory) {
         require(hasAsset(assetId), "Asset does not exist");
-        return IIpRoyaltyVault(ROYALTY_MODULE.ipRoyaltyVaults(assetId)).tokens();
+        return ROYALTY_MODULE.ipRoyaltyVaults(assetId);
     }
 }

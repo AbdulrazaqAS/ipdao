@@ -2,18 +2,19 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { handleError, handleSuccess, type AssetMetadata, type ProposalArgs } from '../utils/utils';
 import { usePublicClient, useWalletClient } from 'wagmi';
-import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getAssetsVaultsTokens } from '../scripts/asset';
+import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms } from '../scripts/asset';
 import type { AssetInitialMetadata } from './AssetsPage';
-import { getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/proposal';
-import { encodeFunctionData, formatEther, type Address } from 'viem';
+import { getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenSymbol, getTokenUserBalance, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/proposal';
+import { custom, encodeFunctionData, formatEther, zeroAddress, type Address } from 'viem';
 import { delegateVote, propose } from '../scripts/action';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
+import { StoryClient } from '@story-protocol/core-sdk';
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER;
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<string>("");
+  // const [selectedAsset, setSelectedAsset] = useState<string>("");
 
   return (
     <div className="rounded-xl bg-surface p-4 mb-4 transition-all">
@@ -44,6 +45,7 @@ export default function GovernancePage() {
   const [currentDelegate, setCurrentDelegate] = useState<string>();
   const [tokenHolders, setTokenHolders] = useState<{ address: string; value: string }[]>([]);
   const [votingPowers, setVotingPowers] = useState<bigint[]>([]);
+  const [assetsTokens, setAssetsTokens] = useState<{ symbol: string; amount: string }[][]>([[]]);
 
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -174,10 +176,7 @@ export default function GovernancePage() {
 
     fetchAssets();
     getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
-    getAssetsVaultsTokens(assets.map(asset => asset.id), publicClient!).then(vaultsTokens => {
-      console.log("Vaults tokens for assets:", vaultsTokens);
-    }).catch(console.error);
-    
+
     if (publicClient?.chain.id === 1315)
       getGovernanceTokenHolders("aeneid").then(holders => {
         const descendingHolders = holders.sort((a, b) => +formatEther(BigInt(b.value)) - +formatEther(BigInt(a.value)));
@@ -195,34 +194,51 @@ export default function GovernancePage() {
 
     getUsersVotingPower(tokenHolders.map(holder => holder.address as Address), publicClient!).then(setVotingPowers).catch(console.error);
   }, [tokenHolders]);
-  
+
+  useEffect(() => {
+    // getAssetsVaultsTokens(assets.map(asset => asset.id)).then(setAssetsTokens).catch(console.error);
+  }, [assets]);
+
   useEffect(() => {
     if (!walletClient) return;
+
     getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
     getUserDelegate(walletClient.account.address, publicClient!).then(setCurrentDelegate).catch(console.error);
   }, [walletClient]);
 
-  const ipAssets = [
-    {
-      name: 'AI Anime Series',
-      tokens: [
-        { symbol: 'IPT1', amount: '12.4 USDC' },
-        { symbol: 'IPT2', amount: '5.7 USDC' },
-      ],
-    },
-    {
-      name: 'Pixel Punk World',
-      tokens: [
-        { symbol: 'PPT1', amount: '8.9 USDC' },
-      ],
-    },
-  ];
+  useEffect(() => {
+    if (assets.length === 0) return;
+
+    async function fetchAssetsTokens() {
+      const storyClient = StoryClient.newClient({
+        account: "0xDaaE14a470e36796ADf9c75766D3d8ADD0a3D94c",
+        transport: custom(publicClient!.transport),
+        chainId: publicClient!.chain.id.toString() as "1315" | "1514",
+      })
+
+      const vaultsAddresses = await getAssetsVaultsAddresses(assets.map(asset => asset.id), storyClient);
+      const vaultsTokens = await getAssetsVaultsTokens(vaultsAddresses, publicClient!);
+      const vaultsTokensBalance = await Promise.all(
+        vaultsTokens.map((tokens, i) => {
+          return Promise.all(
+            tokens.map(async (token) => {
+              const claimable = await getClaimableRevenue(storyClient, IPA_MANAGER_ADDRESS, assets[i].id, token);
+              return claimable;
+            })
+          );
+        })
+      );
+      // setAssetsTokens(vaultsTokens);
+      console.log("Assets vaults tokens:", vaultsTokens);
+      console.log("Assets vaults tokens balance:", vaultsTokensBalance);
+    }
+    fetchAssetsTokens().catch(console.error);
+  }, [walletClient, assets]);
 
   const daoTokens = [
     { symbol: 'USDC', amount: '1,200.50' },
     { symbol: 'DAI', amount: '980.00' },
   ];
-
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -235,7 +251,7 @@ export default function GovernancePage() {
             {assets.map((asset) => (
               <div key={asset.id} className="mb-3">
                 <label>
-                  <input type='radio' name='transferAsset' value={asset.id} onChange={() => setSelectedAsset(asset)} className='mr-2'/>
+                  <input type='radio' name='transferAsset' value={asset.id} onChange={() => setSelectedAsset(asset)} className='mr-2' />
                   {asset.title} - <span className="text-muted">{asset.id.slice(0, 6)}...{asset.id.slice(-6)}</span>
                 </label>
               </div>
@@ -267,12 +283,12 @@ export default function GovernancePage() {
       </Section>
 
       <Section title="Claim Revenue">
-        {ipAssets.map((asset) => (
-          <div key={asset.name} className="mb-4">
+        {assets.map((asset, index) => (
+          <div key={index} className="mb-4">
             <details className="rounded bg-muted/10 p-3">
-              <summary className="font-semibold cursor-pointer text-text">{asset.name}</summary>
+              <summary className="font-semibold cursor-pointer text-text">{asset.title}</summary>
               <ul className="mt-3 space-y-2">
-                {asset.tokens.map((token) => (
+                {assetsTokens[index]?.map((token) => (
                   <li
                     key={token.symbol}
                     className="flex items-center justify-between bg-muted/5 px-3 py-2 rounded"
@@ -310,7 +326,7 @@ export default function GovernancePage() {
         </div>
       </Section>
 
-      <Section title="Token Holders">
+      <Section title="Governance Tokens Holders">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-left">
             <thead>

@@ -12,6 +12,7 @@ export default function ProposalsPage() {
   const [voteChoice, setVoteChoice] = useState<VoteChoice>();
   const [selectedProposal, setSelectedProposal] = useState<ProposalData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingProposals, setIsLoadingProposals] = useState(true);
   const [votingPeriod, setVotingPeriod] = useState(0n);
 
   // FIlter out number keys from tabs.
@@ -95,6 +96,8 @@ export default function ProposalsPage() {
         console.log("Proposals fetched:", proposals);
       } catch (error) {
         console.error("Error fetching proposals:", error);
+      } finally {
+        setIsLoadingProposals(false);
       }
     }
 
@@ -130,9 +133,12 @@ export default function ProposalsPage() {
           <ProposalCard key={proposal.id} proposal={proposal} votingPeriod={Number(votingPeriod)} setSelectedProposal={setSelectedProposal} setShowModal={setShowModal} setVoteChoice={setVoteChoice} />
         )}
 
-        {filteredProposals.length === 0 && (
+        {isLoadingProposals ? (
+          <div className="text-center text-gray-500 py-6">Loading proposals...</div>
+        ) : (
+          filteredProposals.length === 0 && (
           <div className="text-center text-gray-500 py-6">No proposals found.</div>
-        )}
+        ))}
       </div>
 
       {/* voteChoice !== undefined and not just voteChoice bcoz "against" is zero which will make voteChoice false */}
