@@ -77,7 +77,7 @@ export async function getDaoRevenueTokens(client: PublicClient): Promise<bigint>
         client
     });
 
-    const amount = await contract.read.daoRevenueTokens();
+    const amount = await contract.read.daoRoyaltyTokens();
     return amount as bigint;
 }
 

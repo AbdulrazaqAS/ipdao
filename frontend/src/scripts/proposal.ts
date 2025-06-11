@@ -267,6 +267,17 @@ export async function getTokenSymbol(token: Address, client: PublicClient): Prom
     return sym as string;
 }
 
+export async function getTokenName(token: Address, client: PublicClient): Promise<string> {
+    const contract = getContract({
+        address: token,
+        abi: VotesERC20TokenABI,
+        client
+    });
+
+    const name = await contract.read.name();
+    return name as string;
+}
+
 export async function getTokenUserBalance(userAddr: Address, token: Address, client: PublicClient): Promise<string> {
     const contract = getContract({
         address: token,

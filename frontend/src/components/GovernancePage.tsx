@@ -4,7 +4,7 @@ import { handleError, handleSuccess, type AssetMetadata, type ProposalArgs } fro
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms } from '../scripts/asset';
 import type { AssetInitialMetadata } from './AssetsPage';
-import { getAddressERC20s, getAddressNFTs, getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenSymbol, getTokenUserBalance, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/proposal';
+import { getAddressERC20s, getAddressNFTs, getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenName, getTokenSymbol, getTokenUserBalance, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/proposal';
 import { custom, encodeFunctionData, formatEther, zeroAddress, type Address } from 'viem';
 import { delegateVote, propose } from '../scripts/action';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
@@ -45,7 +45,7 @@ export default function GovernancePage() {
   const [currentDelegate, setCurrentDelegate] = useState<string>();
   const [tokenHolders, setTokenHolders] = useState<{ address: string; value: string }[]>([]);
   const [votingPowers, setVotingPowers] = useState<bigint[]>([]);
-  const [assetsTokens, setAssetsTokens] = useState<{ symbol: string; amount: string }[][]>([[]]);
+  const [assetsTokens, setAssetsTokens] = useState<{ symbol: string; daoAmount: string; userAmount: bigint | undefined; name: string }[][]>([[]]);
   const [daoERC20Tokens, setDaoERC20Tokens] = useState<{ value: string; address: string; name: string; symbol: string, decimals: string }[]>([]);
   const [daoERC721Tokens, setDaoERC721Tokens] = useState<{ value: string; address: string; name: string; symbol: string }[]>([]);
 
@@ -195,27 +195,12 @@ export default function GovernancePage() {
 
     getAddressERC20s(IPA_MANAGER_ADDRESS, chainName).then(setDaoERC20Tokens).catch(console.error);
     getAddressNFTs(IPA_MANAGER_ADDRESS, chainName).then(setDaoERC721Tokens).catch(console.error);
-
-    // getAddressERC20s(publicClient!, IPA_MANAGER_ADDRESS).then(tokens => {
-    //   const erc20Tokens = tokens.map(token => ({
-    //     Name: token.name,
-    //     symbol: token.symbol,
-    //     amount: formatEther(BigInt(token.balance))
-    //   }));
-    //   setDaoERC20Tokens(erc20Tokens);
-    // }
-    // ).catch(console.error);
   }, []);
 
   useEffect(() => {
     if (!tokenHolders || tokenHolders.length === 0) return;
-
     getUsersVotingPower(tokenHolders.map(holder => holder.address as Address), publicClient!).then(setVotingPowers).catch(console.error);
   }, [tokenHolders]);
-
-  useEffect(() => {
-    // getAssetsVaultsTokens(assets.map(asset => asset.id)).then(setAssetsTokens).catch(console.error);
-  }, [assets]);
 
   useEffect(() => {
     if (!walletClient) return;
@@ -240,18 +225,29 @@ export default function GovernancePage() {
         vaultsTokens.map((tokens, i) => {
           return Promise.all(
             tokens.map(async (token) => {
-              const claimable = await getClaimableRevenue(storyClient, IPA_MANAGER_ADDRESS, assets[i].id, token);
-              return claimable;
+              const daoClaimable = await getClaimableRevenue(storyClient, IPA_MANAGER_ADDRESS, assets[i].id, token);
+              let userClaimable: bigint | undefined = undefined;
+              if (walletClient) userClaimable = await getClaimableRevenue(storyClient, IPA_MANAGER_ADDRESS, assets[i].id, token);
+              return { daoClaimable, userClaimable };
             })
           );
         })
       );
-      // setAssetsTokens(vaultsTokens);
-      console.log("Assets vaults tokens:", vaultsTokens);
-      console.log("Assets vaults tokens balance:", vaultsTokensBalance);
+      const formattedVaultsTokens = await Promise.all(vaultsTokens.map((tokens, i) => {
+        return Promise.all(tokens.map(async (token, j) => {
+          return {
+            name: await getTokenName(token, publicClient!),
+            symbol: await getTokenSymbol(token, publicClient!),
+            daoAmount: formatEther(BigInt(vaultsTokensBalance[i][j].daoClaimable ?? "0")),
+            userAmount: vaultsTokensBalance[i][j].userClaimable,
+          };
+        }));
+      }));
+      setAssetsTokens(formattedVaultsTokens);
+      console.log("Assets vaults tokens:", formattedVaultsTokens);
     }
     fetchAssetsTokens().catch(console.error);
-  }, [walletClient, assets]);
+  }, [walletClient, assets]);  // refetch when walletClient or assets change
 
   return (
     <div className="mx-auto px-4 py-8">
@@ -299,20 +295,35 @@ export default function GovernancePage() {
         {assets.map((asset, index) => (
           <div key={index} className="mb-4">
             <details className="rounded bg-muted/10 p-3">
-              <summary className="font-semibold cursor-pointer text-text">{asset.title}</summary>
+              <summary className="font-semibold cursor-pointer text-text">
+                {asset.title} - <span className="text-muted">{asset.id.slice(0, 6)}...{asset.id.slice(-6)}</span>
+              </summary>
               <ul className="mt-3 space-y-2">
                 {assetsTokens[index]?.map((token) => (
-                  <li
-                    key={token.symbol}
-                    className="flex items-center justify-between bg-muted/5 px-3 py-2 rounded"
-                  >
-                    <span className="text-sm">{token.symbol}: {token.amount}</span>
-                    <div className="flex gap-2">
-                      <button className="px-3 py-1 text-xs rounded bg-primary text-white">Claim</button>
-                      <button className="px-3 py-1 text-xs rounded bg-secondary text-white">Claim for DAO</button>
-                    </div>
-                  </li>
+                  <div key={token.symbol} className="space-y-2">
+                    {token.userAmount !== undefined && (
+                      <li
+                        className="flex items-center justify-between bg-muted/5 px-3 py-2 rounded"
+                      >
+                        <span className="text-sm">{token.name} ({token.symbol}): {formatEther(BigInt(token.userAmount))}</span>
+                        <div className="flex gap-2">
+                          <button className="px-3 py-1 text-xs rounded bg-primary text-white">Claim</button>
+                        </div>
+                      </li>
+                    )}
+                    <li
+                      className="flex items-center justify-between bg-muted/5 px-3 py-2 rounded"
+                    >
+                      <span className="text-sm">{token.name} ({token.symbol}): {token.daoAmount}</span>
+                      <div className="flex gap-2">
+                        <button className="px-3 py-1 text-xs rounded bg-secondary text-white">Claim for DAO</button>
+                      </div>
+                    </li>
+                  </div>
                 ))}
+                {assetsTokens[index]?.length === 0 && (
+                  <li className="text-sm text-muted">No tokens available for this asset</li>
+                )}
               </ul>
             </details>
           </div>

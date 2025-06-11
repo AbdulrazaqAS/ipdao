@@ -375,13 +375,13 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             // If !nftFields.tokenId for fromNft when the metadata has not been loaded
             // but tokenId is inputted, it should skip this.
             if (!nftMetadataUri && !nftFields.tokenId) await uploadNFTMetadata();
-    
+
             // For fromNft to load the metadata ( if tokenId is inputted (checked by the form))
             else if (!nftMetadataUri) await loadNftMetadata();
-    
+
             // After getting required data to upload IP metadata
             else if (nftMetadata && nftMetadataUri && !ipMetadataUri) await uploadIPAMetadata();
-    
+
             // After getting required data to make proposal
             else if (ipMetadata && ipMetadataUri) await handleProposeAddNewAsset();
         }
@@ -505,14 +505,6 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                 </div>
             )}
 
-            {/* Image Preview */}
-            {/*{previewImage && (
-                <div className="mt-4">
-                    <p className="text-muted mb-2">Preview Image:</p>
-                    <img src={previewImage} alt="Preview" className="rounded-lg w-full max-w-md object-contain border border-muted" />
-                </div>
-            )}*/}
-
             {processType === "fromAsset" && (
                 <div className="bg-background rounded-lg p-4">
                     <h3 className="font-semibold">Asset ID</h3>
@@ -527,15 +519,24 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
                 </div>
             )}
 
-            {(processType === "fromNFT" || processType === "fromScratch") && !nftMetadataUri && (
-                <p className="text-md text-muted">
-                    Next Step: Create Asset
-                </p>
-            )}
-            
-            <p className="text-md text-muted">
-                DAO Royalty Tokens: {daoRoyaltyTokens / BigInt(10 ** 6)}%
-            </p>
+            <div className='space-y-2'>
+                {(processType === "fromNFT" || processType === "fromScratch") && !nftMetadataUri && (
+                    <p className="text-sm text-muted">
+                        Next Step: Create Asset
+                    </p>
+                )}
+
+                {(processType === "fromNFT" || processType === "fromScratch") && (
+                    <div className="space-y-0">
+                        <p className="text-sm text-muted">
+                            DAO Royalty Tokens: {daoRoyaltyTokens / BigInt(10 ** 6)}%
+                        </p>
+                        <p className="text-sm text-muted">
+                            The percentage of royalty tokens that will be distributed to the DAO for each asset.
+                        </p>
+                    </div>
+                )}
+            </div>
 
             <button
                 type="submit"
