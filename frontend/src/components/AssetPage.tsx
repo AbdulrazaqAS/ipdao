@@ -70,6 +70,7 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   const [showNewLicenseForm, setShowNewLicenseForm] = useState(false);
   const [showLicenseMintForm, setShowLicenseMintForm] = useState<false | number>(false);
   const [showDerivativeForm, setShowDerivativeForm] = useState<false | number>(false);
+  const [isLoadingLicenses, setIsLoadingLicenses] = useState(true);
 
   const chain = useChainId();
 
@@ -106,6 +107,8 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
       console.log("All License Terms:", termsArray);
     }).catch((error) => {
       console.error("Error fetching all license terms:", error);
+    }).finally(() => {
+      setIsLoadingLicenses(false);
     });
   }, [assetLicenses]);
 
@@ -225,8 +228,12 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
                 </div>
               </Section>
             ))}
-            {licensesTerms.length === 0 && (
-              <p className="text-muted text-sm">No licenses attached to this asset.</p>
+            {isLoadingLicenses ? (
+              <p className="text-muted text-sm">Loading licenses...</p>
+            ) : (
+              licensesTerms.length === 0 && (
+                <p className="text-muted text-sm">No licenses attached to this asset.</p>
+              )
             )}
           </div>
 

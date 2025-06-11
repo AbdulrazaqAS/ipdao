@@ -6,7 +6,7 @@ import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, ge
 import type { AssetInitialMetadata } from './AssetsPage';
 import { getAddressERC20s, getAddressNFTs, getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenName, getTokenSymbol, getTokenUserBalance, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/proposal';
 import { custom, encodeFunctionData, formatEther, zeroAddress, type Address } from 'viem';
-import { delegateVote, propose } from '../scripts/action';
+import { claimIPRevenue, delegateVote, propose } from '../scripts/action';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import { StoryClient } from '@story-protocol/core-sdk';
 
@@ -45,7 +45,7 @@ export default function GovernancePage() {
   const [currentDelegate, setCurrentDelegate] = useState<string>();
   const [tokenHolders, setTokenHolders] = useState<{ address: string; value: string }[]>([]);
   const [votingPowers, setVotingPowers] = useState<bigint[]>([]);
-  const [assetsTokens, setAssetsTokens] = useState<{ symbol: string; daoAmount: string; userAmount: bigint | undefined; name: string }[][]>([[]]);
+  const [assetsTokens, setAssetsTokens] = useState<{ address: String; symbol: string; daoAmount: string; userAmount: bigint | undefined; name: string }[][]>([[]]);
   const [daoERC20Tokens, setDaoERC20Tokens] = useState<{ value: string; address: string; name: string; symbol: string, decimals: string }[]>([]);
   const [daoERC721Tokens, setDaoERC721Tokens] = useState<{ value: string; address: string; name: string; symbol: string }[]>([]);
 
@@ -150,6 +150,38 @@ export default function GovernancePage() {
     }
   }
 
+  async function handleClaimRevenue(assetId: Address, token: Address, claimer: Address) {
+    if (!assetId || !token || !claimer) {
+      handleError(new Error("Invalid asset ID, token or claimer address"));
+      return;
+    }
+    
+    if (!walletClient) {
+      handleError(new Error("Please connect your wallet to claim revenue"));
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const storyClient = StoryClient.newClient({
+        wallet: walletClient,
+        transport: custom(walletClient!.transport),
+        chainId: publicClient!.chain.id.toString() as "1315" | "1514",
+      });
+
+      const claimedTokens = await claimIPRevenue(storyClient, claimer, assetId, [token]);
+      if (!claimedTokens || claimedTokens.length == 0) {
+        handleError(new Error("No claimable tokens found for this asset"));
+      } else {
+        handleSuccess(`Successfully claimed ${claimedTokens.length} tokens for asset.`);
+      }
+    } catch (error) {
+      console.error("Error claiming revenue:", error);
+      handleError(error as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   useEffect(() => {
     async function fetchAssets() {
       try {
@@ -236,6 +268,7 @@ export default function GovernancePage() {
       const formattedVaultsTokens = await Promise.all(vaultsTokens.map((tokens, i) => {
         return Promise.all(tokens.map(async (token, j) => {
           return {
+            address: token,
             name: await getTokenName(token, publicClient!),
             symbol: await getTokenSymbol(token, publicClient!),
             daoAmount: formatEther(BigInt(vaultsTokensBalance[i][j].daoClaimable ?? "0")),
@@ -316,7 +349,13 @@ export default function GovernancePage() {
                     >
                       <span className="text-sm">{token.name} ({token.symbol}): {token.daoAmount}</span>
                       <div className="flex gap-2">
-                        <button className="px-3 py-1 text-xs rounded bg-secondary text-white">Claim for DAO</button>
+                        <button
+                          className="px-3 py-1 text-xs rounded bg-secondary text-white"
+                          onClick={() => handleClaimRevenue(asset.id, token.address as Address, IPA_MANAGER_ADDRESS)}
+                        >
+                          Claim for DAO
+                          {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
+                        </button>
                       </div>
                     </li>
                   </div>

@@ -70,6 +70,10 @@ export default function MintLicenseTokenForm({ assetId, mintingFee, mintingFeeTo
         getTokenSymbol(mintingFeeToken, publicClient!).then(setFeeTokenSymbol).catch(console.error);
     }, [mintingFeeToken, publicClient]);
 
+    useEffect(() => {
+        setMaxMintFee(formatEther(BigInt(mintingFee * mintAmount)));
+    }, [mintAmount]);
+
     return (
         <form onSubmit={handleSubmit} className="bg-surface text-text rounded-2xl shadow-lg space-y-6">
             <div className="bg-background rounded-lg p-4">

@@ -118,12 +118,13 @@ contract IPAManager is Ownable, ERC721Holder {
     function createAssetFromNFT(
         address tokenCollection,
         uint256 tokenId,
-        uint256 licenseTermsId
+        address[] memory creators,
+        uint256[] memory royaltyShares
     ) external onlyOwner returns (address ipId) {
         // require(IERC721(tokenCollection).ownerOf(tokenId) == address(this), "Contract must own the NFT");
         ipId = IP_ASSET_REGISTRY.register(block.chainid, address(tokenCollection), tokenId); // Checks for ownership
         addAsset(ipId);
-        attachLicenseTerms(ipId, licenseTermsId);
+        transferIPARoyaltyTokens(ipId, creators, royaltyShares);
     }
 
     // Mint an NFT and register it in the same call via the Story Protocol Gateway.
@@ -227,23 +228,56 @@ contract IPAManager is Ownable, ERC721Holder {
     }
 
     // For owner to transfer royalty tokens from the royalty vault to recipients.
-    function transferIPARoyaltyTokens(
+    function transferAllRoyaltyTokens(
         address ipId,
         address[] memory recipients,
         uint256[] memory amounts
     ) public onlyOwner {
         require(hasAsset(ipId), "Asset does not exist");
-        address royaltyVaultAddress = ROYALTY_MODULE.ipRoyaltyVaults(ipId);
+        require(recipients.length == amounts.length, "Recipients and amounts length mismatch");
+        require(recipients.length > 0, "No recipients provided");
 
+        address royaltyVaultAddress = ROYALTY_MODULE.ipRoyaltyVaults(ipId);
         bytes memory tranferData;
+        bool daoIsGiven = false;
+        uint256 totalAmount = 0;
         for (uint256 i = 0; i < recipients.length; i++) {
-            // TODO: Make sure amounts sums to max royalty tokens and DAO is among recipients
-            if (recipients[i] == address(this))
+            if (recipients[i] == address(this)) {
                 require(amounts[i] == daoRoyaltyTokens, "Invalid tokens amount for DAO");
+                require(!daoIsGiven, "DAO already given royalty tokens");
+                daoIsGiven = true;
+            }
 
             // Encode the transfer call data
             tranferData = abi.encodeWithSelector(IERC20.transfer.selector, recipients[i], amounts[i]);
+            IIPAccount(payable(ipId)).execute(
+                royaltyVaultAddress,
+                0, // value: 0 ETH
+                tranferData
+            );
+            totalAmount += amounts[i];
+        }
 
+        require(daoIsGiven, "DAO must be among recipients");
+        require(totalAmount == 100 * 10 ** 6, "Total amount must sum to total royalty tokens");
+
+        emit RoyaltyTokensTransferred(ipId, recipients, amounts);
+    }
+
+    function transferRoyaltyTokens(
+        address ipId,
+        address[] memory recipients,
+        uint256[] memory amounts
+    ) public onlyOwner {
+        require(hasAsset(ipId), "Asset does not exist");
+        require(recipients.length == amounts.length, "Recipients and amounts length mismatch");
+        require(recipients.length > 0, "No recipients provided");
+
+        address royaltyVaultAddress = ROYALTY_MODULE.ipRoyaltyVaults(ipId);
+        bytes memory tranferData;
+        for (uint256 i = 0; i < recipients.length; i++) {
+            // Encode the transfer call data
+            tranferData = abi.encodeWithSelector(IERC20.transfer.selector, recipients[i], amounts[i]);
             IIPAccount(payable(ipId)).execute(
                 royaltyVaultAddress,
                 0, // value: 0 ETH

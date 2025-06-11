@@ -104,10 +104,9 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
     }
 
     const checkTotalContributionPercent = () => {
-        const total = ipCreators.reduce((sum, creator) => sum + (parseInt(creator.contributionPercent) || 0), 0);
+        const total = ipCreators.reduce((sum, creator) => sum + parseInt(creator.contributionPercent), 0);
         if (total !== 100) {
-            handleError(new Error("Total contribution percent must be 100%"));
-            return false;
+            throw new Error("Total contribution percent must be 100%");
         }
     }
 
@@ -305,17 +304,49 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
         }
     }
 
+    const getCreatorsRoyaltyShares = () => {
+        return ipCreators.map((creator) => {
+            const contributionPercent = parseInt(creator.contributionPercent);
+            if (isNaN(contributionPercent) || contributionPercent < 0 || contributionPercent > 100) {
+                throw new Error("Invalid contribution percent for creator: " + creator.name);
+            }
+
+            const remainingTokens = 100n * 10n ** 6n - daoRoyaltyTokens; // Convert to basis points
+            const share = (BigInt(contributionPercent) * remainingTokens) / 100n;
+            if (share < 0) {
+                throw new Error("Invalid share for creator: " + creator.name);
+            }
+            return {
+                address: creator.address.trim() as Address,
+                share: share
+            };
+        });
+    }
+
     const handleProposeAddNewAsset = async () => {
         try {
             const ipMetadataHash = await createMetadataHash(ipMetadata!);
             const nftMetadataHash = await createMetadataHash(nftMetadata!);
+            const creatorsRoyaltyShares = getCreatorsRoyaltyShares();
+            const creatorsAddresses = creatorsRoyaltyShares.map(share => share.address);
+            const creatorsShares = creatorsRoyaltyShares.map(share => share.share);
+            creatorsAddresses.push(IPA_MANAGER_ADDRESS); // Add IPAManager address for DAO royalty
+            creatorsShares.push(daoRoyaltyTokens); // Add DAO royalty tokens
+
+            if(creatorsShares.reduce((a, b) => a + b, 0n) !== 100n * 10n ** 6n) {
+                handleError(new Error("Total shares must sum to 100%"));
+                return;
+            }
+
+            console.log("Creators addresses:", creatorsAddresses);
+            console.log("Creators shares:", creatorsShares);
 
             const targets = [IPA_MANAGER_ADDRESS];
             const values = [0n];
             const calldatas = [encodeFunctionData({
                 abi: IPAManagerABI,
                 functionName: "createAsset",
-                args: [ipMetadataUri, ipMetadataHash, nftMetadataUri, nftMetadataHash]
+                args: [ipMetadataUri, ipMetadataHash, nftMetadataUri, nftMetadataHash, creatorsAddresses, creatorsShares]
             })];
 
             const proposalIndex = await getProposalsCount(publicClient!);
