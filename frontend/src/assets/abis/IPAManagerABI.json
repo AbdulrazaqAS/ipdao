@@ -578,13 +578,19 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "getAssetCount",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "assetId",
+        "type": "address"
+      }
+    ],
+    "name": "getAssetVaultTokens",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "address[]",
         "name": "",
-        "type": "uint256"
+        "type": "address[]"
       }
     ],
     "stateMutability": "view",
@@ -598,6 +604,19 @@
         "internalType": "address[]",
         "name": "",
         "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAssetsCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

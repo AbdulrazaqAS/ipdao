@@ -6,7 +6,6 @@ import { ethers } from "hardhat";
 async function main() {
     const governor = process.env.IPA_GOVERNOR!;
     const quizManager = process.env.QUIZ_MANAGER!;
-    const quizUpdater = process.env.QUIZ_UPDATER!;
     const governanceToken = process.env.GOVERNANCE_TOKEN!;
 
     const quizManagerContract = await ethers.getContractAt("QuizManager", quizManager);

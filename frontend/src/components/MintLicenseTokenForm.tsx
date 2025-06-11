@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { custom, formatEther, zeroAddress, type Address } from 'viem';
+import { custom, formatEther, parseEther, zeroAddress, type Address } from 'viem';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { handleError, handleSuccess } from '../utils/utils';
 import { StoryClient } from '@story-protocol/core-sdk';
@@ -19,7 +19,7 @@ interface Props {
 export default function MintLicenseTokenForm({ assetId, mintingFee, mintingFeeToken, revShare, licenseTermsId, setShowLicenseMintForm }: Props) {
     const [mintAmount, setMintAmount] = useState(1);
     const [maxMintFee, setMaxMintFee] = useState(formatEther(BigInt(mintingFee)));
-    const [maxRevShare, setMaxRevShare] = useState(revShare.toString());
+    const [maxRevShare, setMaxRevShare] = useState((revShare / (10 ** 6)).toString());  // Convert to percentage (assuming revShare is in basis points, e.g., 10000 = 100%)
     const [isLoading, setIsLoading] = useState(false);
     const [feeTokenSymbol, setFeeTokenSymbol] = useState<string>("");
 
@@ -46,7 +46,7 @@ export default function MintLicenseTokenForm({ assetId, mintingFee, mintingFeeTo
                 licenseTermsId: licenseTermsId,
                 licensorIpId: assetId,
                 amount: mintAmount,
-                maxMintingFee: maxMintFee,
+                maxMintingFee: parseEther(maxMintFee),
                 maxRevenueShare: maxRevShare,
                 txOptions: { waitForTransaction: true },
             })
@@ -76,7 +76,7 @@ export default function MintLicenseTokenForm({ assetId, mintingFee, mintingFeeTo
                 <div className="mt-4 space-y-2">
                     <div><label>Amount to mint:<input type="number" placeholder="Amount to mint" value={mintAmount} min={1} onChange={(e) => setMintAmount(Number(e.target.value))} className={inputsClass} required /></label></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <label>Max Minting Fee:<input type="number" placeholder="Max Minting Fee" value={maxMintFee} min={0} onChange={(e) => setMaxMintFee(e.target.value)} className={inputsClass} required /></label>
+                        <label>Max Minting Fee:<input type="number" placeholder="Max Minting Fee" value={maxMintFee} min={0} step={0.000001} onChange={(e) => setMaxMintFee(e.target.value)} className={inputsClass} required /></label>
                         <label>Max Revenue Share (%):<input type="number" placeholder="Max Revenue Share" min="0" max="100" value={maxRevShare} onChange={(e) => setMaxRevShare(e.target.value)} className={inputsClass} required /></label>
                     </div>
                     <div className="space-y-1">

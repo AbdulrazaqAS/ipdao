@@ -69,25 +69,31 @@ export default function AssetsPage() {
                         </button>
                     </div>
 
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {assets.map((asset) => (
-                            <div
-                                key={asset.title}
-                                className="bg-white shadow-md rounded-xl overflow-hidden hover:shadow-secondary transition"
-                                onClick={() => setSelectedAsset(asset)}
-                            >
-                                <img
-                                    src={asset.image}
-                                    alt={asset.title}
-                                    className="w-full h-48 object-cover"
-                                />
-                                <div className="p-4">
-                                    <h2 className="text-lg font-semibold">{asset.title}</h2>
-                                    <p className="text-gray-600 text-sm mt-1">{asset.description}</p>
+                    {assets.length > 0 ? (
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {assets.map((asset) => (
+                                <div
+                                    key={asset.title}
+                                    className="bg-white shadow-md rounded-xl overflow-hidden hover:shadow-secondary transition"
+                                    onClick={() => setSelectedAsset(asset)}
+                                >
+                                    <img
+                                        src={asset.image}
+                                        alt={asset.title}
+                                        className="w-full h-48 object-cover"
+                                    />
+                                    <div className="p-4">
+                                        <h2 className="text-lg font-semibold">{asset.title}</h2>
+                                        <p className="text-gray-600 text-sm mt-1">{asset.description}</p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center text-muted">
+                            <p>No assets found. Please add a new asset.</p>
+                        </div>
+                    )}
                 </>
             )}
             {selectedAsset && <AssetPage assetMetadata={selectedAsset} setSelectedAsset={setSelectedAsset} />}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { usePublicClient, useWalletClient } from "wagmi";
 import { getProposals, getProposalsCount, getProposalsDeadlines, getProposalsDescriptions, getProposalsProposers, getProposalsStates, getProposalsVotes, getVotingPeriod, hasVoted } from "../scripts/proposal";
-import { ProposalState, type ProposalData, VoteChoice } from "../utils/utils";
+import { ProposalState, type ProposalData, VoteChoice, handleError, handleSuccess } from "../utils/utils";
 import ProposalCard from "./ProposalCard";
 import { castVote } from "../scripts/action";
 
@@ -36,16 +36,17 @@ export default function ProposalsPage() {
       console.log(`Voted ${voteChoice} on proposal ${selectedProposal!.id}`);
 
       publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
-        if (txReceipt.status === "reverted") console.error("Failed to cast vote");
+        if (txReceipt.status === "reverted") handleError(new Error("Vote transaction reverted"));
         else {
           const votedProposalIndex = proposals.findIndex((p) => p.id === selectedProposal?.id);
           const updatedProposals = [...proposals];
           updatedProposals[votedProposalIndex].hasVoted = true;
-          console.log("Vote confirmed");
+          setProposals(updatedProposals);
+          handleSuccess("Vote cast successfully!");
         }
       });
     } catch (error) {
-      console.error("Error sending vote:", error);
+      handleError(error as Error);
     } finally {
       setShowModal(false);
       setIsLoading(false);
@@ -124,8 +125,7 @@ export default function ProposalsPage() {
       </div>
 
       {/* Proposal cards */}
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-      {/* <div className="grid gap-6"> */}
+      <div className="grid gap-6">
         {filteredProposals.map((proposal) =>
           <ProposalCard key={proposal.id} proposal={proposal} votingPeriod={Number(votingPeriod)} setSelectedProposal={setSelectedProposal} setShowModal={setShowModal} setVoteChoice={setVoteChoice} />
         )}

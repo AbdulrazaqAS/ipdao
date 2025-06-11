@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { handleError, handleSuccess, type AssetMetadata, type ProposalArgs } from '../utils/utils';
 import { usePublicClient, useWalletClient } from 'wagmi';
-import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms } from '../scripts/asset';
+import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getAssetsVaultsTokens } from '../scripts/asset';
 import type { AssetInitialMetadata } from './AssetsPage';
 import { getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/proposal';
 import { encodeFunctionData, formatEther, type Address } from 'viem';
@@ -174,6 +174,9 @@ export default function GovernancePage() {
 
     fetchAssets();
     getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
+    getAssetsVaultsTokens(assets.map(asset => asset.id), publicClient!).then(vaultsTokens => {
+      console.log("Vaults tokens for assets:", vaultsTokens);
+    }).catch(console.error);
     
     if (publicClient?.chain.id === 1315)
       getGovernanceTokenHolders("aeneid").then(holders => {
