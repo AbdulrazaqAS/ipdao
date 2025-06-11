@@ -239,7 +239,7 @@ contract IPAManager is Ownable, ERC721Holder {
         for (uint256 i = 0; i < recipients.length; i++) {
             // TODO: Make sure amounts sums to max royalty tokens and DAO is among recipients
             if (recipients[i] == address(this))
-                require(amounts[i] == daoRevenueTokens, "Invalid tokens amount for DAO");
+                require(amounts[i] == daoRoyaltyTokens, "Invalid tokens amount for DAO");
 
             // Encode the transfer call data
             tranferData = abi.encodeWithSelector(IERC20.transfer.selector, recipients[i], amounts[i]);
@@ -298,7 +298,7 @@ contract IPAManager is Ownable, ERC721Holder {
         return assets.length;
     }
 
-    function getAssetVault(address assetId) external view returns (address memory) {
+    function getAssetVault(address assetId) external view returns (address) {
         require(hasAsset(assetId), "Asset does not exist");
         return ROYALTY_MODULE.ipRoyaltyVaults(assetId);
     }

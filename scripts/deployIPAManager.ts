@@ -11,11 +11,13 @@ async function main() {
   const derivativeWorkflows = process.env.DERIVATIVE_WORKFLOWS!;
   const registrationWorkflows = process.env.REGISTRATION_WORKFLOWS!;
   const royaltyModule = process.env.ROYALTY_MODULE!;
+  const daoRoyaltyTokens = 20 * 10 ** 6 // 20% of royalty tokens for each asset will be allocated to DAO
   const spgNftName = "CreatorDAOSPGNFT";
   const spgNftSymbol = "CRTSPGNFT";
 
   const IPAManager = await ethers.getContractFactory("IPAManager");
   const ipaManager = await IPAManager.deploy(
+    daoRoyaltyTokens,
     governor,
     assetRegistry,
     licensingModule,
