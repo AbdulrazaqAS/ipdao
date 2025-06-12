@@ -150,28 +150,31 @@ export interface QuizContractMetadata {
     maxTrials: number;
     minScore: number;
     exists: boolean;
-    winners: bigint;
     deadline: bigint;
+    createdAt: bigint;
     prizeAmount: bigint;
     metadataURI: string;
-}
-
-export interface QuizQuestion {
-    question: string;
-    answer: string;
-    options: string[];
+    prizeToken: Address;
+    winners: bigint;
+    maxWinners: bigint;
 }
 
 export interface QuizMetadata {
     quizId: number;
     title: string;
-    questions: QuizQuestion[];
     questionsPerUser: number;
     maxTrials: number;
     minScore: number;
     deadline: string;
     prizeAmount: bigint;
-}
+    prizeToken: Address;
+    maxWinners: number;
+    questions: {
+        question: string;
+        options: string[]
+    }[];
+    encryptedAnswers: string;
+};
 
 export interface LicenseTermsMetadata {
     blockNumber: string;

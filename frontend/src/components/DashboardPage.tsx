@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Users, PieChart, ListOrdered, Clock, Hourglass, BarChartHorizontal, Coins } from "lucide-react";
 import NewProposalForm from "./NewProposalForm";
 import { usePublicClient, useWalletClient } from "wagmi";
-import { getDAOName, getGovernanceTokenSupply, getGovernanceTokenTotalHolders, getParticipationThreshold, getProposalsCount, getProposalThreshold, getQuorum, getUserVotingPower, getVotingDelay, getVotingPeriod } from "../scripts/getters";
+import { getDAOName, getDaoRoyaltyShare, getGovernanceTokenSupply, getGovernanceTokenTotalHolders, getParticipationThreshold, getProposalsCount, getProposalThreshold, getQuorum, getUserVotingPower, getVotingDelay, getVotingPeriod } from "../scripts/getters";
 import { formatEther } from "viem";
 
 export default function Dashboard() {
@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [governanceTokenHolders, setGovernanceTokenHolders] = useState(0);
   const [participationThreshold, setParticipationThreshold] = useState(0n);
   const [userVotingPower, setUserVotingPower] = useState(0n);
+  const [daoRoyaltyShare, setDaoRoyaltyShare] = useState(0n);
 
   const publicClient = usePublicClient();
   const {data: walletClient} = useWalletClient();
@@ -47,6 +48,7 @@ export default function Dashboard() {
     // getGovernanceToken(publicClient!).then(setGovernanceToken).catch(console.error);
     getProposalsCount(publicClient!).then(setTotalProposals).catch(console.error);
     getParticipationThreshold(publicClient!).then(setParticipationThreshold).catch(console.error);
+    getDaoRoyaltyShare(publicClient!).then(setDaoRoyaltyShare).catch(console.error);
 
     if (publicClient?.chain.id === 1315)
       getGovernanceTokenTotalHolders("aeneid").then(setGovernanceTokenHolders).catch(console.error);
@@ -114,7 +116,7 @@ export default function Dashboard() {
         <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
           <Users className="w-8 h-8 text-primary" />
           <div>
-            <p className="text-sm text-muted-foreground">Your Voting Power</p>
+            <p className="text-sm text-muted-foreground">Connected Wallet Voting Power</p>
             <p className="text-xl font-semibold">{formatEther(userVotingPower)} Votes</p>
           </div>
         </div>
@@ -130,6 +132,13 @@ export default function Dashboard() {
           <div>
             <p className="text-sm text-muted-foreground">Voting Delay</p>
             <p className="text-xl font-semibold">{votingDelay} mins</p>
+          </div>
+        </div>
+        <div className="bg-muted p-6 rounded-2xl shadow-sm flex items-center gap-4">
+          <Coins className="w-8 h-8 text-primary" />
+          <div>
+            <p className="text-sm text-muted-foreground">DAO Royalty Share Per Asset</p>
+            <p className="text-xl font-semibold">{(daoRoyaltyShare / (10n ** 6n)).toString()}%</p>
           </div>
         </div>
       </div>

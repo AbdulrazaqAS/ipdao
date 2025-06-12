@@ -437,7 +437,7 @@ export async function getAssetsVaults(ipIds: Address[], client: PublicClient): P
     return vaults as Array<Address>;
 }
 
-export async function getDaoRevenueTokens(client: PublicClient): Promise<bigint> {
+export async function getDaoRoyaltyShare(client: PublicClient): Promise<bigint> {
     const contract = getContract({
         address: IPA_MANAGER_ADDRESS,
         abi: IPA_MANAGER_ABI,
@@ -608,7 +608,7 @@ export async function getQuizzes(indices: Array<number>, client: PublicClient): 
     // TODO: Limit the range so as not to exceed provider limits
     const details = await Promise.all(
         indices.map((i) => contract.read.quizzes([i]))
-    ) as { 0: number, 1: number, 2: boolean, 3: bigint, 4: bigint, 5: bigint, 6: string }[];
+    ) as any[];
 
     const proposals = details.map((proposal): QuizContractMetadata => {
         return {
@@ -616,9 +616,12 @@ export async function getQuizzes(indices: Array<number>, client: PublicClient): 
             minScore: proposal[1],
             exists: proposal[2],
             winners: proposal[3],
-            deadline: proposal[4],
-            prizeAmount: proposal[5],
-            metadataURI: proposal[6],
+            maxWinners: proposal[4],
+            createdAt: proposal[5],
+            deadline: proposal[6],
+            prizeAmount: proposal[7],
+            prizeToken: proposal[8],
+            metadataURI: proposal[9],
         }
     });
 
@@ -650,6 +653,20 @@ export async function getQuizzesUserCanClaim(quizIds: Array<number>, user: Addre
     );
 
     return canClaims as boolean[];
+}
+
+export async function getQuizzesClaimOpened(quizIds: Array<number>, client: PublicClient): Promise<boolean[]> {
+    const contract = getContract({
+        address: QuizManagerAddress,
+        abi: QuizManagerABI,
+        client
+    });
+
+    const claimOpened = await Promise.all(
+        quizIds.map((i) => contract.read.claimOpened([i]))
+    );
+
+    return claimOpened as boolean[];
 }
 
 export async function getQuizzesUserHasClaimed(quizIds: Array<number>, user: Address, client: PublicClient): Promise<boolean[]> {

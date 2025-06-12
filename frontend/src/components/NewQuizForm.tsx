@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
 import { encodeFunctionData, parseEther, type Address } from 'viem';
-import { propose, uploadJsonToIPFS } from '../scripts/actions';
+import { encryptAnswersOnserver, propose, uploadJsonToIPFS } from '../scripts/actions';
 import { getProposalsCount, getProposalThreshold, getQuizzesCount, getUserVotingPower } from '../scripts/getters';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
-import { type ProposalArgs, type QuizQuestion, type QuizMetadata, handleError, handleSuccess } from '../utils/utils';
+import { type ProposalArgs, handleError, handleSuccess, type QuizMetadata} from '../utils/utils';
 
 const QuizManagerAddress: Address = import.meta.env.VITE_QUIZ_MANAGER!;
+
+export interface QuizQuestion {
+    question: string;
+    answer: string;
+    options: string[];
+}
 
 interface Props {
     setShowNewQuizForm: Function;
@@ -15,11 +21,13 @@ interface Props {
 export default function NewQuizForm({ setShowNewQuizForm }: Props) {
     const [title, setTitle] = useState("");
     const [maxTrials, setMaxTrials] = useState("");
+    const [maxWinners, setMaxWinners] = useState("");
     const [minScore, setMinScore] = useState("");
     const [deadline, setDeadline] = useState("");
     const [prizeAmount, setPrizeAmount] = useState("");
+    const [prizeToken, setPrizeToken] = useState("0x1514000000000000000000000000000000000000");
     const [questionsPerUser, setQuestionsPerUser] = useState("");
-    const [questions, setQuestions] = useState<QuizQuestion[]>([{ question: '', answer: '', options: [''] }]);
+    const [questions, setQuestions] = useState<QuizQuestion[]>([{ question: '', answer: '', options: ['', '', '', ''] }]);
     const [isLoading, setIsLoading] = useState(false);
     const [userVotingPower, setUserVotingPower] = useState(0n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
@@ -46,7 +54,7 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
 
     const addQuestion = () => {
         if (questions.length >= 255) return; // max score in contract in uint8. Each question should be 1 score.
-        setQuestions([...questions, { question: '', answer: '', options: [''] }]);
+        setQuestions([...questions, { question: '', answer: '', options: ['', '', '', ''] }]);
     };
 
     const removeQuestion = (index: number) => {
@@ -65,15 +73,14 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
         const updated = [...questions];
         updated[questionIndex].options = updated[questionIndex].options.filter((_, i) => i !== optionIndex);
         updated[questionIndex].answer = "";
-        if (updated[questionIndex].options.length <= 0) return;  // Dont remove last one
+        if (updated[questionIndex].options.length <= 3) return;  // Must have at least 4 options
         setQuestions(updated);
     };
 
-    const generateQuizMetadata = (quizId: number): QuizMetadata => {
+    const checkQuizInputs = () => {
         const title2 = title.trim();
-        // TODO: Refine/trim questions and options
 
-        if (!minScore || !maxTrials || !questionsPerUser || !prizeAmount || !deadline || !title2) {
+        if (!minScore || !maxTrials || !questionsPerUser || !prizeAmount || !deadline || !title2 || !prizeToken || !maxWinners) {
             throw new Error("Invalid quiz parameters");
         }
 
@@ -81,20 +88,55 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
             throw new Error("Min score must be less than number of questions. Each question 1 point.");
         }
 
+        if (+maxWinners <= 0) {
+            throw new Error("Max winners must be greater than 0");
+        }
+
+        if (+questionsPerUser <= 0) {
+            throw new Error("Questions per user must be greater than 0");
+        }
+
+        if (+questionsPerUser > questions.length) {
+            throw new Error("Questions per user must be less than or equal to total questions");
+        }
+
+        questions.forEach((q, index) => {
+            if (q.options.length < 4) {
+                throw new Error(`Question ${index + 1} must have at least 4 options`);
+            }
+            if (!q.question.trim()) {
+                throw new Error(`Question ${index + 1} cannot be empty`);
+            }
+            if (!q.answer || !q.options[+q.answer]) {
+                throw new Error(`Question ${index + 1} must have a valid answer selected`);
+            }
+            if (q.options.some(o => !o.trim())) {
+                throw new Error(`Question ${index + 1} cannot have empty options`);
+            }
+        });
+
         const deadlineMilSecs = new Date(deadline).getTime();
         if (deadlineMilSecs <= Date.now()) {
             throw new Error("Deadline must be in the future");
         }
+    }
 
+    const generateQuizMetadata = (quizId: number, encryptedAnswers: string): QuizMetadata => {
         return {
             quizId,
-            title: title2,
-            deadline: Math.floor(deadlineMilSecs / 1000).toString(),
+            title: title.trim(),
+            deadline: Math.floor(new Date(deadline).getTime() / 1000).toString(),
             maxTrials: Number(maxTrials),
             minScore: Number(minScore),
             prizeAmount: parseEther(prizeAmount),
             questionsPerUser: Number(questionsPerUser),
-            questions
+            questions: questions.map((q) => ({
+                question: q.question.trim(),
+                options: q.options.map((o) => o.trim()).filter(o => o.length > 0),
+            })),
+            maxWinners: Number(maxWinners),
+            prizeToken: prizeToken as Address,
+            encryptedAnswers
         }
     }
 
@@ -113,8 +155,11 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
 
         try {
             setIsLoading(true);
+            checkQuizInputs();
+            const answers = questions.map(q => q.answer);
+            const {encryptedAnswers} = await encryptAnswersOnserver(answers);
             const quizzesCount = await getQuizzesCount(publicClient!);
-            const quizMetadata = generateQuizMetadata(Number(quizzesCount));
+            const quizMetadata = generateQuizMetadata(Number(quizzesCount), encryptedAnswers);
             const metadataFileName = "QuizMetadata" + quizzesCount;
             const metadataCid = await uploadJsonToIPFS(quizMetadata, metadataFileName);
             if (!metadataCid) throw new Error("Error uploading quiz metadata");
@@ -132,6 +177,8 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
                     quizMetadata.minScore,
                     quizMetadata.deadline,
                     quizMetadata.prizeAmount,
+                    quizMetadata.maxWinners,
+                    quizMetadata.prizeToken,
                     metadataUri
                 ],
             })];
@@ -157,13 +204,15 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
                 if (txReceipt.status === "reverted") handleError(new Error("Quiz proposal reverted"));
                 else {
                     handleSuccess("Quiz proposal submitted successfully!");
+                    setShowNewQuizForm(false);
                 }
+            }).catch(console.error).finally(() => {
+                setIsLoading(false);
             });
-            setShowNewQuizForm(false);
+            
         } catch (error) {
             console.error("Error submitting quiz proposal", error);
             handleError(error as Error);
-        } finally {
             setIsLoading(false);
         }
     };
@@ -180,7 +229,7 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
     return (
         <form
             onSubmit={handleSubmit}
-            className="bg-surface text-text max-w-3xl mx-auto p-6 rounded-lg shadow-md space-y-6"
+            className="bg-surface text-text mx-auto p-6 rounded-lg shadow-md space-y-6"
         >
             <h2 className="text-xl font-semibold text-primary">Create New Quiz</h2>
 
@@ -237,10 +286,25 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
                     <input
                         type="number"
                         min={0}
+                        step={"any"}
                         required
                         className="w-full p-2 bg-background border border-muted rounded"
                         value={prizeAmount}
                         onChange={(e) => setPrizeAmount(e.target.value)}
+                    />
+                </div>
+
+                <div>
+                    <label className="text-sm text-muted">Prize Token Address</label>
+                    <input
+                        type="text"
+                        required
+                        minLength={42}
+                        maxLength={42}
+                        pattern='0x[a-fA-F0-9]{40}'
+                        className="w-full p-2 bg-background border border-muted rounded"
+                        value={prizeToken}
+                        onChange={(e) => setPrizeToken(e.target.value)}
                     />
                 </div>
 
@@ -253,6 +317,18 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
                         className="w-full p-2 bg-background border border-muted rounded"
                         value={questionsPerUser}
                         onChange={(e) => setQuestionsPerUser(e.target.value)}
+                    />
+                </div>
+
+                <div>
+                    <label className="text-sm text-muted">Max Winners</label>
+                    <input
+                        type="number"
+                        min={1}
+                        required
+                        className="w-full p-2 bg-background border border-muted rounded"
+                        value={maxWinners}
+                        onChange={(e) => setMaxWinners(e.target.value)}
                     />
                 </div>
             </div>
@@ -302,10 +378,10 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
                                         </div>
                                         <button
                                             type="button"
-                                            className="text-primary p-1 bg-danger text-sm rounded"
+                                            className="text-primary py-1 px-3 bg-danger text-sm rounded"
                                             onClick={() => removeQuestionOption(index, oIndex)}
                                         >
-                                            Remove
+                                            X
                                         </button>
                                     </div>
                                 ))}
@@ -314,14 +390,14 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
                         <div className="flex space-x-2">
                             <button
                                 type="button"
-                                className="bg-secondary text-background p-1 text-sm rounded hover:opacity-90 transition"
+                                className="bg-primary text-background py-1 px-3 text-sm rounded hover:opacity-90 transition"
                                 onClick={() => addQuestionOption(index)}
                             >
                                 Add Option
                             </button>
                             <button
                                 type="button"
-                                className="text-background p-1 bg-danger text-sm rounded"
+                                className="text-background py-1 px-3 bg-danger text-sm rounded"
                                 onClick={() => removeQuestion(index)}
                             >
                                 Remove Question
@@ -331,7 +407,7 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
                 ))}
                 <button
                     type="button"
-                    className="bg-secondary text-background px-4 py-2 rounded hover:opacity-90 transition"
+                    className="bg-primary text-background px-2 py-1 rounded hover:opacity-90 transition"
                     onClick={addQuestion}
                 >
                     Add Question
@@ -342,7 +418,7 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
                 <button
                     disabled={isLoading}
                     type="submit"
-                    className="bg-primary text-background px-6 py-2 rounded hover:opacity-90 transition disabled:cursor-not-allowed"
+                    className="bg-primary w-full text-background px-6 py-2 rounded hover:opacity-90 transition disabled:cursor-not-allowed"
                 >
                     Submit Proposal
                     {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
@@ -351,7 +427,7 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
                     type="button"
                     onClick={() => setShowNewQuizForm(false)}
                     disabled={isLoading}
-                    className="bg-danger text-background px-6 py-2 rounded hover:opacity-90 transition disabled:cursor-not-allowed"
+                    className="bg-danger w-full text-background px-6 py-2 rounded hover:opacity-90 transition disabled:cursor-not-allowed"
                 >
                     Close Form
                 </button>

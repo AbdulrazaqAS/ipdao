@@ -4,7 +4,7 @@ import { handleError, handleSuccess, type AssetMetadata, type ProposalArgs } fro
 import { usePublicClient, useWalletClient } from 'wagmi';
 import type { AssetInitialMetadata } from './AssetsPage';
 import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAddressERC20s, getAddressNFTs, getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenName, getTokenSymbol, getUserDelegate, getUsersVotingPower, getUserVotingPower, getRoyaltyTokenBalance } from '../scripts/getters';
-import { custom, encodeFunctionData, formatEther, parseEther, type Address, zeroAddress } from 'viem';
+import { custom, encodeFunctionData, formatEther, type Address, zeroAddress } from 'viem';
 import { claimIPRevenue, delegateVote, propose } from '../scripts/actions';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import { StoryClient } from '@story-protocol/core-sdk';

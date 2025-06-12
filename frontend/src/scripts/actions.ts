@@ -179,6 +179,33 @@ export async function sendScoreToServer(chainId: number, userAddress: string, qu
     }
 };
 
+export async function encryptAnswersOnserver(answers: string[]): Promise<{encryptedAnswers: string}> {
+    let dataStr = JSON.stringify(answers);
+
+    const formData = new FormData();
+    formData.set("answers", dataStr);
+
+    const isDev = import.meta.env.DEV; // true in dev, false in build
+
+    const endpoint = isDev
+        ? "http://localhost:5000/api/encryptQuizAnswers"
+        : "/api/encryptQuizAnswers";
+
+    const response = await axios.post(endpoint, formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+
+    const result = response.data;
+
+    if (response.statusText === "OK" || response.status === 200) {
+        return {encryptedAnswers: result.encryptedAnswers};
+    } else {
+        throw new Error(result.error || "Unknown error");
+    }
+};
+
 export const createFileHash = async (file: File): Promise<`0x${string}`> => {
     // Read file as an ArrayBuffer using FileReader
     const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {

@@ -9,6 +9,7 @@ import { createPublicClient, getContract, http, createWalletClient } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { story, storyAeneid } from 'viem/chains'
 import QuizManagerABI from "./src/assets/abis/QuizManagerABI.json" with { type: "json" };
+import CryptoJS, { enc } from "crypto-js";
 
 dotenv.config();
 const app = express();
@@ -102,10 +103,51 @@ app.post("/api/uploadJSONToIPFS", (req, res) => {
   });
 });
 
-app.post("/api/submitQuiz", (req, res) => {
+app.post("/api/encryptQuizAnswers", (req, res) => {
   const form = formidable({ keepExtensions: true });
 
   form.parse(req, async (err, fields, files) => {
+    if (err) return res.status(500).json({ error: "Form parsing error" });
+
+    try {
+      const { answers } = fields;
+      if (!answers[0]) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      console.log("FormData", fields);
+      const answersObj = JSON.parse(answers[0]);
+      const secretKey = process.env.ENCRYPTION_SECRET_KEY;
+      if (!secretKey) {
+        return res.status(500).json({ error: "Encryption secret key not set" });
+      }
+      const encryptedAnswers = CryptoJS.AES.encrypt(JSON.stringify(answersObj), secretKey).toString();
+      console.log("Encrypted answers:", encryptedAnswers);
+      return res.status(200).json({ encryptedAnswers });
+    } catch (error) {
+      console.error("Encryption error:", error);
+      return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  }
+  );
+});
+
+function decryptAnswers(encryptedAnswers) {
+  const secretKey = process.env.ENCRYPTION_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("Encryption secret key not set");
+  }
+  const bytes = CryptoJS.AES.decrypt(encryptedAnswers, secretKey);
+  const answers = bytes.toString(CryptoJS.enc.Utf8);
+  const answersObj = JSON.parse(answers);
+
+  console.log("Decrypted answers:", answersObj);
+  return answersObj;
+}
+
+app.post("/api/submitQuiz", (req, res) => {
+  const form = formidable({ keepExtensions: true });
+
+  form.parse(req, async (err, fields) => {
     if (err) return res.status(500).json({ error: "Form parsing error" });
 
     try {
@@ -147,12 +189,12 @@ app.post("/api/submitQuiz", (req, res) => {
 
       // 3. Fetch quiz metadata from IPFS
       const quizMetadataUri = quizMetadata[6];
-      const quizMetadataUri2 = quizMetadataUri.replace("https://ipfs.io/ipfs/", "https://gateway.pinata.cloud/ipfs/");
-      // console.log("quizMetadataUri", quizMetadataUri2);
+      const quizMetadataUri2 = quizMetadataUri.replace("https://ipfs.io/ipfs/", "https://gateway.pinata.cloud/ipfs/"); // IPFS not allowing access, is it because of local server?
 
       const { data: quizData } = await axios.get(quizMetadataUri2);
       // console.log("Quiz metadata:", quizData);
 
+      const encryptedAnswers = encryptAnswers(userAnswers[0]);
       const userAnswersObj = JSON.parse(userAnswers[0]);
       const selectedQuestions = quizData.questions.filter((_, i) => Object.keys(userAnswersObj).includes(i.toString()));
 
