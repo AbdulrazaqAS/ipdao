@@ -14,6 +14,7 @@ export default function ProposalsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProposals, setIsLoadingProposals] = useState(true);
   const [votingPeriod, setVotingPeriod] = useState(0n);
+  const [hasLoadedDescriptions, setHasLoadedDescriptions] = useState(false);
 
   // FIlter out number keys from tabs.
   const tabs = ["All", ...Object.keys(ProposalState).filter((e) => e.length > 1)];
@@ -67,14 +68,14 @@ export default function ProposalsPage() {
         const proposalsDeadline = await getProposalsDeadlines(proposalIds, publicClient!);
         const proposalsProposer = await getProposalsProposers(proposalIds, publicClient!);
         const proposalsStates = await getProposalsStates(proposalIds, publicClient!);
-        const descriptions = await getProposalsDescriptions(publicClient!);
+        // const descriptions = await getProposalsDescriptions(publicClient!);
 
         const proposalsPromise = proposalsDetails.map(async (details, index) => {
           const votes = proposalsVotes[index];
           const deadline = proposalsDeadline[index];
           const proposer = proposalsProposer[index];
           const state = proposalsStates[index] as ProposalState;
-          const description = descriptions.find(desc => details.id === desc.proposalId)?.description || null;
+          // const description = descriptions.find(desc => details.id === desc.proposalId)?.description || null;
 
           let userHasVoted = false;
           if (walletClient) userHasVoted = await hasVoted(details.id, walletClient.account.address, publicClient!);
@@ -84,9 +85,9 @@ export default function ProposalsPage() {
             ...votes,
             deadline,
             state,
+            description: "Loading proposal description...",
             status: state,
             proposer: proposer,
-            description,
             hasVoted: userHasVoted,
           } as ProposalData
         });
@@ -101,11 +102,33 @@ export default function ProposalsPage() {
       }
     }
 
+    // Descriptions will be loaded after loading the proposals data which
+    // takes less time. Descriptions loading seems to take time because it
+    // is event lookup from Governor deployment block to latest block.
     fetchProposals();
 
     getVotingPeriod(publicClient!).then(setVotingPeriod).catch(console.error);
 
   }, []);
+
+  useEffect(() => {
+    if (proposals.length === 0 || hasLoadedDescriptions) return;
+
+    async function fetchProposalsDescriptions(){
+      const descriptions = await getProposalsDescriptions(publicClient!);
+      const updatedProposals = proposals.map(p => {
+        const description = descriptions.find(desc => p.id === desc.proposalId)?.description || null;
+        return {
+          ...p,
+          description
+        }
+      });
+      setProposals(updatedProposals);
+      setHasLoadedDescriptions(true);
+    }
+
+    fetchProposalsDescriptions();
+  }, [proposals]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">

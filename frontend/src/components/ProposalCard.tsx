@@ -170,7 +170,7 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
             className="bg-white border border-gray-200 rounded-xl shadow p-5"
         >
             <div className="flex flex-col sm:flex-row sm:justify-between gap-2 mb-4">
-                <div className="break-all">
+                <div className="whitespace-pre-line break-all">
                     <p className="text-md text-gray-900">
                         #{proposal.id.toString().slice(0, 5)}...{proposal.id.toString().slice(-5)}
                     </p>

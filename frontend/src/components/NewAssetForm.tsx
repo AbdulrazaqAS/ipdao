@@ -316,7 +316,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
             const network = import.meta.env.VITE_STORY_NETWORK!;
             const protocolExplorer = network === "mainnet" ? MainnetProtocolExplorer : AeniedProtocolExplorer;
-            const ipUrl = `View on the explorer: ${protocolExplorer}/ipa/${ipId}`;
+            const ipUrl = `${protocolExplorer}/ipa/${ipId}`;
 
             // Added # for splitting the value when in use
             const description = proposalIndex!.toString() +

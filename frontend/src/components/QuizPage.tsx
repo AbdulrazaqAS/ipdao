@@ -18,6 +18,7 @@ type QuizMetadataPlus = QuizMetadata & {
     hasClaimed?: boolean;
     userTrials?: number;
     claimOpened?: boolean;
+    expired: boolean;
 }
 
 export default function QuizPage() {
@@ -91,7 +92,7 @@ export default function QuizPage() {
             const result = await sendScoreToServer(
                 publicClient!.chain.id,
                 walletClient.account.address,
-                expandedQuiz!,
+                filteredQuizzes[expandedQuiz!].quizId,
                 questionAnswers
             );
 
@@ -119,7 +120,8 @@ export default function QuizPage() {
             quizzesContractMetatdata.map((data) => fetchMetadata(data.metadataURI) as Promise<QuizMetadata>)
         );
         const claimOpened = await getQuizzesClaimOpened(indices, publicClient!);
-        const quizzesWithClaimStatus = quizzes.map((quiz, i) => ({ ...quiz, claimOpened: claimOpened[i] }));
+        const expired = quizzes.map(q => Number(q.deadline) <= (Math.floor(Date.now() / 1000)));
+        const quizzesWithClaimStatus = quizzes.map((quiz, i) => ({ ...quiz, claimOpened: claimOpened[i], expired: expired[i] }));
         return quizzesWithClaimStatus;
     }
 
@@ -195,7 +197,7 @@ export default function QuizPage() {
                     {!showNewQuizForm && (
                         <button
                             onClick={() => { setShowNewQuizForm(true) }}
-                            className="bg-primary text-white px-3 py-1 rounded-xl text-lg font-medium hover:bg-primary/90 transition"
+                            className="bg-primary text-background px-3 py-1 rounded-xl text-lg font-medium hover:bg-primary/90 transition"
                         >
                             Create Quiz
                         </button>
@@ -241,6 +243,13 @@ export default function QuizPage() {
                                     </p>
                                 </div>
                                 <div className="flex space-x-2">
+                                    {quiz.expired && (
+                                        <button
+                                            className="bg-danger text-background px-4 py-2 rounded"
+                                        >
+                                            Ended
+                                        </button>
+                                    )}
                                     {quiz.canClaim && (
                                         <button
                                             disabled={quiz.hasClaimed}
@@ -253,18 +262,18 @@ export default function QuizPage() {
                                     )}
                                     <button
                                         onClick={() =>
-                                            setExpandedQuiz(expandedQuiz === quiz.quizId ? undefined : quiz.quizId)
+                                            setExpandedQuiz(expandedQuiz === index ? undefined : index)
                                         }
                                         className="bg-primary text-background px-4 py-2 rounded hover:opacity-90"
                                     >
-                                        {expandedQuiz === quiz.quizId ? 'Hide Quiz' : 'Take Quiz'}
+                                        {expandedQuiz === index ? 'Hide Quiz' : 'Expand Quiz'}
 
                                     </button>
                                 </div>
                             </div>
 
                             {/* Expandable Questions */}
-                            {expandedQuiz === quiz.quizId && (
+                            {expandedQuiz === index && (
                                 <form onSubmit={handleSubmitAnswers} className="mt-4 space-y-4">
                                     {selectedQuestions.map((q, idx) => (
                                         <div key={idx} className="p-3 text-text bg-background border border-muted rounded">
@@ -282,13 +291,15 @@ export default function QuizPage() {
                                             </div>
                                         </div>
                                     ))}
-                                    <button
-                                        type="submit"
-                                        disabled={!!quiz?.userTrials && (quiz.userTrials >= quiz.maxTrials || quiz.hasClaimed || quiz.canClaim)}  // if quiz?.userTrials is true, no need to check whether hasClaimed is undefined
-                                        className="mt-2 bg-accent text-background px-4 py-2 rounded hover:opacity-90 disabled:cursor-not-allowed">
-                                        {(walletClient && quiz.userTrials! >= quiz.maxTrials) ? "Max trials reached" : "Submit"}
-                                        {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
-                                    </button>
+                                    {!quiz.expired && (
+                                        <button
+                                            type="submit"
+                                            disabled={!!quiz?.userTrials && (quiz.userTrials >= quiz.maxTrials || quiz.hasClaimed || quiz.canClaim)}  // if quiz?.userTrials is true, no need to check whether hasClaimed is undefined
+                                            className="mt-2 bg-accent text-background px-4 py-2 rounded hover:opacity-90 disabled:cursor-not-allowed">
+                                            {(walletClient && quiz.userTrials! >= quiz.maxTrials) ? "Max trials reached" : "Submit"}
+                                            {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
+                                        </button>
+                                    )}
                                 </form>
                             )}
                         </div>

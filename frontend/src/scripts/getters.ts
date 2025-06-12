@@ -163,8 +163,7 @@ export async function getProposalsDescriptions(client: PublicClient): Promise<{
         proposalId: log.args.proposalId,
         description: log.args.description
     }))
-
-    console.log(proposals)
+    
     return proposals
 }
 

@@ -100,6 +100,10 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
             throw new Error("Questions per user must be less than or equal to total questions");
         }
 
+        if (+minScore > +questionsPerUser) {
+            throw new Error("Questions per user must be greater than or equal to min score");
+        }
+
         questions.forEach((q, index) => {
             if (q.options.length < 4) {
                 throw new Error(`Question ${index + 1} must have at least 4 options`);

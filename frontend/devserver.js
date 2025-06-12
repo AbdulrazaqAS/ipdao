@@ -136,10 +136,8 @@ function decryptAnswers(encryptedAnswers) {
   }
   const bytes = CryptoJS.AES.decrypt(encryptedAnswers, secretKey);
   const answers = bytes.toString(CryptoJS.enc.Utf8);
-  console.log("Decrypted answers string:", answers);
   const answersObj = JSON.parse(answers);
 
-  console.log("Decrypted answers:", answersObj);
   return answersObj;
 }
 
@@ -179,7 +177,6 @@ app.post("/api/submitQuiz", (req, res) => {
         functionName: 'quizzes',
         args: [BigInt(quizId[0])],
       });
-      // console.log("Quiz contract metadata:", quizMetadata);
 
       // 2. Check if quiz is active
       if (!quizMetadata[2]) {
@@ -191,21 +188,19 @@ app.post("/api/submitQuiz", (req, res) => {
       const quizMetadataUri2 = quizMetadataUri.replace("https://ipfs.io/ipfs/", "https://gateway.pinata.cloud/ipfs/"); // IPFS not allowing access, is it because of local server?
 
       const { data: quizData } = await axios.get(quizMetadataUri2);
-      // console.log("Quiz metadata:", quizData);
 
-      const encryptedAnswers = decryptAnswers(userAnswers[0]);
+      const encryptedAnswers = decryptAnswers(quizData.encryptedAnswers);
       const userAnswersObj = JSON.parse(userAnswers[0]);
       const selectedQuestions = quizData.questions.filter((_, i) => Object.keys(userAnswersObj).includes(i.toString()));
       const selectedQuestionsIndices = selectedQuestions.map((q) => quizData.questions.findIndex((origQ) => origQ.question === q.question));
 
       let score = 0;
-      Object.keys(selectedQuestionsIndices).forEach((qIndex, i) => {
+      selectedQuestionsIndices.forEach((qIndex, i) => {
         if (encryptedAnswers[qIndex] === userAnswersObj[qIndex].toString()) {
-          console.log(encryptedAnswers[qIndex], userAnswersObj[qIndex].toString())
           score += 1;
         }
       });
-      throw new Error("Stop here");
+      
       console.log(`${userAddress.slice(-7)} Score:`, score);
 
       // 4. Send the result to the contract
