@@ -115,20 +115,18 @@ app.post("/api/encryptQuizAnswers", (req, res) => {
         return res.status(400).json({ error: "Missing required fields" });
       }
       console.log("FormData", fields);
-      const answersObj = JSON.parse(answers[0]);
       const secretKey = process.env.ENCRYPTION_SECRET_KEY;
       if (!secretKey) {
         return res.status(500).json({ error: "Encryption secret key not set" });
       }
-      const encryptedAnswers = CryptoJS.AES.encrypt(JSON.stringify(answersObj), secretKey).toString();
+      const encryptedAnswers = CryptoJS.AES.encrypt(answers[0], secretKey).toString();
       console.log("Encrypted answers:", encryptedAnswers);
       return res.status(200).json({ encryptedAnswers });
     } catch (error) {
       console.error("Encryption error:", error);
       return res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
-  }
-  );
+  });
 });
 
 function decryptAnswers(encryptedAnswers) {
@@ -138,6 +136,7 @@ function decryptAnswers(encryptedAnswers) {
   }
   const bytes = CryptoJS.AES.decrypt(encryptedAnswers, secretKey);
   const answers = bytes.toString(CryptoJS.enc.Utf8);
+  console.log("Decrypted answers string:", answers);
   const answersObj = JSON.parse(answers);
 
   console.log("Decrypted answers:", answersObj);
