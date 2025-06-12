@@ -330,10 +330,10 @@ export default function QuizPage() {
                                     </p>
                                 </div>
                                 <div className="flex space-x-2">
-                                    {userVotingPower < proposalThreshold && (
+                                    {userVotingPower >= proposalThreshold && !quiz.claimOpened && +quiz.deadline <= Math.floor(Date.now() / 1000) && quiz.winners > 0 && (
                                         <button
                                             onClick={() => handleProposeOpenQuizPrizeClaims(quiz.quizId, quiz.prizeToken, quiz.prizeAmount, quiz.winners, quiz.tokenSymbol!)}
-                                            className="bg-warning text-background px-4 py-2 rounded hover:opacity-90"
+                                            className="bg-primary text-background px-4 py-2 rounded hover:opacity-90 disabled:cursor-not-allowed"
                                         >
                                             Propose Claims
                                         </button>
