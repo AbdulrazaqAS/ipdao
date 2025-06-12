@@ -228,7 +228,7 @@ export async function claimQuizReward(quizId: bigint, client: WalletClient): Pro
     return txHash;
 }
 
-export async function claimIPRevenue(storyClient: StoryClient, claimer: Address, ipId: Address, tokens: Address[]): Promise<bigint[] | undefined> {
+export async function claimIPRevenue(storyClient: StoryClient, claimer: Address, ipId: Address, tokens: Address[]): Promise<{amount: bigint, claimer: Address, token: Address}[]> {
     const response = await storyClient.royalty.claimAllRevenue({
         ancestorIpId: ipId,
         claimer: claimer,
@@ -237,8 +237,7 @@ export async function claimIPRevenue(storyClient: StoryClient, claimer: Address,
         currencyTokens: tokens,
     })
     
-    console.log("Claimed tokens:", response.claimedTokens);
-    return response.claimedTokens as unknown as bigint[];
+    return response.claimedTokens as unknown as {amount: bigint, claimer: Address, token: Address}[];
 }
 
 export async function claimIPPredecessorsRevenue(storyClient: StoryClient, claimer: Address, ipId: Address, childIpIds: Address[], royaltyPolicies: Address[], tokens: Address[]): Promise<bigint[] | undefined> {

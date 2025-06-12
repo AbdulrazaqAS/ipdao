@@ -49,7 +49,7 @@ export default function GovernancePage() {
   const [daoERC20Tokens, setDaoERC20Tokens] = useState<{ value: string; address: string; name: string; symbol: string, decimals: string }[]>([]);
   const [daoERC721Tokens, setDaoERC721Tokens] = useState<{ value: string; address: string; name: string; symbol: string }[]>([]);
   const [royaltyTransfer, setRoyaltyTransfer] = useState<{ recipient: string; amount: string }[]>([{ recipient: "", amount: "" }]);
-  const [ipAccountsRoyaltyTokens, setIpAccountsRoyaltyTokens] = useState<bigint[]>([]);
+  const [ipAccountsRoyaltyTokens, setIpAccountsRoyaltyTokens] = useState<Array<bigint | undefined>>([]);
 
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -122,7 +122,7 @@ export default function GovernancePage() {
       setIsLoading(false);
     }
   }
-  
+
   async function handleProposeTransferRoyalTokens(event: React.FormEvent) {
     event.preventDefault();
 
@@ -146,7 +146,12 @@ export default function GovernancePage() {
       const recipients = royaltyTransfer.map(transfer => transfer.recipient);
       const amounts = royaltyTransfer.map(transfer => BigInt(+transfer.amount * 10 ** 6));
       const totalAmount = amounts.reduce((acc, amount) => acc + amount, 0n);
-      if (totalAmount > ipAccountsRoyaltyTokens[assets.findIndex(asset => asset.id === selectedAsset.id)]) {
+      const availableTokens = ipAccountsRoyaltyTokens[assets.findIndex(asset => asset.id === selectedAsset.id)];
+      if (!availableTokens) {
+        handleError(new Error("No available royalty tokens for this asset"));
+        return;
+      }
+      if (totalAmount > availableTokens) {
         handleError(new Error("Total amount of royalty transfers exceeded available tokens"));
         return;
       }
@@ -221,7 +226,7 @@ export default function GovernancePage() {
     }
   }
 
-  async function handleClaimRevenue(assetId: Address, token: Address, claimer: Address) {
+  async function handleClaimRevenue(assetId: Address, token: Address, claimer: Address, amount: bigint | undefined) {
     if (!assetId || !token || !claimer) {
       handleError(new Error("Invalid asset ID, token or claimer address"));
       return;
@@ -231,6 +236,12 @@ export default function GovernancePage() {
       handleError(new Error("Please connect your wallet to claim revenue"));
       return;
     }
+
+    if (!amount || amount <= 0n){
+      handleError(new Error("Amount must be greater than zero"));
+      return;
+    }
+
     try {
       setIsLoading(true);
       const storyClient = StoryClient.newClient({
@@ -243,7 +254,7 @@ export default function GovernancePage() {
       if (!claimedTokens || claimedTokens.length == 0) {
         handleError(new Error("No claimable tokens found for this asset"));
       } else {
-        handleSuccess(`Successfully claimed ${claimedTokens.length} tokens for asset.`);
+        handleSuccess("Successfully claimed revenue.");
       }
     } catch (error) {
       console.error("Error claiming revenue:", error);
@@ -325,19 +336,19 @@ export default function GovernancePage() {
       const vaultsAddresses = await getAssetsVaultsAddresses(assets.map(asset => asset.id), storyClient);
       const vaultsTokens = await getAssetsVaultsTokens(vaultsAddresses, publicClient!);
       const vaultsTokensBalance = await Promise.all(
-        vaultsTokens.map((tokens, i) => {
+        vaultsTokens.map((vault, i) => {
           return Promise.all(
-            tokens.map(async (token) => {
+            vault.map(async (token) => {
               const daoClaimable = await getClaimableRevenue(storyClient, IPA_MANAGER_ADDRESS, assets[i].id, token);
               let userClaimable: bigint | undefined = undefined;
-              if (walletClient) userClaimable = await getClaimableRevenue(storyClient, IPA_MANAGER_ADDRESS, assets[i].id, token);
+              if (walletClient) userClaimable = await getClaimableRevenue(storyClient, walletClient.account.address, assets[i].id, token);
               return { daoClaimable, userClaimable };
             })
           );
         })
       );
-      const formattedVaultsTokens = await Promise.all(vaultsTokens.map((tokens, i) => {
-        return Promise.all(tokens.map(async (token, j) => {
+      const formattedVaultsTokens = await Promise.all(vaultsTokens.map((vault, i) => {
+        return Promise.all(vault.map(async (token, j) => {
           return {
             address: token,
             name: await getTokenName(token, publicClient!),
@@ -371,7 +382,7 @@ export default function GovernancePage() {
         })
       );
       setIpAccountsRoyaltyTokens(balances);
-      console.log("IPAccounts Royalty Bals", balances);
+      // console.log("IPAccounts Royalty Bals", balances);
     }
 
     fetchIPAccountsRoyaltyTokens();
@@ -468,26 +479,26 @@ export default function GovernancePage() {
                   <button
                     type="button"
                     onClick={() => setRoyaltyTransfer(prev => prev.filter((_, i) => i !== index))}
-                    className="bg-danger text-white px-3 py-2 rounded hover:bg-danger/90"
+                    className="bg-danger text-white px-3 py-2 rounded hover:bg-danger/90 hover:cursor-pointer"
                   >
                     X
                   </button>
                 </div>
               ))}
             </div>
-            
+
             <div className='flex items-center gap-2'>
               <button
                 type="button"
                 onClick={() => setRoyaltyTransfer([...royaltyTransfer, { recipient: "", amount: "" }])}
-                className="bg-secondary text-white px-3 py-2 rounded hover:bg-secondary/90"
+                className="bg-secondary text-white px-3 py-2 rounded hover:bg-secondary/90 hover:bg-secondary/90 hover:cursor-pointer"
               >
                 Add Transfer
               </button>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
+                className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed hover:bg-primary/90 hover:cursor-pointer"
               >
                 Propose Transfer
                 {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
@@ -513,7 +524,12 @@ export default function GovernancePage() {
                       >
                         <span className="text-sm">{token.name} ({token.symbol}): {formatEther(BigInt(token.userAmount))}</span>
                         <div className="flex gap-2">
-                          <button className="px-3 py-1 text-xs rounded bg-primary text-white">Claim</button>
+                          <button
+                            className="px-3 py-1 text-xs rounded bg-primary text-white hover:bg-primary/90 hover:cursor-pointer"
+                            onClick={() => handleClaimRevenue(asset.id, token.address as Address, walletClient!.account.address, token.userAmount)}
+                          >
+                            Claim
+                          </button>
                         </div>
                       </li>
                     )}
@@ -523,11 +539,10 @@ export default function GovernancePage() {
                       <span className="text-sm">{token.name} ({token.symbol}): {token.daoAmount}</span>
                       <div className="flex gap-2">
                         <button
-                          className="px-3 py-1 text-xs rounded bg-secondary text-white"
-                          onClick={() => handleClaimRevenue(asset.id, token.address as Address, IPA_MANAGER_ADDRESS)}
+                          className="px-3 py-1 text-xs rounded bg-secondary text-white hover:bg-secondary/90 hover:cursor-pointer"
+                          onClick={() => handleClaimRevenue(asset.id, token.address as Address, IPA_MANAGER_ADDRESS, BigInt(token.daoAmount))}
                         >
                           Claim for DAO
-                          {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
                         </button>
                       </div>
                     </li>
