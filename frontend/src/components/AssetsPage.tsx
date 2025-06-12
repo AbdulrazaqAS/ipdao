@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { fetchMetadata, getAssetsIds, getAssetsMetadata } from "../scripts/getters";
-import { usePublicClient } from "wagmi";
+import { fetchMetadata, getAssetsIds, getAssetsMetadata, getProposalThreshold, getUserVotingPower } from "../scripts/getters";
+import { usePublicClient, useWalletClient } from "wagmi";
 import { type AssetMetadata, type CreatorMetadata } from '../utils/utils';
 import AssetPage from './AssetPage';
 import NewAssetForm from './NewAssetForm';
@@ -22,8 +22,11 @@ export default function AssetsPage() {
     const [selectedAsset, setSelectedAsset] = useState<AssetMetadata>();
     const [showNewAssetForm, setShowNewAssetForm] = useState(false);
     const [isLoadingAssets, setIsLoadingAssets] = useState(true);
+    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const publicClient = usePublicClient();
+    const {data: walletClient} = useWalletClient();
 
     useEffect(() => {
         async function fetchAssets() {
@@ -56,21 +59,29 @@ export default function AssetsPage() {
         }
 
         fetchAssets();
+        getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
     }, []);
+
+    useEffect(() => {
+        if (!walletClient) return;
+        getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
+    }, [walletClient]);
 
     return (
         <div className="mx-auto px-4 py-8">
             {!selectedAsset && !showNewAssetForm && (
                 <>
-                    <div className="flex items-center justify-between mb-6">
-                        <h1 className="text-text text-2xl font-bold">Assets</h1>
-                        <button
-                            onClick={() => setShowNewAssetForm(true)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
-                        >
-                            Add Asset
-                        </button>
-                    </div>
+                    {userVotingPower >= proposalThreshold && (
+                        <div className="flex items-center justify-between mb-6">
+                            <h1 className="text-text text-2xl font-bold">Assets</h1>
+                            <button
+                                onClick={() => setShowNewAssetForm(true)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+                            >
+                                Add Asset
+                            </button>
+                        </div>
+                    )}
 
                     {assets.length > 0 ? (
                         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">

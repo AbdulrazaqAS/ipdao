@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, ChevronLeft, Copy } from "lucide-react";
 import type { AssetAPIMetadata, AssetLicenseTerms, AssetMetadata, LicenseTermsMetadata, NFTMetadata } from "../utils/utils";
-import { fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms } from "../scripts/getters";
-import { useChainId } from "wagmi";
+import { fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms, getProposalThreshold, getUserVotingPower } from "../scripts/getters";
+import { useChainId, usePublicClient, useWalletClient } from "wagmi";
 import AttachNewLicenseTermsForm from "./AttachNewLicenseTermsForm";
 import MintLicenseTokenForm from "./MintLicenseTokenForm";
 import type { Address } from "viem";
@@ -71,8 +71,12 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   const [showLicenseMintForm, setShowLicenseMintForm] = useState<false | number>(false);
   const [showDerivativeForm, setShowDerivativeForm] = useState<false | number>(false);
   const [isLoadingLicenses, setIsLoadingLicenses] = useState(true);
+  const [userVotingPower, setUserVotingPower] = useState(0n);
+  const [proposalThreshold, setProposalThreshold] = useState(0n);
 
   const chain = useChainId();
+  const publicClient = usePublicClient();
+  const {data: walletClient} = useWalletClient();
 
   useEffect(() => {
     getAssetAPIMetadata(assetMetadata.id, chain).then((metadata) => {
@@ -95,7 +99,15 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
     }).catch((error) => {
       console.error("Error fetching NFT metadata:", error);
     });
+
+    getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (!walletClient) return;
+    
+    getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
+  }, [walletClient]);
 
   useEffect(() => {
     if (assetLicenses.length === 0) return;
@@ -237,16 +249,17 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
             )}
           </div>
 
-          {!showNewLicenseForm ? (
-            <button
-              onClick={() => setShowNewLicenseForm(true)}
-              className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
-            >
-              Add new License
-            </button>
-          ) : (
-            <AttachNewLicenseTermsForm assetId={assetMetadata.id} setShowNewLicenseForm={setShowNewLicenseForm} />
-          )}
+          {userVotingPower >= proposalThreshold && (
+            !showNewLicenseForm ? (
+              <button
+                onClick={() => setShowNewLicenseForm(true)}
+                className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
+              >
+                Add new License
+              </button>
+            ) : (
+              <AttachNewLicenseTermsForm assetId={assetMetadata.id} setShowNewLicenseForm={setShowNewLicenseForm} />
+            ))}
         </Section>
 
         <Section title="NFT Metadata">

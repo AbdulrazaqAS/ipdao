@@ -281,7 +281,7 @@ export default function QuizPage() {
             <div className='flex justify-between items-center mb-6'>
                 <h1 className="text-2xl font-semibold text-primary">Quizzes</h1>
                 <div>
-                    {!showNewQuizForm && (
+                    {userVotingPower >= proposalThreshold && !showNewQuizForm && (
                         <button
                             onClick={() => { setShowNewQuizForm(true) }}
                             className="bg-primary text-background px-3 py-1 rounded-xl text-lg font-medium hover:bg-primary/90 transition"
