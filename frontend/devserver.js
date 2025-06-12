@@ -9,7 +9,7 @@ import { createPublicClient, getContract, http, createWalletClient } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { story, storyAeneid } from 'viem/chains'
 import QuizManagerABI from "./src/assets/abis/QuizManagerABI.json" with { type: "json" };
-import CryptoJS, { enc } from "crypto-js";
+import CryptoJS from "crypto-js";
 
 dotenv.config();
 const app = express();
@@ -188,23 +188,25 @@ app.post("/api/submitQuiz", (req, res) => {
       }
 
       // 3. Fetch quiz metadata from IPFS
-      const quizMetadataUri = quizMetadata[6];
+      const quizMetadataUri = quizMetadata[9];
       const quizMetadataUri2 = quizMetadataUri.replace("https://ipfs.io/ipfs/", "https://gateway.pinata.cloud/ipfs/"); // IPFS not allowing access, is it because of local server?
 
       const { data: quizData } = await axios.get(quizMetadataUri2);
       // console.log("Quiz metadata:", quizData);
 
-      const encryptedAnswers = encryptAnswers(userAnswers[0]);
+      const encryptedAnswers = decryptAnswers(userAnswers[0]);
       const userAnswersObj = JSON.parse(userAnswers[0]);
       const selectedQuestions = quizData.questions.filter((_, i) => Object.keys(userAnswersObj).includes(i.toString()));
+      const selectedQuestionsIndices = selectedQuestions.map((q) => quizData.questions.findIndex((origQ) => origQ.question === q.question));
 
       let score = 0;
-      Object.keys(userAnswersObj).forEach((questionIndex, i) => {
-        if (selectedQuestions[i].answer === userAnswersObj[questionIndex].toString()) {
+      Object.keys(selectedQuestionsIndices).forEach((qIndex, i) => {
+        if (encryptedAnswers[qIndex] === userAnswersObj[qIndex].toString()) {
+          console.log(encryptedAnswers[qIndex], userAnswersObj[qIndex].toString())
           score += 1;
         }
       });
-
+      throw new Error("Stop here");
       console.log(`${userAddress.slice(-7)} Score:`, score);
 
       // 4. Send the result to the contract
