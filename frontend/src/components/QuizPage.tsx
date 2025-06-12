@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { handleError, handleSuccess, type QuizMetadata } from '../utils/utils';
-import { fetchMetadata, getGovernanceTokenSymbol, getQuizzes, getQuizzesClaimOpened, getQuizzesCount, getQuizzesUserCanClaim, getQuizzesUserHasClaimed, getQuizzesUserTrials } from '../scripts/getters';
+import { fetchMetadata, getGovernanceTokenSymbol, getQuizzes, getQuizzesClaimOpened, getQuizzesCount, getQuizzesUserCanClaim, getQuizzesUserHasClaimed, getQuizzesUserTrials, getTokenSymbol } from '../scripts/getters';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import { formatEther } from 'viem';
 import { sendScoreToServer, claimQuizReward } from '../scripts/actions';
@@ -19,6 +19,7 @@ type QuizMetadataPlus = QuizMetadata & {
     userTrials?: number;
     claimOpened?: boolean;
     expired: boolean;
+    tokenSymbol?: string;
 }
 
 export default function QuizPage() {
@@ -120,13 +121,21 @@ export default function QuizPage() {
             quizzesContractMetatdata.map((data) => fetchMetadata(data.metadataURI) as Promise<QuizMetadata>)
         );
         const claimOpened = await getQuizzesClaimOpened(indices, publicClient!);
+        const tokensSymbols = await Promise.all(
+            quizzes.map(q => getTokenSymbol(q.prizeToken, publicClient!))
+        );
         const expired = quizzes.map(q => Number(q.deadline) <= (Math.floor(Date.now() / 1000)));
-        const quizzesWithClaimStatus = quizzes.map((quiz, i) => ({ ...quiz, claimOpened: claimOpened[i], expired: expired[i] }));
+        const quizzesWithClaimStatus = quizzes.map((quiz, i) => ({
+            ...quiz,
+            winners: Number(quizzesContractMetatdata[i].winners),
+            claimOpened: claimOpened[i],
+            expired: expired[i],
+            tokenSymbol: tokensSymbols[i]
+        }));
         return quizzesWithClaimStatus;
     }
 
     useEffect(() => {
-        getGovernanceTokenSymbol(publicClient!).then(setTokenSymbol).catch(console.error);
         fetchQuizzes().then(setQuizzes).catch(console.error).finally(() => setIsLoadingQuizzes(false));
     }, []);
 
@@ -150,8 +159,6 @@ export default function QuizPage() {
                 }
             });
 
-            // console.log("quizzes", quizzes);
-            // console.log("quizzesPlus", quizzesPlus);
             setQuizzes(quizzesPlus);
         }
 
@@ -236,10 +243,10 @@ export default function QuizPage() {
                             <div className="flex justify-between items-center">
                                 <div>
                                     <h2 className="text-lg font-semibold text-text">{quiz.title}</h2>
-                                    <p className="text-sm text-muted">Prize: {formatEther(quiz.prizeAmount)} {tokenSymbol}</p>
-                                    <p className="text-sm text-muted">Deadline: {new Date(Number(quiz.deadline) * 1000).toLocaleDateString()}</p>
+                                    <p className="text-sm text-muted">Prize: {formatEther(quiz.prizeAmount)} {quiz.tokenSymbol}</p>
+                                    <p className="text-sm text-muted">Deadline: {new Date(Number(quiz.deadline) * 1000).toLocaleDateString()} {new Date(Number(quiz.deadline) * 1000).toLocaleTimeString()}</p>
                                     <p className="text-sm text-muted">
-                                        Questions: {quiz.questionsPerUser} | Trials: {quiz.userTrials !== undefined ? `${quiz.userTrials}/` : ""}{quiz.maxTrials}
+                                        Questions: {quiz.questionsPerUser} | Max Winnings: {quiz.winners}/{quiz.maxWinners} | Trials: {quiz.userTrials !== undefined ? `${quiz.userTrials}/` : ""}{quiz.maxTrials}
                                     </p>
                                 </div>
                                 <div className="flex space-x-2">
@@ -310,10 +317,10 @@ export default function QuizPage() {
                         </div>
                     ) : (
                         filteredQuizzes.length === 0 && (
-                        <div className="text-center text-muted">
-                            No quizzes found.
-                        </div>
-                    ))}
+                            <div className="text-center text-muted">
+                                No quizzes found.
+                            </div>
+                        ))}
                 </div>
             )}
         </div>

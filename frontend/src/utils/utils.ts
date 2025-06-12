@@ -167,6 +167,7 @@ export interface QuizMetadata {
     minScore: number;
     deadline: string;
     prizeAmount: bigint;
+    winners: number;
     prizeToken: Address;
     maxWinners: number;
     questions: {
