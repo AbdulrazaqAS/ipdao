@@ -443,7 +443,17 @@ export default function GovernancePage() {
               </div>
             ))}
             <div>
-              {selectedAsset && <p>Available Royalty Tokens: {ipAccountsRoyaltyTokens[assets.findIndex(asset => asset.id === selectedAsset.id)] ?? "Vault not initiated"}</p>}
+              {selectedAsset && (
+                <p>
+                  Available Royalty Tokens:{" "}
+                  {ipAccountsRoyaltyTokens[assets.findIndex(asset => asset.id === selectedAsset.id)] ?? "Vault not initiated"}{" "}
+                  {ipAccountsRoyaltyTokens[assets.findIndex(asset => asset.id === selectedAsset.id)] !== undefined ?
+                    `(${ipAccountsRoyaltyTokens[assets.findIndex(asset => asset.id === selectedAsset.id)]! / 10n ** 6n}%)`
+                    :
+                    ""
+                  }
+                </p>
+              )}
               {royaltyTransfer.map((transfer, index) => (
                 <div key={index} className="flex items-center gap-2 mb-2">
                   <input
@@ -472,7 +482,7 @@ export default function GovernancePage() {
                       newTransfers[index].amount = e.target.value;
                       setRoyaltyTransfer(newTransfers);
                     }}
-                    placeholder="Amount (0-100)"
+                    placeholder="Amount % (0-100)"
                     className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
                     required
                   />

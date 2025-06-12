@@ -49,7 +49,6 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
     const [userVotingPower, setUserVotingPower] = useState(0n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
     const [isLoading, setIsLoading] = useState(false);
-    const [daoRoyaltyTokens, setDaoRoyaltyTokens] = useState(0n);
 
     const [ipFields, setIpFields] = useState({
         title: '',
@@ -421,7 +420,6 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
     useEffect(() => {
         getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
-        getDaoRevenueTokens(publicClient!).then(setDaoRoyaltyTokens).catch(console.error);
     }, []);
 
     useEffect(() => {

@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
-import { handleError, handleSuccess, type QuizMetadata } from '../utils/utils';
-import { fetchMetadata, getGovernanceTokenSymbol, getQuizzes, getQuizzesClaimOpened, getQuizzesCount, getQuizzesUserCanClaim, getQuizzesUserHasClaimed, getQuizzesUserTrials, getTokenSymbol } from '../scripts/getters';
+import { handleError, handleSuccess, type ProposalArgs, type QuizMetadata } from '../utils/utils';
+import { fetchMetadata, getProposalsCount, getProposalThreshold, getQuizzes, getQuizzesClaimOpened, getQuizzesCount, getQuizzesUserCanClaim, getQuizzesUserHasClaimed, getQuizzesUserTrials, getTokenSymbol, getUserVotingPower } from '../scripts/getters';
 import { usePublicClient, useWalletClient } from 'wagmi';
-import { formatEther } from 'viem';
-import { sendScoreToServer, claimQuizReward } from '../scripts/actions';
+import { encodeFunctionData, formatEther, type Address } from 'viem';
+import { sendScoreToServer, claimQuizReward, propose } from '../scripts/actions';
 import NewQuizForm from './NewQuizForm';
+
+import IPAManagerABI from '../assets/abis/IPAManagerABI.json';
+import ERC20ABI from '../assets/abis/VotesERC20TokenABI.json';
+import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
+
+const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER;
+const QUIZ_MANAGER_ADDRESS: Address = import.meta.env.VITE_QUIZ_MANAGER;
 
 const quizTabs = {
     all: "All",
@@ -26,13 +33,14 @@ export default function QuizPage() {
     const [activeTab, setActiveTab] = useState<keyof typeof quizTabs>('all');
     const [expandedQuiz, setExpandedQuiz] = useState<number>();
     const [quizzes, setQuizzes] = useState<QuizMetadataPlus[]>([]);
-    const [tokenSymbol, setTokenSymbol] = useState("Tokens");
     const [selectedQuestions, setSelectedQuestions] = useState<{ question: string; options: string[] }[]>([]);
     const [questionAnswers, setQuestionAnswers] = useState<any>({});
     const [filteredQuizzes, setFilteredQuizzes] = useState<QuizMetadataPlus[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
     const [showNewQuizForm, setShowNewQuizForm] = useState(false);
+    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const publicClient = usePublicClient();
     const { data: walletClient } = useWalletClient();
@@ -57,6 +65,11 @@ export default function QuizPage() {
             return;
         }
 
+        if (!filteredQuizzes.find(q => q.quizId === quizId)!.claimOpened) {
+            handleError(new Error("Claim period is not open yet"));
+            return;
+        }
+
         try {
             setIsLoading(true);
             console.log("Claiming reward for quiz:", quizId);
@@ -75,6 +88,71 @@ export default function QuizPage() {
             handleError(error as Error);
         } finally {
             setIsLoading(false);
+        }
+    }
+
+    async function handleProposeOpenQuizPrizeClaims(quizId: number, prizeToken: Address, prizeAmount: bigint, winners: number, tokenSymbol: string) {
+        if (!walletClient) {
+            handleError(new Error("Please connect your wallet to create a proposal"));
+            return;
+        }
+
+        if (userVotingPower < proposalThreshold) {
+            handleError(new Error(`No enough voting power to create a proposal`));
+            return;
+        }
+
+        try {
+            const totalPrize = BigInt(prizeAmount) * BigInt(winners);
+            const executeCalldata = encodeFunctionData({
+                abi: ERC20ABI,
+                functionName: "approve",
+                args: [QUIZ_MANAGER_ADDRESS, totalPrize]
+            });
+
+            const targets = [IPA_MANAGER_ADDRESS, QUIZ_MANAGER_ADDRESS];
+            const values = [0n, 0n];
+            const calldatas = [
+                    encodeFunctionData({
+                        abi: IPAManagerABI,
+                        functionName: "execute",
+                        args: [prizeToken, 0n, executeCalldata]  // target, eth value, calldata
+                    }),
+                    encodeFunctionData({
+                        abi: QuizManagerABI,
+                        functionName: "setClaimOpened",
+                        args: [BigInt(quizId)]
+                    })
+            ];
+
+            const proposalIndex = await getProposalsCount(publicClient!);
+
+            // Added # for splitting the value when in use
+            const description = proposalIndex!.toString() +
+                "#Proposal to open quiz for prize claims:\n" +
+                `Quiz ID: ${quizId}\n` +
+                `Prize Token: ${tokenSymbol}\n` +
+                `Prize Amount: ${formatEther(prizeAmount)}\n` +
+                `Winners: ${winners}\n` +
+                `Total Prize: ${formatEther(totalPrize)}\n`;
+
+            const proposalArgs: ProposalArgs = {
+                targets,
+                values,
+                calldatas,
+                description
+            };
+
+            const txHash = await propose(proposalArgs, walletClient!);
+            publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
+                if (txReceipt.status === "reverted") handleError(new Error("Quiz prize claim proposal reverted"));
+                else {
+                    handleSuccess("Proposal to open quiz for prize claims submitted successfully!");
+                }
+            });
+        } catch (error) {
+            console.error("Error proposing to open quiz for prize claims:", error);
+            handleError(error as Error);
         }
     }
 
@@ -137,6 +215,7 @@ export default function QuizPage() {
 
     useEffect(() => {
         fetchQuizzes().then(setQuizzes).catch(console.error).finally(() => setIsLoadingQuizzes(false));
+        getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
     }, []);
 
     useEffect(() => {
@@ -165,6 +244,7 @@ export default function QuizPage() {
         fetchUserQuizzesData();
         setExpandedQuiz(undefined);  // reset expanded quiz
         setQuestionAnswers({});
+        getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
     }, [walletClient]);
 
     useEffect(() => {
@@ -250,6 +330,15 @@ export default function QuizPage() {
                                     </p>
                                 </div>
                                 <div className="flex space-x-2">
+                                    {userVotingPower < proposalThreshold && (
+                                        <button
+                                            onClick={() => handleProposeOpenQuizPrizeClaims(quiz.quizId, quiz.prizeToken, quiz.prizeAmount, quiz.winners, quiz.tokenSymbol!)}
+                                            className="bg-warning text-background px-4 py-2 rounded hover:opacity-90"
+                                        >
+                                            Propose Claims
+                                        </button>
+                                    )}
+                                    
                                     {quiz.expired && (
                                         <button
                                             className="bg-danger text-background px-4 py-2 rounded"
