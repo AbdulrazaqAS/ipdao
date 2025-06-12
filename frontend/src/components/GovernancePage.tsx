@@ -3,8 +3,8 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { handleError, handleSuccess, type AssetMetadata, type ProposalArgs } from '../utils/utils';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import type { AssetInitialMetadata } from './AssetsPage';
-import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAddressERC20s, getAddressNFTs, getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenName, getTokenSymbol, getUserDelegate, getUsersVotingPower, getUserVotingPower } from '../scripts/getters';
-import { custom, encodeFunctionData, formatEther, parseEther, type Address } from 'viem';
+import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAddressERC20s, getAddressNFTs, getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenName, getTokenSymbol, getUserDelegate, getUsersVotingPower, getUserVotingPower, getRoyaltyTokenBalance } from '../scripts/getters';
+import { custom, encodeFunctionData, formatEther, parseEther, type Address, zeroAddress } from 'viem';
 import { claimIPRevenue, delegateVote, propose } from '../scripts/actions';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import { StoryClient } from '@story-protocol/core-sdk';
@@ -49,6 +49,7 @@ export default function GovernancePage() {
   const [daoERC20Tokens, setDaoERC20Tokens] = useState<{ value: string; address: string; name: string; symbol: string, decimals: string }[]>([]);
   const [daoERC721Tokens, setDaoERC721Tokens] = useState<{ value: string; address: string; name: string; symbol: string }[]>([]);
   const [royaltyTransfer, setRoyaltyTransfer] = useState<{ recipient: string; amount: string }[]>([{ recipient: "", amount: "" }]);
+  const [ipAccountsRoyaltyTokens, setIpAccountsRoyaltyTokens] = useState<bigint[]>([]);
 
   const { data: walletClient } = useWalletClient();
   const publicClient = usePublicClient();
@@ -143,26 +144,25 @@ export default function GovernancePage() {
     try {
       setIsLoading(true);
       const recipients = royaltyTransfer.map(transfer => transfer.recipient);
-      const amounts = royaltyTransfer.map(transfer => transfer.amount);
-      const totalAmount = amounts.reduce((acc, amount) => acc + BigInt(amount), 0n);
-      if (totalAmount > 100n) {
-        // TODO: Check if the vault has enough tokens to transfer
-        handleError(new Error("Total amount of royalty transfers cannot exceed 100%"));
+      const amounts = royaltyTransfer.map(transfer => BigInt(+transfer.amount * 10 ** 6));
+      const totalAmount = amounts.reduce((acc, amount) => acc + amount, 0n);
+      if (totalAmount > ipAccountsRoyaltyTokens[assets.findIndex(asset => asset.id === selectedAsset.id)]) {
+        handleError(new Error("Total amount of royalty transfers exceeded available tokens"));
         return;
       }
-      const amountsWei = amounts.map(amount => parseEther(amount));
+
       const targets = [IPA_MANAGER_ADDRESS];
       const values = [0n];
       const calldatas = [encodeFunctionData({
         abi: IPAManagerABI,
         functionName: "transferRoyaltyTokens",
-        args: [selectedAsset.id, recipients, amountsWei]
+        args: [selectedAsset.id, recipients, amounts]
       })];
 
       const proposalIndex = await getProposalsCount(publicClient!);
       // Added # for splitting the value when in use
       const description = proposalIndex!.toString() +
-        "#Proposal to transfer royalty tokens:\n" +
+        "#Proposal to transfer royalty tokens of asset with:\n" +
         `- ID: ${selectedAsset.id}\n` +
         `- To: ${recipients.join(", ")}\n` +
         `- Amounts: ${amounts.join(", ")}\n`
@@ -183,7 +183,6 @@ export default function GovernancePage() {
         }
       });
 
-      handleSuccess("Proposal to transfer asset submitted successfully!");
     } catch (error) {
       console.error("Error proposing to transfer asset:", error);
       handleError(error as Error);
@@ -354,6 +353,30 @@ export default function GovernancePage() {
     fetchAssetsTokens().catch(console.error);
   }, [walletClient, assets]);  // refetch when walletClient or assets change
 
+  useEffect(() => {
+    if (assets.length === 0) return;
+
+    async function fetchIPAccountsRoyaltyTokens() {
+      const storyClient = StoryClient.newClient({
+        account: "0xDaaE14a470e36796ADf9c75766D3d8ADD0a3D94c",  // just an address
+        transport: custom(publicClient!.transport),
+        chainId: publicClient!.chain.id.toString() as "1315" | "1514",
+      })
+
+      const vaultsAddresses = await getAssetsVaultsAddresses(assets.map(asset => asset.id), storyClient);
+      const balances = await Promise.all(
+        vaultsAddresses.map((vault, i) => {
+          if (vault === zeroAddress) return Promise.resolve(undefined);
+          else return getRoyaltyTokenBalance(vault, assets[i].id, publicClient!)
+        })
+      );
+      setIpAccountsRoyaltyTokens(balances);
+      console.log("IPAccounts Royalty Bals", balances);
+    }
+
+    fetchIPAccountsRoyaltyTokens();
+  }, [assets]);
+
   return (
     <div className="mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-text mb-6">Governance</h1>
@@ -409,6 +432,7 @@ export default function GovernancePage() {
               </div>
             ))}
             <div>
+              {selectedAsset && <p>Available Royalty Tokens: {ipAccountsRoyaltyTokens[assets.findIndex(asset => asset.id === selectedAsset.id)] ?? "Vault not initiated"}</p>}
               {royaltyTransfer.map((transfer, index) => (
                 <div key={index} className="flex items-center gap-2 mb-2">
                   <input
@@ -431,6 +455,7 @@ export default function GovernancePage() {
                     value={transfer.amount}
                     min={0}
                     max={100}
+                    step={0.0000001}
                     onChange={(e) => {
                       const newTransfers = [...royaltyTransfer];
                       newTransfers[index].amount = e.target.value;
@@ -440,6 +465,13 @@ export default function GovernancePage() {
                     className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setRoyaltyTransfer(prev => prev.filter((_, i) => i !== index))}
+                    className="bg-danger text-white px-3 py-2 rounded hover:bg-danger/90"
+                  >
+                    X
+                  </button>
                 </div>
               ))}
             </div>

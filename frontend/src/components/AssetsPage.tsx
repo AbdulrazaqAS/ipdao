@@ -77,7 +77,7 @@ export default function AssetsPage() {
                             {assets.map((asset) => (
                                 <div
                                     key={asset.title}
-                                    className="bg-white shadow-md rounded-xl overflow-hidden hover:shadow-secondary transition"
+                                    className="bg-white shadow-md rounded-xl overflow-hidden hover:cursor-pointer"
                                     onClick={() => setSelectedAsset(asset)}
                                 >
                                     <img

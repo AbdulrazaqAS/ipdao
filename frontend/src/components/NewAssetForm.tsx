@@ -404,8 +404,8 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
         setIsLoading(true);
 
-        if (processType === "fromAsset") handleProposeAddRegisteredNewAsset();
-        else if (processType === "fromNFT") handleProposeAddNewAssetFromNFT();
+        if (processType === "fromAsset") await handleProposeAddRegisteredNewAsset();
+        else if (processType === "fromNFT") await handleProposeAddNewAssetFromNFT();
         else {
             // If !nftMetadataUri for fromScratch when the metadata has not been uploaded.
             if (!nftMetadataUri) await uploadNFTMetadata();

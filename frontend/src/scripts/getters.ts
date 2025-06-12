@@ -329,26 +329,24 @@ export async function getUserDelegate(addr: Address, client: PublicClient): Prom
 
 export async function getUserVotingPower(addr: Address, client: PublicClient): Promise<bigint> {
     const contract = getContract({
-        address: IPAGovernorAddress,
-        abi: IPAGovernorABI,
+        address: GovernanceTokenAddress,
+        abi: VotesERC20TokenABI,
         client
     });
 
-    const now = Math.floor(Date.now() / 1000);
-    const power = await contract.read.getVotes([addr, now]);
+    const power = await contract.read.getVotes([addr]);
     return power as bigint;
 }
 
 export async function getUsersVotingPower(addrs: Address[], client: PublicClient): Promise<bigint[]> {
     const contract = getContract({
-        address: IPAGovernorAddress,
-        abi: IPAGovernorABI,
+        address: GovernanceTokenAddress,
+        abi: VotesERC20TokenABI,
         client
     });
 
-    const now = Math.floor(Date.now() / 1000);
     const powers = await Promise.all(
-        addrs.map((addr) => contract.read.getVotes([addr, now]))
+        addrs.map((addr) => contract.read.getVotes([addr]))
     );
 
     return powers as bigint[];
@@ -710,4 +708,15 @@ export async function getAssetsVaultsTokens(vaults: Address[], client: PublicCli
         })
     );
     return tokens.map(arr => [...arr]);
+}
+
+export async function getRoyaltyTokenBalance(vault: Address, holder: Address, client: PublicClient): Promise<bigint> {
+    const contract = getContract({
+        address: vault,
+        abi: VotesERC20TokenABI,
+        client
+    });
+
+    const bal = await contract.read.balanceOf([holder]);
+    return bal as bigint;
 }

@@ -128,7 +128,7 @@ export default function ProposalsPage() {
       </div>
 
       {/* Proposal cards */}
-      <div className="grid gap-6">
+      <div className="grid grid-col-1 gap-6">
         {filteredProposals.map((proposal) =>
           <ProposalCard key={proposal.id} proposal={proposal} votingPeriod={Number(votingPeriod)} setSelectedProposal={setSelectedProposal} setShowModal={setShowModal} setVoteChoice={setVoteChoice} />
         )}
