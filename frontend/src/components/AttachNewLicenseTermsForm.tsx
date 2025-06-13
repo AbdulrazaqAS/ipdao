@@ -85,6 +85,11 @@ export default function AttachNewLicenseTermsForm({ assetId, setShowNewLicenseFo
     const handleRegisterLicenseTerms = async () => {
         let licenseTerms: LicenseTerms;
 
+        if (!walletClient) {
+            handleError(new Error("Please connect your wallet to register license terms"));
+            return;
+        }
+
         if (formData.commercialRevShare < 0 || formData.commercialRevShare > 100) {
             handleError(new Error("Commercial revenue share must be between 0 and 100"));
             return;
@@ -120,7 +125,7 @@ export default function AttachNewLicenseTermsForm({ assetId, setShowNewLicenseFo
         try {
             setIsLoading(true);
             const storyClient = StoryClient.newClient({
-                wallet: walletClient!,
+                account: walletClient!.account!,
                 transport: custom(walletClient!.transport),
                 chainId: walletClient!.chain.id.toString() as "1315" | "1514",
             })

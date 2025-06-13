@@ -5,6 +5,8 @@ import { usePublicClient, useWalletClient } from "wagmi";
 import { getDAOName, getDaoRoyaltyShare, getGovernanceTokenSupply, getGovernanceTokenTotalHolders, getParticipationThreshold, getProposalsCount, getProposalThreshold, getQuorum, getUserVotingPower, getVotingDelay, getVotingPeriod } from "../scripts/getters";
 import { formatEther } from "viem";
 
+import DownloadLogsButton from "./DownloadLogsButton";
+
 export default function Dashboard() {
   const [showNewProposalForm, setShowNewProposalForm] = useState(false);
   const [votingPeriod, setVotingPeriod] = useState(0);
@@ -154,6 +156,7 @@ export default function Dashboard() {
           >
             Create Proposal
           </button>}
+          <DownloadLogsButton />
       </div>
     </div>
   );
