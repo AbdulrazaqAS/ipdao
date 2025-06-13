@@ -43,7 +43,7 @@ interface Props {
 export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, setSelectedProposal, setShowModal }: Props) {
     const [timeleft, setTimeleft] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [userVotingPower, setUserVotingPower] = useState(-1n);
     const [participationThreshold, setParticipationThreshold] = useState(0n);
 
     const totalVotes = Number(proposal.for + proposal.against + proposal.abstain) || 1; // Avoid division by zero

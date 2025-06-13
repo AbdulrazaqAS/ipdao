@@ -38,7 +38,7 @@ export default function GovernancePage() {
   const [assets, setAssets] = useState<AssetMetadata[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<AssetMetadata>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [userVotingPower, setUserVotingPower] = useState(0n);
+  const [userVotingPower, setUserVotingPower] = useState(-1n);
   const [proposalThreshold, setProposalThreshold] = useState(0n);
   const [assetTransferRecipient, setAssetTransferRecipient] = useState<string>("");
   const [delegateTo, setDelegateTo] = useState('');

@@ -47,16 +47,16 @@ const ABIS = [
 export default function NewProposalForm({ setShowNewProposalForm }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [proposalIndex, setProposalIndex] = useState<bigint>();
-  const [userVotingPower, setUserVotingPower] = useState(0n);
+  const [userVotingPower, setUserVotingPower] = useState(-1n);
   const [proposalThreshold, setProposalThreshold] = useState(0n);
   const [description, setDescription] = useState("Minting 25 tokens to Dev1");
   const [calls, setCalls] = useState<Array<Call>>([
     {
-      target: "0x84E13D0d7396f881F3f78505e14af04AE987cBE9",
-      functionName: "mint",
+      target: "",
+      functionName: "",
       abi: ABIS[0].name,  // default
-      args: '["0xDaaE14a470e36796ADf9c75766D3d8ADD0a3D94c", 25000000000000000000]',
-      value: "0"
+      args: '',
+      value: ""
     }
   ]);
 
@@ -153,7 +153,7 @@ export default function NewProposalForm({ setShowNewProposalForm }: Props) {
   }, [walletClient]);
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 py-6">
+    <form onSubmit={handleSubmit} className="text-text mx-auto px-4 py-6">
       <h1 className="text-2xl font-bold mb-6">
         Create New Proposal #{proposalIndex !== undefined ? Number(proposalIndex) : " Loading index..."}
       </h1>
@@ -182,7 +182,7 @@ export default function NewProposalForm({ setShowNewProposalForm }: Props) {
             onChange={(e) => updateCall(index, "functionName", e.target.value)}
             required
           />
-          <select
+          <label className="block">ABI<select
             className="w-full border p-2 text-sm rounded"
             value={call.abi}
             onChange={(e) => updateCall(index, "abi", e.target.value)}
@@ -192,7 +192,7 @@ export default function NewProposalForm({ setShowNewProposalForm }: Props) {
                 {abi.name}
               </option>
             ))}
-          </select>
+          </select></label>
           <input
             type="text"
             placeholder='Arguments (e.g., ["0xabc", 42])'

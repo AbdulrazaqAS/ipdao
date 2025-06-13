@@ -22,7 +22,7 @@ export default function AssetsPage() {
     const [selectedAsset, setSelectedAsset] = useState<AssetMetadata>();
     const [showNewAssetForm, setShowNewAssetForm] = useState(false);
     const [isLoadingAssets, setIsLoadingAssets] = useState(true);
-    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [userVotingPower, setUserVotingPower] = useState(-1n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const publicClient = usePublicClient();

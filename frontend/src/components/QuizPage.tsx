@@ -39,7 +39,7 @@ export default function QuizPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
     const [showNewQuizForm, setShowNewQuizForm] = useState(false);
-    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [userVotingPower, setUserVotingPower] = useState(-1n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const publicClient = usePublicClient();

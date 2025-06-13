@@ -46,7 +46,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
     const [nftMetadataUri, setNftMetadataUri] = useState<string>();
     const [ipMetadata, setIpMetadata] = useState<IpMetadata>();
     const [ipMetadataUri, setIpMetadataUri] = useState<string>();
-    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [userVotingPower, setUserVotingPower] = useState(-1n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
     const [isLoading, setIsLoading] = useState(false);
 

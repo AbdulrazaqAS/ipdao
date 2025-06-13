@@ -29,7 +29,7 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
     const [questionsPerUser, setQuestionsPerUser] = useState("");
     const [questions, setQuestions] = useState<QuizQuestion[]>([{ question: '', answer: '', options: ['', '', '', ''] }]);
     const [isLoading, setIsLoading] = useState(false);
-    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [userVotingPower, setUserVotingPower] = useState(-1n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const publicClient = usePublicClient();

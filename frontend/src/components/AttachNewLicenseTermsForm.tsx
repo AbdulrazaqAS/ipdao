@@ -61,7 +61,7 @@ export default function AttachNewLicenseTermsForm({ assetId, setShowNewLicenseFo
     const [licenseRegistered, setLicenseRegistered] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [licenseTermsId, setLicenseTermsId] = useState<bigint>();
-    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [userVotingPower, setUserVotingPower] = useState(-1n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const [formData, setFormData] = useState<any>({});

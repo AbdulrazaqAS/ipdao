@@ -71,7 +71,7 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   const [showLicenseMintForm, setShowLicenseMintForm] = useState<false | number>(false);
   const [showDerivativeForm, setShowDerivativeForm] = useState<false | number>(false);
   const [isLoadingLicenses, setIsLoadingLicenses] = useState(true);
-  const [userVotingPower, setUserVotingPower] = useState(0n);
+  const [userVotingPower, setUserVotingPower] = useState(-1n);
   const [proposalThreshold, setProposalThreshold] = useState(0n);
 
   const chain = useChainId();

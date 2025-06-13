@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { usePublicClient, useWalletClient } from "wagmi";
-import { getProposals, getProposalsCount, getProposalsDeadlines, getProposalsDescriptions, getProposalsProposers, getProposalsStates, getProposalsVotes, getVotingPeriod, hasVoted } from "../scripts/getters";
+import { getProposals, getProposalsCount, getProposalsDeadlines, getProposalsDescriptions, getProposalThreshold, getUserVotingPower, getProposalsProposers, getProposalsStates, getProposalsVotes, getVotingPeriod, hasVoted } from "../scripts/getters";
 import { ProposalState, type ProposalData, VoteChoice, handleError, handleSuccess } from "../utils/utils";
-import ProposalCard from "./ProposalCard";
 import { castVote } from "../scripts/actions";
+import ProposalCard from "./ProposalCard";
+import NewProposalForm from "./NewProposalForm";
 
 export default function ProposalsPage() {
   const [selectedTab, setSelectedTab] = useState("All");
@@ -15,6 +16,9 @@ export default function ProposalsPage() {
   const [isLoadingProposals, setIsLoadingProposals] = useState(true);
   const [votingPeriod, setVotingPeriod] = useState(0n);
   const [hasLoadedDescriptions, setHasLoadedDescriptions] = useState(false);
+  const [userVotingPower, setUserVotingPower] = useState(-1n);
+  const [proposalThreshold, setProposalThreshold] = useState(0n);
+  const [showNewProposalForm, setShowNewProposalForm] = useState(false);
 
   // FIlter out number keys from tabs.
   const tabs = ["All", ...Object.keys(ProposalState).filter((e) => e.length > 1)];
@@ -106,6 +110,7 @@ export default function ProposalsPage() {
     fetchProposals();
 
     getVotingPeriod(publicClient!).then(setVotingPeriod).catch(console.error);
+    getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
 
   }, []);
 
@@ -128,28 +133,51 @@ export default function ProposalsPage() {
     fetchProposalsDescriptions();
   }, [proposals]);
 
+  useEffect(() => {
+    if (!walletClient) return;
+
+    getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
+  }, [walletClient]);
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-text mb-6">Proposals</h1>
-
-      {/* Tabs */}
-      <div className="flex gap-4 mb-6 flex-wrap">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            className={`px-4 py-2 rounded text-sm font-medium transition ${selectedTab === tab
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-              }`}
-            onClick={() => setSelectedTab(tab)}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="flex justify-between">
+        <h1 className="text-3xl font-bold text-text mb-6">Proposals</h1>
+        <div className="text-center">
+          {!showNewProposalForm && userVotingPower >= proposalThreshold && (
+            <button
+              onClick={() => { setShowNewProposalForm(true) }}
+              className="bg-primary text-white px-3 py-1 rounded-xl text-lg font-medium hover:bg-primary/90 transition"
+            >
+              Create Proposal
+            </button>
+          )}
+        </div>
       </div>
 
+      {showNewProposalForm && <NewProposalForm setShowNewProposalForm={setShowNewProposalForm} />}
+
+      {/* Tabs */}
+      {!showNewProposalForm && (
+        <div className="flex gap-4 mb-6 flex-wrap">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              className={`px-4 py-2 rounded text-sm font-medium transition ${selectedTab === tab
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                }`}
+              onClick={() => setSelectedTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Proposal cards */}
-      <div className="grid grid-col-1 gap-6">
+      {!showNewProposalForm && (
+        <div className="grid grid-col-1 gap-6">
         {filteredProposals.map((proposal) =>
           <ProposalCard key={proposal.id} proposal={proposal} votingPeriod={Number(votingPeriod)} setSelectedProposal={setSelectedProposal} setShowModal={setShowModal} setVoteChoice={setVoteChoice} />
         )}
@@ -160,7 +188,8 @@ export default function ProposalsPage() {
           filteredProposals.length === 0 && (
           <div className="text-center text-gray-500 py-6">No proposals found.</div>
         ))}
-      </div>
+        </div>
+      )}
 
       {/* voteChoice !== undefined and not just voteChoice bcoz "against" is zero which will make voteChoice false */}
       {showModal && selectedProposal && voteChoice !== undefined && (
