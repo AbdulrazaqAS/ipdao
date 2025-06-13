@@ -97,7 +97,7 @@ export async function uploadFileToIPFS(file: File, filename: string): Promise<st
 
     const endpoint = isDev
         ? "http://localhost:5000/api/uploadFileToIPFS"
-        : "/api/uploadToIPFS";
+        : "/api/uploadFileToIPFS";
 
     const response = await axios.post(endpoint, formData, {
         headers: {
