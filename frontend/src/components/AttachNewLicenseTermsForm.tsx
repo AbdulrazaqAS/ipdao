@@ -125,7 +125,7 @@ export default function AttachNewLicenseTermsForm({ assetId, setShowNewLicenseFo
         try {
             setIsLoading(true);
             const storyClient = StoryClient.newClient({
-                account: walletClient!.account!,
+                wallet: walletClient!,
                 transport: custom(walletClient!.transport),
                 chainId: walletClient!.chain.id.toString() as "1315" | "1514",
             })
