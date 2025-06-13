@@ -154,7 +154,6 @@ export default function Dashboard() {
           >
             Create Proposal
           </button>}
-          {walletClient && <p>{walletClient.account.address}</p>}
       </div>
     </div>
   );
