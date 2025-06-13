@@ -1,21 +1,16 @@
-import { getDefaultConfig } from '@tomo-inc/tomo-evm-kit';
-import { storyAeneid } from 'wagmi/chains';
-import { metaMaskWallet, rainbowWallet, walletConnectWallet } from '@tomo-inc/tomo-evm-kit/wallets';
+import { http, createConfig } from 'wagmi'
+import { storyAeneid } from 'wagmi/chains'
+import { metaMask } from 'wagmi/connectors'
 
-export const config = getDefaultConfig({
-  clientId: import.meta.env.VITE_TOMO_CLIENT_ID!,
-  appName: 'CreatorDao',
-  projectId: import.meta.env.VITE_CONNECTID!,
+export const config = createConfig({
   chains: [storyAeneid],
-  ssr: false, // If your dApp uses server-side rendering (SSR)
-  wallets: [
-    {
-      groupName: 'Popular',
-      wallets: [
-        metaMaskWallet, 
-        rainbowWallet, 
-        walletConnectWallet, // Add other wallets if needed
-      ],
-    },
+  connectors: [
+    metaMask(),
   ],
-});
+  transports: {
+    [storyAeneid.id]: http(),
+  },
+  batch: {
+    multicall: true, // TODO: Add batchsize limit to avoid exceeding provider limits
+  }
+})

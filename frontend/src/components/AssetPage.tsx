@@ -81,21 +81,18 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   useEffect(() => {
     getAssetAPIMetadata(assetMetadata.id, chain).then((metadata) => {
       setAssetAPIMetadata(metadata);
-      console.log("AssetAPIMetadata:", metadata);
     }).catch((error) => {
       console.error("Error fetching asset API metadata:", error);
     });
 
     getAssetLicenseTerms(assetMetadata.id, chain).then((terms) => {
       setAssetLicenses(terms);
-      console.log("Asset License Terms:", terms);
     }).catch((error) => {
       console.error("Error fetching asset license terms:", error);
     });
 
     fetchMetadata(assetMetadata.nftTokenURI).then((metadata) => {
       setNftMetadata(metadata);
-      console.log("NFT Metadata:", metadata);
     }).catch((error) => {
       console.error("Error fetching NFT metadata:", error);
     });
@@ -116,7 +113,6 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
       assetLicenses.map((license) => getLicenseTerms(Number(license.licenseTermsId), chain))
     ).then((termsArray) => {
       setLicensesTerms(termsArray);
-      console.log("All License Terms:", termsArray);
     }).catch((error) => {
       console.error("Error fetching all license terms:", error);
     }).finally(() => {

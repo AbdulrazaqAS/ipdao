@@ -119,7 +119,6 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
         try {
             setIsLoading(true);
             const txHash = await executeProposal(proposal.id, walletClient);
-            console.log("Execution tx sent. TxHash:", txHash);
 
             publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
                 if (txReceipt.status === "reverted") handleError(new Error("Failed to execute proposal"));
@@ -149,7 +148,6 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
         try {
             setIsLoading(true);
             const txHash = await cancelProposal(proposal.id, walletClient);
-            console.log("Cancel tx sent. TxHash:", txHash);
 
             publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
                 if (txReceipt.status === "reverted") handleError(new Error("Failed to cancel proposal"));

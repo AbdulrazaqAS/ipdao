@@ -3,15 +3,15 @@ import { Menu, X } from "lucide-react";
 import { NavItems } from "../utils/utils";
 
 import { Account } from './Account';
-// import { WalletOptions } from './WalletOptions';
+import { WalletOptions } from './WalletOptions';
 import { useAccount } from 'wagmi'
-import TomoConnectButton from './TomoConnectButton';
+// import TomoConnectButton from './TomoConnectButton';
 
-// function ConnectWallet() {
-//   const { isConnected } = useAccount()
-//   if (isConnected) return <Account />
-//   return <WalletOptions />
-// }
+function ConnectWallet() {
+  const { isConnected } = useAccount()
+  if (isConnected) return <Account />
+  return <WalletOptions />
+}
 
 interface Props {
   currentPage: string;
@@ -44,8 +44,8 @@ export default function Navbar({currentPage, setCurrentPage} : Props) {
 
         {/* Connect Button */}
         <div className="hidden md:block">
-          {/* <ConnectWallet /> */}
-          <TomoConnectButton />
+          <ConnectWallet />
+          {/* <TomoConnectButton /> */}
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -73,7 +73,8 @@ export default function Navbar({currentPage, setCurrentPage} : Props) {
               {item}
             </button>
           ))}
-          <TomoConnectButton />
+          <ConnectWallet />
+          {/* <TomoConnectButton /> */}
         </div>
       )}
     </nav>

@@ -72,9 +72,7 @@ export default function QuizPage() {
 
         try {
             setIsLoading(true);
-            console.log("Claiming reward for quiz:", quizId);
             const txHash = await claimQuizReward(BigInt(quizId), walletClient);
-            console.log("Waiting for claim tx. TxHash:", txHash); // TODO: Show this in frontend
 
             publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
                 if (txReceipt.status === "reverted") handleError(new Error("Claim transaction reverted"));
@@ -166,7 +164,6 @@ export default function QuizPage() {
 
         try {
             setIsLoading(true);
-            console.log("Answers for quiz:", questionAnswers);
 
             const result = await sendScoreToServer(
                 publicClient!.chain.id,
@@ -179,7 +176,6 @@ export default function QuizPage() {
                 throw new Error("Failed to submit answers");
             }
 
-            console.log(`Submitting answers for quiz ${expandedQuiz}:`, `Score: ${result.score}`, `TxHash: ${result.txHash}`);
             handleSuccess("Answers submitted successfully!");
             // TODO: Update quiz userTrials and canClaim status
             setExpandedQuiz(undefined);  // Reset expanded quiz after submission
@@ -273,7 +269,6 @@ export default function QuizPage() {
         });
 
         setFilteredQuizzes(filteredQuizzes);
-        console.log("Filtered", filteredQuizzes);
     }, [quizzes, activeTab]);
 
     return (
@@ -330,9 +325,9 @@ export default function QuizPage() {
                                     </p>
                                 </div>
                                 <div className="flex space-x-2">
-                                    {userVotingPower >= proposalThreshold && !quiz.claimOpened && +quiz.deadline <= Math.floor(Date.now() / 1000) && quiz.winners > 0 && (
+                                    {userVotingPower >= proposalThreshold && !quiz.claimOpened && +quiz.deadline <= Math.floor(Date.now() / 1000) && quiz.winners! > 0 && (
                                         <button
-                                            onClick={() => handleProposeOpenQuizPrizeClaims(quiz.quizId, quiz.prizeToken, quiz.prizeAmount, quiz.winners, quiz.tokenSymbol!)}
+                                            onClick={() => handleProposeOpenQuizPrizeClaims(quiz.quizId, quiz.prizeToken, quiz.prizeAmount, quiz.winners!, quiz.tokenSymbol!)}
                                             className="bg-primary text-background px-4 py-2 rounded hover:opacity-90 disabled:cursor-not-allowed"
                                         >
                                             Propose Claims

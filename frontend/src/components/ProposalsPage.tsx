@@ -35,7 +35,6 @@ export default function ProposalsPage() {
     try {
       setIsLoading(true);
       const txHash = await castVote(selectedProposal!.id, voteChoice!, walletClient);
-      console.log(`Voted ${voteChoice} on proposal ${selectedProposal!.id}`);
 
       publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
         if (txReceipt.status === "reverted") handleError(new Error("Vote transaction reverted"));
@@ -94,7 +93,6 @@ export default function ProposalsPage() {
 
         const proposals = await Promise.all(proposalsPromise);
         setProposals(proposals);
-        console.log("Proposals fetched:", proposals);
       } catch (error) {
         console.error("Error fetching proposals:", error);
       } finally {

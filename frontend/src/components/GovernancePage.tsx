@@ -105,7 +105,6 @@ export default function GovernancePage() {
         description
       };
 
-      console.log("Proposing to transfer asset with args:", proposalArgs);
       const txHash = await propose(proposalArgs, walletClient!);
 
       publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {
@@ -250,12 +249,7 @@ export default function GovernancePage() {
         chainId: publicClient!.chain.id.toString() as "1315" | "1514",
       });
 
-      const claimedTokens = await claimIPRevenue(storyClient, claimer, assetId, [token]);
-      if (!claimedTokens || claimedTokens.length == 0) {
-        handleError(new Error("No claimable tokens found for this asset"));
-      } else {
-        handleSuccess("Successfully claimed revenue.");
-      }
+      await claimIPRevenue(storyClient, claimer, assetId, [token]);
     } catch (error) {
       console.error("Error claiming revenue:", error);
       handleError(error as Error);
@@ -359,7 +353,6 @@ export default function GovernancePage() {
         }));
       }));
       setAssetsTokens(formattedVaultsTokens);
-      console.log("Assets vaults tokens:", formattedVaultsTokens);
     }
     fetchAssetsTokens().catch(console.error);
   }, [walletClient, assets]);  // refetch when walletClient or assets change
@@ -382,7 +375,6 @@ export default function GovernancePage() {
         })
       );
       setIpAccountsRoyaltyTokens(balances);
-      // console.log("IPAccounts Royalty Bals", balances);
     }
 
     fetchIPAccountsRoyaltyTokens();
@@ -550,7 +542,7 @@ export default function GovernancePage() {
                       <div className="flex gap-2">
                         <button
                           className="px-3 py-1 text-xs rounded bg-secondary text-white hover:bg-secondary/90 hover:cursor-pointer"
-                          onClick={() => handleClaimRevenue(asset.id, token.address as Address, IPA_MANAGER_ADDRESS, BigInt(token.daoAmount))}
+                          onClick={() => handleClaimRevenue(asset.id, token.address as Address, IPA_MANAGER_ADDRESS, token.daoAmount)}
                         >
                           Claim for DAO
                         </button>

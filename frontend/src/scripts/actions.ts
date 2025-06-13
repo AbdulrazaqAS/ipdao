@@ -262,6 +262,9 @@ export async function claimIPRevenue(storyClient: StoryClient, claimer: Address,
         childIpIds: [],
         royaltyPolicies: [],
         currencyTokens: tokens,
+        claimOptions: {
+            autoUnwrapIpTokens: false, // Set to true if you want to unwrap IP tokens
+        }
     })
     
     return response.claimedTokens as unknown as {amount: bigint, claimer: Address, token: Address}[];

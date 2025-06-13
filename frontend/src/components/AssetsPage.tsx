@@ -33,7 +33,6 @@ export default function AssetsPage() {
             try {
                 const assetIds = await getAssetsIds(publicClient!);
                 const assetsCoreMetadata = await getAssetsMetadata(assetIds, publicClient!);
-                // console.log("Assets Matadata:", assetsCoreMetadata);
 
                 const assetsData = await Promise.all(
                     assetsCoreMetadata.map((data) => fetchMetadata(data.metadataURI))
@@ -50,7 +49,6 @@ export default function AssetsPage() {
                 });
 
                 setAssets(assets);
-                console.log("Assets", assets);
             } catch (error) {
                 console.error("Error fetching assets:", error);
             } finally {
