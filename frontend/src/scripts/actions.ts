@@ -51,7 +51,7 @@ export async function castVote(proposalId: bigint, voteChoice: VoteChoice, clien
     return txHash;
 }
 
-export async function executeProposal(proposalId: bigint, client: WalletClient, ipValue?: bigint): Promise<`0x${string}`> {
+export async function executeProposal(proposalId: bigint, client: WalletClient): Promise<`0x${string}`> {
     const contract = getContract({
         address: IPAGovernorAddress,
         abi: IPAGovernorABI,

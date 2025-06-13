@@ -1,7 +1,5 @@
-import { getDefaultConfig, TomoEVMKitProvider } from '@tomo-inc/tomo-evm-kit';
-import { WagmiProvider } from 'wagmi';
+import { getDefaultConfig } from '@tomo-inc/tomo-evm-kit';
 import { storyAeneid } from 'wagmi/chains';
-import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { metaMaskWallet, rainbowWallet, walletConnectWallet } from '@tomo-inc/tomo-evm-kit/wallets';
 
 export const config = getDefaultConfig({
