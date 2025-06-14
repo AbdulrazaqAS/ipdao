@@ -1,4 +1,35 @@
-# IPDAO
+# IPDAO Contracts
+
+All contracts are written in Solidity and follow a modular design.
+
+### Core Contracts
+- **IPGovernor:** The core governance contract. Handles:
+  - Proposal lifecycle (creation, voting, execution)
+  - Calling other contracts through proposals
+  - Roles granting
+  - Minimum thresholds
+
+- **GovernanceERC20Token (Governance Token):** An ERC20-compatible token which defined an address' voting power. It handles votes delegation which can be called by anyone. It also handles:
+  - Minting by a `MINTER_ROLE`
+  - Burning by a `BURNER_ROLE`
+
+- **IPAManager**: This contract holds and manages all the DAO IP assets and tokens. It acts as the DAO treasury. The governor handles the following through this contract:
+  - Creating/registering new assets
+  - Transferring assets
+  - Attaching licenses
+  - Transferring assets royalty tokens
+  - DAO royalty tokens percentage
+  - Executing other functions like:
+    - Transferring tokens
+    - Giving approval/allowance to `QuizManager` to transfer DAO tokens to quiz winners
+    - Interacting with assets accounts/vaults
+    - Forcing DAO royalty share of assets (Coming up later)
+
+- **QuizManager**:  This contract manages quizzes and quiz users states. It handles:
+  - Claiming of prize by an address after verification.
+  - Updating quiz state by `UPDATER_ROLE`
+  - Creating quizzes by `CREATOR_ROLE`
+
 
 ### Contracts deployments
 ```bash
@@ -6,7 +37,18 @@
 
 # Install packages
 yarn
+```
 
+This project is a hardhat-foundry project. Follow this [guide](https://hardhat.org/hardhat-runner/docs/advanced/hardhat-and-foundry#adding-foundry-to-a-hardhat-project) from Hardhat to add foundry to a hardhat project. Make sure to install it before continuing.
+
+The above process should install `forge-std`. If for any reason it failed to install it (as in my case) and asked you to install it manually, then run:
+```bash
+forge install foundry-rs/forge-std
+```
+
+After successfully installing Hardhat and foundry, continue with the following commands.
+
+```bash
 # Compile contracts
 yarn hardhat compile
 ```
