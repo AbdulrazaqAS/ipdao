@@ -22,7 +22,7 @@ contract QuizManager is AccessControl{
     }
 
     uint256 public totalQuizzes;
-    address public immutable ipaManager;
+    address public ipaManager;
     
     mapping(uint256 quizId => Quiz) public quizzes;
     mapping(uint256 quizId => bool) public claimOpened;
@@ -34,6 +34,7 @@ contract QuizManager is AccessControl{
     event PrizeClaimed(uint256 indexed quizId, address indexed user);
     event QuizWon(uint256 indexed quizId, address indexed user);
     event ClaimOpened(uint256 quizId);
+    event IPAManagerChanged(address newManager);
 
     constructor(address _admin, address _creator, address _submitter, address _ipaManager) {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
@@ -41,6 +42,7 @@ contract QuizManager is AccessControl{
         _grantRole(SUBMITTER_ROLE, _submitter);
 
         ipaManager = _ipaManager;
+        emit IPAManagerChanged(_ipaManager);
     }
 
     function createQuiz(
@@ -111,7 +113,6 @@ contract QuizManager is AccessControl{
         Quiz memory quiz = quizzes[quizId];
         require(quiz.exists, "Quiz not found");
         require(claimOpened[quizId], "Claim not opened");
-        require(block.timestamp <= quiz.deadline, "Quiz expired");
         require(canClaim[msg.sender][quizId], "User can't claim");
         require(!hasClaimed[msg.sender][quizId], "Already claimed");
 
@@ -119,6 +120,15 @@ contract QuizManager is AccessControl{
         IERC20(quiz.prizetoken).transferFrom(ipaManager, msg.sender, quiz.prizeAmount);
 
         emit PrizeClaimed(quizId, msg.sender);
+    }
+
+    function setIPAManager(address _ipaManager) exernal onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_ipaManager != address(0), "Invalid address");
+        require(ipaManager != _ipaManager, "Same address");
+
+        ipaManager = _ipaManager;
+        emit IPAManagerChanged(_ipaManager);
+
     }
 
     function getQuizMetadataURI(uint256 quizId) external view returns (string memory) {

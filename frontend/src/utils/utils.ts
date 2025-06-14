@@ -1,5 +1,4 @@
 import { parseEther, zeroAddress, type Address } from "viem";
-import { type LicenseTerms } from "@story-protocol/core-sdk";
 import { toast } from "sonner";
 
 export const AeniedProtocolExplorer = 'https://aeneid.explorer.story.foundation';
@@ -201,6 +200,8 @@ export interface TomoChain {
 export interface LicenseTermsMetadata {
     blockNumber: string;
     blockTime: string;
+    name?: string;
+    description?: string;
     id: string;
     licenseTemplate: string;
     licenseTerms: {
@@ -225,95 +226,6 @@ export interface LicenseTermsMetadata {
         royaltyPolicy: string;
         transferable: boolean,
         uri: string;
-    }
-}
-
-
-export function getNonCommercialTerms(): LicenseTerms {
-    return {
-        transferable: true,
-        royaltyPolicy: zeroAddress,
-        defaultMintingFee: 0n,
-        expiration: 0n,
-        commercialUse: false,
-        commercialAttribution: false,
-        commercializerChecker: zeroAddress,
-        commercializerCheckerData: "0x",
-        commercialRevShare: 0,
-        commercialRevCeiling: 0n,
-        derivativesAllowed: true,
-        derivativesAttribution: true,
-        derivativesApproval: false,
-        derivativesReciprocal: true,
-        derivativeRevCeiling: 0n,
-        currency: zeroAddress,
-        uri: "https://github.com/piplabs/pil-document/blob/998c13e6ee1d04eb817aefd1fe16dfe8be3cd7a2/off-chain-terms/NCSR.json",
-    }
-}
-
-export function getCommercialUseTerms(royaltyPolicy: Address, defaultMintingFee: string, currency: Address): LicenseTerms {
-    return {
-        transferable: true,
-        royaltyPolicy,
-        defaultMintingFee: parseEther(defaultMintingFee),
-        expiration: 0n,
-        commercialUse: true,
-        commercialAttribution: true,
-        commercializerChecker: zeroAddress,
-        commercializerCheckerData: "0x",
-        commercialRevShare: 0,
-        commercialRevCeiling: 0n,
-        derivativesAllowed: false,
-        derivativesAttribution: false,
-        derivativesApproval: false,
-        derivativesReciprocal: false,
-        derivativeRevCeiling: 0n,
-        currency,
-        uri: "https://github.com/piplabs/pil-document/blob/9a1f803fcf8101a8a78f1dcc929e6014e144ab56/off-chain-terms/CommercialUse.json",
-    }
-};
-
-export function getCommercialRemixTerms(royaltyPolicy: Address, defaultMintingFee: number, commercialRevShare: number, currency: Address): LicenseTerms {
-    return {
-        transferable: true,
-        royaltyPolicy,
-        defaultMintingFee: parseEther(defaultMintingFee.toString()),
-        expiration: 0n,
-        commercialUse: true,
-        commercialAttribution: true,
-        commercializerChecker: zeroAddress,
-        commercializerCheckerData: "0x",
-        commercialRevShare: Number(commercialRevShare),
-        commercialRevCeiling: 0n,
-        derivativesAllowed: true,
-        derivativesAttribution: true,
-        derivativesApproval: false,
-        derivativesReciprocal: true,
-        derivativeRevCeiling: 0n,
-        currency,
-        uri: "https://github.com/piplabs/pil-document/blob/ad67bb632a310d2557f8abcccd428e4c9c798db1/off-chain-terms/CommercialRemix.json",
-    }
-}
-
-export function getCreativeCommonsAttributionTerms(royaltyPolicy: Address, currency: Address): LicenseTerms {
-    return {
-        transferable: true,
-        royaltyPolicy,
-        defaultMintingFee: 0n,
-        expiration: 0n,
-        commercialUse: true,
-        commercialAttribution: true,
-        commercializerChecker: zeroAddress,
-        commercializerCheckerData: "0x",
-        commercialRevShare: 0,
-        commercialRevCeiling: 0n,
-        derivativesAllowed: true,
-        derivativesAttribution: true,
-        derivativesApproval: false,
-        derivativesReciprocal: true,
-        derivativeRevCeiling: 0n,
-        currency,
-        uri: "https://github.com/piplabs/pil-document/blob/998c13e6ee1d04eb817aefd1fe16dfe8be3cd7a2/off-chain-terms/CC-BY.json",
     }
 }
 

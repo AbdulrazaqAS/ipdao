@@ -315,7 +315,7 @@ export default function QuizPage() {
                             key={index}
                             className="bg-surface p-4 border border-muted rounded-lg shadow-sm transition"
                         >
-                            <div className="flex justify-between items-center">
+                            <div className="flex flex-col sm:flex-row justify-between items-center">
                                 <div>
                                     <h2 className="text-lg font-semibold text-text">{quiz.title}</h2>
                                     <p className="text-sm text-muted">Prize: {formatEther(quiz.prizeAmount)} {quiz.tokenSymbol}</p>
@@ -324,7 +324,7 @@ export default function QuizPage() {
                                         Questions: {quiz.questionsPerUser} | Max Winnings: {quiz.winners}/{quiz.maxWinners} | Trials: {quiz.userTrials !== undefined ? `${quiz.userTrials}/` : ""}{quiz.maxTrials}
                                     </p>
                                 </div>
-                                <div className="flex space-x-2">
+                                <div className="flex flex-row space-x-2">
                                     {userVotingPower >= proposalThreshold && !quiz.claimOpened && +quiz.deadline <= Math.floor(Date.now() / 1000) && quiz.winners! > 0 && (
                                         <button
                                             onClick={() => handleProposeOpenQuizPrizeClaims(quiz.quizId, quiz.prizeToken, quiz.prizeAmount, quiz.winners!, quiz.tokenSymbol!)}
