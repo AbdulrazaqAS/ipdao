@@ -57,9 +57,19 @@ There might be compilation warnings which will probably be from the installed pa
 All the following contracts deployment scripts have configurable fields like names, symbols, and other defaults. Feel free to change them especially the names. 
 
 ```bash
-# Rename .env
+# Rename .env.example to .env
 mv .env.example .env
+```
 
+Fill in the `WALLET_PRIVATE_KEY` field with a private key. This will be the deployer and initial admin of some contracts before transferring the role. Then fill in `INITIAL_ADMIN` field with the address owning the above private key. This will be used in contract verification scripts.
+
+Also, fill in `QUIZ_SUBMITTER` with an address which will be given `SUBMITTER_ROLE` by the `QuizManager` contract. Since marking quizzes is offchain, we need someone (not just everyone) to submit the user score to the quiz contract. This can be same as the `INITIAL_ADMIN` address.
+
+When a user submits a quiz, the questions taking and the user selected answers are submitted to a server. There, the quiz correct answers are decrypted and then used to mark the submitted answers. After that, the score is submitted to the contract by the assigned address for updates. The contract will then check whether the score is greater than the minimum required score.
+
+The private key of the address used will be required in frontend for the server.
+
+```bash
 # Deploy Governance Token (ERC20)
 yarn hardhat run scripts/deployERC20Token.ts --network aeneid
 ```
@@ -117,3 +127,5 @@ yarn hardhat verify --constructor-args scripts/utils/quizManagerArgs.ts --networ
 
 # SPG NFT is already verified by Story Protocol.
 ```
+
+Proceed to frontend setup to interact with the DAO.
