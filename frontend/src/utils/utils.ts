@@ -177,6 +177,27 @@ export interface QuizMetadata {
     encryptedAnswers: string;
 };
 
+export interface TomoAccount {
+  address: string;
+  displayName: string;
+  hasPendingTransactions: boolean;
+  balanceDecimals?: string;
+  balanceFormatted?: string;
+  balanceSymbol?: string;
+  displayBalance?: string;
+  ensAvatar?: string;
+  ensName?: string;
+}
+
+export interface TomoChain {
+  id: number;
+  hasIcon: boolean;
+  name?: string;
+  iconUrl?: string;
+  iconBackground?: string;
+  unsupported?: boolean
+}
+
 export interface LicenseTermsMetadata {
     blockNumber: string;
     blockTime: string;
