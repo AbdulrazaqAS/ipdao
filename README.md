@@ -3,6 +3,14 @@
 IPDAO enables creators to launch and manage a decentralized autonomous organization (DAO) centered around their intellectual property (IP). This empowers communities to co-govern, fund, and monetize creative works in a transparent, decentralized way using Story Protocol.
 
 
+### 🎯 Target Users
+
+IPDao is built to empower creators, fans, and Web3 communities to co-own, co-create, and co-govern Intellectual Property (IP). The platform is versatile and designed for a wide range of use cases like:
+- Indie creators or teams (e.g., comic books, animations, music)
+- Fan communities wanting to co-own or co-produce IP
+- Web3-native brands launching collaborative stories or games
+
+
 
 ### 🗳️ Voting Power
 
@@ -37,6 +45,31 @@ A person's privileges scale with GToken holdings:
 
 
 > Note: All critical DAO or asset updates must go through a proposal + voting process. A proposal becomes valid only if it meets a minimum quorum — a configurable percentage of the total GToken supply.
+
+
+
+### 💰 Asset Revenue Distribution
+
+Revenue earned by IP assets — from paid mints, licensed derivatives, or other monetization methods — is intended to be shared transparently and fairly between the DAO and the creators.
+
+**🧮 Current Revenue Split (Default)**
+
+- DAO Treasury Share – 20% (configurable per DAO)
+  - Used to:
+    - Fund airdrop quests
+    - Cover operational or promotional costs
+    - Support future initiatives, based on governance votes
+- Creators' Share – 80% (remaining amount)
+  - Shared among the original creators or contributors of the asset.
+
+
+**⚠️ Important Notes**
+
+- Distribution is currently off-chain:
+The smart contracts do not enforce this split automatically. Instead, the creators must ensure the correct distribution when transferring royalty tokens.
+
+- Enforceability (Future Upgrade Path):
+The revenue distribution logic can be made fully on-chain in future versions.
 
 
 
