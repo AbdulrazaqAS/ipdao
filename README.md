@@ -98,6 +98,19 @@ The airdrop system can be extended to support new task types such as:
 - Token staking or LP contribution
 
 
+### 🔭 Project Vision
+
+Our goal is to build a comprehensive onchain protocol for launching and managing DAOs around IP assets, designed with upgradability and crosschain compatibility at its core.
+
+This protocol will empower creators and communities to focus purely on governance, coordination, and value creation, while the infrastructure — including smart contract upgrades, security patches, and crosschain operability — is abstracted and maintained by the protocol itself.
+
+Today, updating or modifying a DAO’s contract often requires full redeployment, manual asset transfers, and ownership handover which can all be achieved by proposals.
+
+Once this infrastructure layer reaches maturity, the protocol will generate sustainable revenue through service fees on DAO launches and activities.
+
+Ultimately, we envision a world where launching and running a DAO is as seamless and scalable as deploying a website — and we handle the infrastructure so DAOs can focus on impact.
+
+
 ### Installation
 ```bash
 # Clone repo
@@ -122,3 +135,9 @@ cd frontend
 
 # Continue with the dir's readme.
 ```
+
+### 🤝 Contribution
+
+We welcome contributions from developers, designers, researchers, and governance enthusiasts who share our vision of building scalable, secure, and user-friendly infrastructure for IP DAOs.
+
+Whether you're contributing code, proposing protocol improvements, or supporting DAO creators, your involvement helps push the boundaries of decentralized coordination on IP assets.
