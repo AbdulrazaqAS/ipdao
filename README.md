@@ -120,7 +120,7 @@ git clone https://github.com/AbdulrazaqAS/ipdao.git
 cd ipdao
 ```
 
-**Frontend setup**
+**Contracts setup**
 ```bash
 # Change dir
 cd hardhat-project
