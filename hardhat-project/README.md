@@ -31,6 +31,9 @@ All contracts are written in Solidity and follow a modular design.
   - Creating quizzes by `CREATOR_ROLE`
 
 
+![Smart Contracts Flowchart](https://github.com/user-attachments/assets/0695feec-1855-4906-9f7e-050a38037f69)
+
+
 ### Contracts deployments
 ```bash
 # Assuming you've finished root dir's readme
