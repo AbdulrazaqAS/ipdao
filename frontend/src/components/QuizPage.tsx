@@ -279,7 +279,7 @@ export default function QuizPage() {
                     {userVotingPower >= proposalThreshold && !showNewQuizForm && (
                         <button
                             onClick={() => { setShowNewQuizForm(true) }}
-                            className="bg-primary text-background px-3 py-1 rounded-xl text-lg font-medium hover:bg-primary/90 transition"
+                            className="bg-primary text-background px-3 py-1 rounded text-lg font-medium hover:bg-primary/90 transition"
                         >
                             Create Quiz
                         </button>

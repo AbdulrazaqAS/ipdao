@@ -147,7 +147,7 @@ export default function ProposalsPage() {
           {!showNewProposalForm && userVotingPower >= proposalThreshold && (
             <button
               onClick={() => { setShowNewProposalForm(true) }}
-              className="bg-primary text-white px-3 py-1 rounded-xl text-lg font-medium hover:bg-primary/90 transition"
+              className="bg-primary text-white px-3 py-1 rounded text-lg font-medium hover:bg-primary/90 transition"
             >
               Create Proposal
             </button>

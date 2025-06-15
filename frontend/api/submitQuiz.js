@@ -1,8 +1,7 @@
 import formidable from 'formidable';
 import CryptoJS from 'crypto-js';
 import dotenv from 'dotenv';
-import { createPublicClient, createWalletClient, privateKeyToAccount } from 'viem';
-import { http } from 'viem/transport/http';
+import { createPublicClient, createWalletClient, privateKeyToAccount, http } from 'viem';
 import { story, storyAeneid } from 'viem/chains';
 import axios from 'axios';
 import QuizManagerABI from '../../src/assets/abis/QuizManagerABI.json' with { type: 'json' };

@@ -1,4 +1,4 @@
-import { type Address, type PublicClient, getContract, parseAbiItem, zeroAddress } from 'viem'
+import { type Address, type PublicClient, getContract, parseEther, parseAbiItem, zeroAddress } from 'viem';
 import { type ProposalDetails, type ProposalVotes, type QuizContractMetadata, type AssetCoreMetadata, type AssetLicenseTerms, type AssetAPIMetadata, type LicenseTermsMetadata } from '../utils/utils';
 import { StoryClient } from '@story-protocol/core-sdk';
 import { storyAeneid, type LicenseTerms } from 'viem/chains';
