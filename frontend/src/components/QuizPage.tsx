@@ -254,7 +254,7 @@ export default function QuizPage() {
         setQuestionAnswers({});  // reset answers
 
         // Randomize questions and pick questionsPerUser
-        const expandedQuizIndex = filteredQuizzes.findIndex(q => q.quizIndex === expandedQuiz);
+        const expandedQuizIndex = filteredQuizzes.findIndex(q => q.quizId === expandedQuiz);
         const shuffled = [...filteredQuizzes[expandedQuizIndex].questions].sort(() => 0.5 - Math.random());
         const selectedQuestions = shuffled.slice(0, filteredQuizzes[expandedQuizIndex].questionsPerUser);
         setSelectedQuestions(selectedQuestions);
