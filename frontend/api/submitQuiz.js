@@ -4,8 +4,97 @@ import dotenv from 'dotenv';
 import { createPublicClient, createWalletClient, privateKeyToAccount, http } from 'viem';
 import { story, storyAeneid } from 'viem/chains';
 import axios from 'axios';
-import QuizManagerABI from '../../src/assets/abis/QuizManagerABI.json' with { type: 'json' };
+
 dotenv.config();
+const QuizManagerABI = [
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "quizId",
+        "type": "uint256"
+      }
+    ],
+    "name": "quizzes",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "maxTrials",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "minScore",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "winners",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxWinners",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "createdAt",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "prizeAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "prizetoken",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "metadataURI",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint8",
+        "name": "score",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "quizId",
+        "type": "uint256"
+      }
+    ],
+    "name": "setHasTried",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+];
 
 function decryptAnswers(encryptedAnswers) {
   const secretKey = process.env.ENCRYPTION_SECRET_KEY;
@@ -20,8 +109,8 @@ function decryptAnswers(encryptedAnswers) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST'){
-    return res.status(405).json({error: 'Method not allowed'});
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const form = formidable({ keepExtensions: true });
@@ -82,7 +171,7 @@ export default async function handler(req, res) {
           score += 1;
         }
       });
-      
+
       console.log(`${userAddress.slice(-7)} Score:`, score);
 
       // 4. Send the result to the contract
