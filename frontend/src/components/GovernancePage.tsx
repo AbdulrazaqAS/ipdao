@@ -596,7 +596,7 @@ export default function GovernancePage() {
             <button onClick={handleDelegateVotes} className="w-full px-4 py-2 bg-primary text-white text-sm rounded">Delegate</button>
             {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
           </div>
-          <p className='text-muted'>Having Governance tokens doesn't directly gives voting power, you need to delegate them to a wallet address to give it voting power (This can be your own address). You can always change who you delegate to.</p>
+          <p className='mt-1 text-muted'>Having Governance Tokens doesn't directly gives voting power, you'll need to delegate (not transfer) them to a wallet address to give it your voting power (This can be your own address). You can always change who you delegate to.</p>
         </div>
       </Section>
 
