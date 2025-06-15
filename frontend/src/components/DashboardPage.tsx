@@ -64,8 +64,8 @@ export default function Dashboard() {
     <div className="p-6 max-w-6xl bg-background mx-auto text-text">
       {/* DAO Header */}
       <div className="mb-10">
-        <h1 className="text-4xl font-bold">🛡 {daoName} Governance</h1>
-        <p className="text-lg text-muted mt-2">Decentralized governance for intellectual property</p>
+        <h1 className="text-4xl font-bold">🛡 {daoName}</h1>
+        <p className="text-lg text-muted mt-2">Decentralized governance for our intellectual properties</p>
       </div>
 
       {/* Stats Cards */}

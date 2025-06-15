@@ -13,7 +13,7 @@ yarn
 mv .env.example .env
 ```
 
-Now, fill the missing fields in the *.env* with the contracts addresses from the *hardhat-project* section. Also, if you've modified the contracts, you'll have to update the corresponding ABI(s) in this project inside *src/assets/abis/*.
+Now, fill the missing fields in the *.env* with the contracts addresses from the *hardhat-project* section. Just the addresses, don't touch the names. Most of the ones here (in frontend) need the *VITE_* prefix. Also, if you've modified the contracts, you'll have to update the corresponding ABI(s) in this project inside *src/assets/abis/*.
 
 [Initially Optional] To be able to create assets or any other thing like proposal or quiz, you'll need to go to [Pinata](https://pinata.cloud/) and create a new API key. Then add the JWT to your .env file `PINATA_JWT`.
 
