@@ -156,12 +156,12 @@ export default function DaoVariablesForm() {
             <button
                 type="submit"
                 disabled={!selected || submitting}
-                className={`py-1 rounded-lg border-none text-lg bg-primary text-text transition-colors ${submitting
+                className={`px-2 py-1 rounded border-none text-lg bg-primary text-text transition-colors ${submitting
                     ? "cursor-not-allowed opacity-70"
                     : "hover:bg-primary/90 cursor-pointer"
                     }`}
             >
-                {submitting ? "Submitting..." : "Submit"}
+                {submitting ? "Submitting..." : "Propose Update"}
             </button>
         </form>
     );
