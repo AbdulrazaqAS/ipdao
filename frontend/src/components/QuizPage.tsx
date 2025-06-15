@@ -39,14 +39,14 @@ export default function QuizPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
     const [showNewQuizForm, setShowNewQuizForm] = useState(false);
-    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [userVotingPower, setUserVotingPower] = useState(-1n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const publicClient = usePublicClient();
     const { data: walletClient } = useWalletClient();
 
     function handleAnswerChange(idx: number, i: number): void {
-        const indexInAllQuestions = filteredQuizzes[expandedQuiz!].questions.findIndex((q) => q.question === selectedQuestions[idx].question);
+        const indexInAllQuestions = filteredQuizzes[filteredQuizzes.findIndex(q => q.quizIndex === expandedQuiz)!].questions.findIndex((q) => q.question === selectedQuestions[idx].question);
         if (indexInAllQuestions < 0) {
             console.error("Can't find question in expanded quiz questions");
             return;
@@ -164,11 +164,16 @@ export default function QuizPage() {
 
         try {
             setIsLoading(true);
+            const quizId = filteredQuizzes.find(q => q.quizId === expandedQuiz)?.quizId;
+            if (quizId === undefined) {
+                handleError(new Error("Quiz not found"));
+                return;
+            }
 
             const result = await sendScoreToServer(
                 publicClient!.chain.id,
                 walletClient.account.address,
-                filteredQuizzes[expandedQuiz!].quizId,
+                quizId,
                 questionAnswers
             );
 
@@ -249,8 +254,9 @@ export default function QuizPage() {
         setQuestionAnswers({});  // reset answers
 
         // Randomize questions and pick questionsPerUser
-        const shuffled = [...filteredQuizzes[expandedQuiz].questions].sort(() => 0.5 - Math.random());
-        const selectedQuestions = shuffled.slice(0, filteredQuizzes[expandedQuiz].questionsPerUser);
+        const expandedQuizIndex = filteredQuizzes.findIndex(q => q.quizId === expandedQuiz);
+        const shuffled = [...filteredQuizzes[expandedQuizIndex].questions].sort(() => 0.5 - Math.random());
+        const selectedQuestions = shuffled.slice(0, filteredQuizzes[expandedQuizIndex].questionsPerUser);
         setSelectedQuestions(selectedQuestions);
     }, [expandedQuiz])
 
@@ -279,7 +285,7 @@ export default function QuizPage() {
                     {userVotingPower >= proposalThreshold && !showNewQuizForm && (
                         <button
                             onClick={() => { setShowNewQuizForm(true) }}
-                            className="bg-primary text-background px-3 py-1 rounded-xl text-lg font-medium hover:bg-primary/90 transition"
+                            className="bg-primary text-background px-3 py-1 rounded text-lg font-medium hover:bg-primary/90 transition"
                         >
                             Create Quiz
                         </button>
@@ -315,7 +321,7 @@ export default function QuizPage() {
                             key={index}
                             className="bg-surface p-4 border border-muted rounded-lg shadow-sm transition"
                         >
-                            <div className="flex justify-between items-center">
+                            <div className="flex flex-col sm:flex-row justify-between items-center">
                                 <div>
                                     <h2 className="text-lg font-semibold text-text">{quiz.title}</h2>
                                     <p className="text-sm text-muted">Prize: {formatEther(quiz.prizeAmount)} {quiz.tokenSymbol}</p>
@@ -324,7 +330,7 @@ export default function QuizPage() {
                                         Questions: {quiz.questionsPerUser} | Max Winnings: {quiz.winners}/{quiz.maxWinners} | Trials: {quiz.userTrials !== undefined ? `${quiz.userTrials}/` : ""}{quiz.maxTrials}
                                     </p>
                                 </div>
-                                <div className="flex space-x-2">
+                                <div className="flex flex-row space-x-2">
                                     {userVotingPower >= proposalThreshold && !quiz.claimOpened && +quiz.deadline <= Math.floor(Date.now() / 1000) && quiz.winners! > 0 && (
                                         <button
                                             onClick={() => handleProposeOpenQuizPrizeClaims(quiz.quizId, quiz.prizeToken, quiz.prizeAmount, quiz.winners!, quiz.tokenSymbol!)}
@@ -353,18 +359,18 @@ export default function QuizPage() {
                                     )}
                                     <button
                                         onClick={() =>
-                                            setExpandedQuiz(expandedQuiz === index ? undefined : index)
+                                            setExpandedQuiz(expandedQuiz === quiz.quizId ? undefined : quiz.quizId)
                                         }
                                         className="bg-primary text-background px-4 py-2 rounded hover:opacity-90"
                                     >
-                                        {expandedQuiz === index ? 'Hide Quiz' : 'Expand Quiz'}
+                                        {expandedQuiz === quiz.quizId ? 'Hide Quiz' : 'Expand Quiz'}
 
                                     </button>
                                 </div>
                             </div>
 
                             {/* Expandable Questions */}
-                            {expandedQuiz === index && (
+                            {expandedQuiz === quiz.quizId && (
                                 <form onSubmit={handleSubmitAnswers} className="mt-4 space-y-4">
                                     {selectedQuestions.map((q, idx) => (
                                         <div key={idx} className="p-3 text-text bg-background border border-muted rounded">

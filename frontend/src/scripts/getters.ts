@@ -1,7 +1,7 @@
-import { type Address, type PublicClient, getContract, parseAbiItem, zeroAddress } from 'viem'
+import { type Address, type PublicClient, getContract, parseEther, parseAbiItem, zeroAddress } from 'viem';
 import { type ProposalDetails, type ProposalVotes, type QuizContractMetadata, type AssetCoreMetadata, type AssetLicenseTerms, type AssetAPIMetadata, type LicenseTermsMetadata } from '../utils/utils';
 import { StoryClient } from '@story-protocol/core-sdk';
-import { storyAeneid } from 'viem/chains';
+import { storyAeneid, type LicenseTerms } from 'viem/chains';
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json';
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
@@ -492,8 +492,9 @@ export async function getLicenseTerms(licenseTermId: number, chainId: number): P
   if (!response.ok) throw new Error(`Response status: ${response.status}`);
 
   const terms = await response.json();  // {data, next, prev}
-  
-  return terms.data as LicenseTermsMetadata;
+  const name = getLicenseTermsName(terms.data.terms);
+  const description = getLicenseTermsDescription(terms.data.terms);
+  return {...terms.data, name, description} as LicenseTermsMetadata;
 }
 
 export async function getGovernanceTokenHolders(chain: "aeneid" | "mainnet"): Promise<{ value: string, address: string }[]> {
@@ -735,4 +736,108 @@ export async function getRoyaltyTokenBalance(vault: Address, holder: Address, cl
 
     const bal = await contract.read.balanceOf([holder]);
     return bal as bigint;
+}
+
+export function getNonCommercialTerms(): LicenseTerms {
+    return {
+        transferable: true,
+        royaltyPolicy: zeroAddress,
+        defaultMintingFee: 0n,
+        expiration: 0n,
+        commercialUse: false,
+        commercialAttribution: false,
+        commercializerChecker: zeroAddress,
+        commercializerCheckerData: "0x",
+        commercialRevShare: 0,
+        commercialRevCeiling: 0n,
+        derivativesAllowed: true,
+        derivativesAttribution: true,
+        derivativesApproval: false,
+        derivativesReciprocal: true,
+        derivativeRevCeiling: 0n,
+        currency: zeroAddress,
+        uri: "https://github.com/piplabs/pil-document/blob/998c13e6ee1d04eb817aefd1fe16dfe8be3cd7a2/off-chain-terms/NCSR.json",
+    }
+}
+
+export function getCommercialUseTerms(royaltyPolicy: Address, defaultMintingFee: string, currency: Address): LicenseTerms {
+    return {
+        transferable: true,
+        royaltyPolicy,
+        defaultMintingFee: parseEther(defaultMintingFee),
+        expiration: 0n,
+        commercialUse: true,
+        commercialAttribution: true,
+        commercializerChecker: zeroAddress,
+        commercializerCheckerData: "0x",
+        commercialRevShare: 0,
+        commercialRevCeiling: 0n,
+        derivativesAllowed: false,
+        derivativesAttribution: false,
+        derivativesApproval: false,
+        derivativesReciprocal: false,
+        derivativeRevCeiling: 0n,
+        currency,
+        uri: "https://github.com/piplabs/pil-document/blob/9a1f803fcf8101a8a78f1dcc929e6014e144ab56/off-chain-terms/CommercialUse.json",
+    }
+};
+
+export function getCommercialRemixTerms(royaltyPolicy: Address, defaultMintingFee: number, commercialRevShare: number, currency: Address): LicenseTerms {
+    return {
+        transferable: true,
+        royaltyPolicy,
+        defaultMintingFee: parseEther(defaultMintingFee.toString()),
+        expiration: 0n,
+        commercialUse: true,
+        commercialAttribution: true,
+        commercializerChecker: zeroAddress,
+        commercializerCheckerData: "0x",
+        commercialRevShare: Number(commercialRevShare),
+        commercialRevCeiling: 0n,
+        derivativesAllowed: true,
+        derivativesAttribution: true,
+        derivativesApproval: false,
+        derivativesReciprocal: true,
+        derivativeRevCeiling: 0n,
+        currency,
+        uri: "https://github.com/piplabs/pil-document/blob/ad67bb632a310d2557f8abcccd428e4c9c798db1/off-chain-terms/CommercialRemix.json",
+    }
+}
+
+export function getCreativeCommonsAttributionTerms(royaltyPolicy: Address, currency: Address): LicenseTerms {
+    return {
+        transferable: true,
+        royaltyPolicy,
+        defaultMintingFee: 0n,
+        expiration: 0n,
+        commercialUse: true,
+        commercialAttribution: true,
+        commercializerChecker: zeroAddress,
+        commercializerCheckerData: "0x",
+        commercialRevShare: 0,
+        commercialRevCeiling: 0n,
+        derivativesAllowed: true,
+        derivativesAttribution: true,
+        derivativesApproval: false,
+        derivativesReciprocal: true,
+        derivativeRevCeiling: 0n,
+        currency,
+        uri: "https://github.com/piplabs/pil-document/blob/998c13e6ee1d04eb817aefd1fe16dfe8be3cd7a2/off-chain-terms/CC-BY.json",
+    }
+}
+
+export function getLicenseTermsName(licenseTerms: LicenseTerms): string {
+    if (licenseTerms.uri.includes("NCSR")) return "Non-Commercial Share-Alike";
+    if (licenseTerms.uri.includes("CommercialUse")) return "Commercial Use";
+    if (licenseTerms.uri.includes("CommercialRemix")) return "Commercial Remix";
+    if (licenseTerms.uri.includes("CC-BY")) return "Creative Commons Attribution";
+    return "Custom License Terms";
+}
+
+export function getLicenseTermsDescription(licenseTerms: LicenseTerms): string {
+    if (licenseTerms.uri.includes("NCSR")) return "This license allows non-commercial use of the asset with share-alike conditions.";
+    if (licenseTerms.uri.includes("CommercialUse")) return "This license allows commercial use of the asset with attribution.";
+    if (licenseTerms.uri.includes("CommercialRemix")) return "This license allows commercial remixing of the asset with attribution and revenue sharing.";
+    if (licenseTerms.uri.includes("CC-BY")) return "This license allows commercial use and remixing of the asset with attribution.";
+    return "";
 }

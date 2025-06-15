@@ -6,14 +6,13 @@ import { getDAOName, getDaoRoyaltyShare, getGovernanceTokenSupply, getGovernance
 import { formatEther } from "viem";
 
 export default function Dashboard() {
-  const [showNewProposalForm, setShowNewProposalForm] = useState(false);
   const [votingPeriod, setVotingPeriod] = useState(0);
   const [votingDelay, setVotingDelay] = useState(0);
   const [proposalThreshold, setProposalThreshold] = useState("");
   const [totalProposals, setTotalProposals] = useState(0n);
   const [quorum, setQuorum] = useState(0n);
   const [daoName, setDaoName] = useState("");
-  const [governanceTokenSupply, setGovernanceTokenSupply] = useState("");
+  const [governanceTokenSupply, setGovernanceTokenSupply] = useState("0");
   const [governanceTokenHolders, setGovernanceTokenHolders] = useState(0);
   const [participationThreshold, setParticipationThreshold] = useState(0n);
   const [userVotingPower, setUserVotingPower] = useState(0n);
@@ -141,19 +140,6 @@ export default function Dashboard() {
             <p className="text-xl font-semibold">{(daoRoyaltyShare / (10n ** 6n)).toString()}%</p>
           </div>
         </div>
-      </div>
-
-      {/* CTA */}
-      <div className="text-center">
-        {showNewProposalForm ?
-          <NewProposalForm setShowNewProposalForm={setShowNewProposalForm} />
-          :
-          <button
-            onClick={() => { setShowNewProposalForm(true) }}
-            className="bg-primary text-white px-6 py-3 rounded-xl text-lg font-medium hover:bg-primary/90 transition"
-          >
-            Create Proposal
-          </button>}
       </div>
     </div>
   );

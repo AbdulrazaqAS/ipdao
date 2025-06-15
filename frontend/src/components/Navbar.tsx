@@ -2,16 +2,8 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NavItems } from "../utils/utils";
 
-import { Account } from './Account';
-import { WalletOptions } from './WalletOptions';
 import { useAccount } from 'wagmi'
 import TomoConnectButton from './TomoConnectButton';
-
-function ConnectWallet() {
-  const { isConnected } = useAccount()
-  if (isConnected) return <Account />
-  return <WalletOptions />
-}
 
 interface Props {
   currentPage: string;
@@ -74,7 +66,9 @@ export default function Navbar({currentPage, setCurrentPage} : Props) {
             </button>
           ))}
           {/*<ConnectWallet />*/}
-          <TomoConnectButton />
+          <div className="mt-4">
+            <TomoConnectButton />
+          </div>
         </div>
       )}
     </nav>

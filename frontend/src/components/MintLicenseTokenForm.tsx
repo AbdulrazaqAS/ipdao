@@ -84,7 +84,7 @@ export default function MintLicenseTokenForm({ assetId, mintingFee, mintingFeeTo
                         <label>Max Revenue Share (%):<input type="number" placeholder="Max Revenue Share" min="0" max="100" value={maxRevShare} onChange={(e) => setMaxRevShare(e.target.value)} className={inputsClass} required /></label>
                     </div>
                     <div className="space-y-1">
-                        {mintingFeeToken && mintingFeeToken !== zeroAddress && <p className="text-muted text-sm">Fee Token: {feeTokenSymbol} {mintingFeeToken}</p>}
+                        {mintingFeeToken && mintingFeeToken !== zeroAddress && <p className="text-muted text-sm break-all">Fee Token: {feeTokenSymbol} {mintingFeeToken}</p>}
                         <p className="text-muted text-sm">Note: Max Minting Fee and Max Revenue Share should be those specified in the license (or greater). They are used to protect you from fluctuations in the minting fee and revenue share. If the actual values (while minting) are higher than the max values, the transaction will fail.</p>
                     </div>
                 </div>

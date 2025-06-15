@@ -29,7 +29,7 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
     const [questionsPerUser, setQuestionsPerUser] = useState("");
     const [questions, setQuestions] = useState<QuizQuestion[]>([{ question: '', answer: '', options: ['', '', '', ''] }]);
     const [isLoading, setIsLoading] = useState(false);
-    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [userVotingPower, setUserVotingPower] = useState(-1n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const publicClient = usePublicClient();
@@ -169,6 +169,7 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
             if (!metadataCid) throw new Error("Error uploading quiz metadata");
 
             const metadataUri = `https://ipfs.io/ipfs/${metadataCid}`;
+            console.log("Quiz metadata URI:", metadataUri);
 
             const targets = [QuizManagerAddress];
             const values = [0n];
@@ -200,6 +201,7 @@ export default function NewQuizForm({ setShowNewQuizForm }: Props) {
                 description
             };
 
+            console.log("Proposal Args:", proposalArgs);
             const txHash = await propose(proposalArgs, walletClient);
 
             publicClient?.waitForTransactionReceipt({ hash: txHash }).then((txReceipt) => {

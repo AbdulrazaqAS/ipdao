@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { registerLicenseTerms } from "../scripts/actions";
 import { StoryClient, type LicenseTerms } from "@story-protocol/core-sdk";
-import { getCommercialRemixTerms, getCommercialUseTerms, handleError, handleSuccess } from "../utils/utils";
+import { handleError, handleSuccess } from "../utils/utils";
 import { usePublicClient, useWalletClient } from "wagmi";
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import type { ProposalArgs } from "../utils/utils";
 import { propose } from "../scripts/actions";
-import { getProposalsCount, getProposalThreshold, getUserVotingPower } from "../scripts/getters";
+import { getProposalsCount, getProposalThreshold, getUserVotingPower, getCommercialRemixTerms, getCommercialUseTerms } from "../scripts/getters";
 import { encodeFunctionData, type Address, parseEther, custom } from "viem";
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER!;
@@ -61,7 +61,7 @@ export default function AttachNewLicenseTermsForm({ assetId, setShowNewLicenseFo
     const [licenseRegistered, setLicenseRegistered] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [licenseTermsId, setLicenseTermsId] = useState<bigint>();
-    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [userVotingPower, setUserVotingPower] = useState(-1n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const [formData, setFormData] = useState<any>({});

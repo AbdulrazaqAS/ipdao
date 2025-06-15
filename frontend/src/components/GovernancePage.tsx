@@ -9,12 +9,12 @@ import { claimIPRevenue, delegateVote, propose } from '../scripts/actions';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
 import { StoryClient } from '@story-protocol/core-sdk';
 import DaoContractsList from './DaoContractsList';
+import DaoVariablesForm from './DaoVariablesForm';
 
 const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER;
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
-  // const [selectedAsset, setSelectedAsset] = useState<string>("");
 
   return (
     <div className="rounded-xl bg-surface p-4 mb-4 transition-all">
@@ -38,7 +38,7 @@ export default function GovernancePage() {
   const [assets, setAssets] = useState<AssetMetadata[]>([]);
   const [selectedAsset, setSelectedAsset] = useState<AssetMetadata>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [userVotingPower, setUserVotingPower] = useState(0n);
+  const [userVotingPower, setUserVotingPower] = useState(-1n);
   const [proposalThreshold, setProposalThreshold] = useState(0n);
   const [assetTransferRecipient, setAssetTransferRecipient] = useState<string>("");
   const [delegateTo, setDelegateTo] = useState('');
@@ -111,13 +111,13 @@ export default function GovernancePage() {
         if (txReceipt.status === "reverted") handleError(new Error("Proposal to transfer asset reverted"));
         else {
           handleSuccess("Proposal to transfer asset submitted successfully!");
+          setIsLoading(false);
         }
       });
 
     } catch (error) {
       console.error("Error proposing to transfer asset:", error);
       handleError(error as Error);
-    } finally {
       setIsLoading(false);
     }
   }
@@ -559,6 +559,10 @@ export default function GovernancePage() {
         ))}
       </Section>
 
+      <Section title="DAO Variables">
+        <DaoVariablesForm />
+      </Section>
+
       <Section title="Delegate Votes">
         <div className="space-y-2">
           <div className="text-sm">Current Delegate: <span className="font-mono text-muted">{currentDelegate || "Wallet not connected"}</span></div>
@@ -573,7 +577,7 @@ export default function GovernancePage() {
               placeholder="0xDelegateAddress"
               className="w-full rounded px-3 py-2 border bg-background text-sm text-text border-muted focus:outline-none"
             />
-            <button onClick={handleDelegateVotes} className="px-4 py-2 bg-primary text-white text-sm rounded">Delegate</button>
+            <button onClick={handleDelegateVotes} className="w-full px-4 py-2 bg-primary text-white text-sm rounded">Delegate</button>
             {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
           </div>
         </div>

@@ -71,7 +71,7 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   const [showLicenseMintForm, setShowLicenseMintForm] = useState<false | number>(false);
   const [showDerivativeForm, setShowDerivativeForm] = useState<false | number>(false);
   const [isLoadingLicenses, setIsLoadingLicenses] = useState(true);
-  const [userVotingPower, setUserVotingPower] = useState(0n);
+  const [userVotingPower, setUserVotingPower] = useState(-1n);
   const [proposalThreshold, setProposalThreshold] = useState(0n);
 
   const chain = useChainId();
@@ -113,6 +113,7 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
       assetLicenses.map((license) => getLicenseTerms(Number(license.licenseTermsId), chain))
     ).then((termsArray) => {
       setLicensesTerms(termsArray);
+      console.log("Fetched license terms:", termsArray);
     }).catch((error) => {
       console.error("Error fetching all license terms:", error);
     }).finally(() => {
@@ -189,8 +190,14 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
         <Section title="Licenses">
           <div className="flex flex-col">
             {licensesTerms.map((license, index) => (
-              <Section key={index} title={`License Terms #${license.id}`}>
+              <Section key={index} title={license.name}>
                 <div className="space-y-4">
+                  {license.description && (
+                    <div className="text-sm text-muted">
+                      <p className="font-medium">Description:</p>
+                      <p>{license.description}</p>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {license?.licenseTerms.map((trait, index) => (
                       <TraitCard key={index} trait={trait} />

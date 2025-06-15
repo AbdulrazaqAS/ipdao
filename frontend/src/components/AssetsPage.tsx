@@ -22,7 +22,7 @@ export default function AssetsPage() {
     const [selectedAsset, setSelectedAsset] = useState<AssetMetadata>();
     const [showNewAssetForm, setShowNewAssetForm] = useState(false);
     const [isLoadingAssets, setIsLoadingAssets] = useState(true);
-    const [userVotingPower, setUserVotingPower] = useState(0n);
+    const [userVotingPower, setUserVotingPower] = useState(-1n);
     const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const publicClient = usePublicClient();
@@ -74,7 +74,7 @@ export default function AssetsPage() {
                             <h1 className="text-text text-2xl font-bold">Assets</h1>
                             <button
                                 onClick={() => setShowNewAssetForm(true)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition"
+                                className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded transition"
                             >
                                 Add Asset
                             </button>
