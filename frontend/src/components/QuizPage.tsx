@@ -46,7 +46,7 @@ export default function QuizPage() {
     const { data: walletClient } = useWalletClient();
 
     function handleAnswerChange(idx: number, i: number): void {
-        const indexInAllQuestions = filteredQuizzes[expandedQuiz!].questions.findIndex((q) => q.question === selectedQuestions[idx].question);
+        const indexInAllQuestions = filteredQuizzes[filteredQuizzes.findIndex(q => q.quizIndex === expandedQuiz)!].questions.findIndex((q) => q.question === selectedQuestions[idx].question);
         if (indexInAllQuestions < 0) {
             console.error("Can't find question in expanded quiz questions");
             return;
@@ -164,11 +164,16 @@ export default function QuizPage() {
 
         try {
             setIsLoading(true);
+            const quizId = filteredQuizzes.find(q => q.quizId === expandedQuiz)?.quizId;
+            if (quizId === undefined) {
+                handleError(new Error("Quiz not found"));
+                return;
+            }
 
             const result = await sendScoreToServer(
                 publicClient!.chain.id,
                 walletClient.account.address,
-                filteredQuizzes[expandedQuiz!].quizId,
+                quizId,
                 questionAnswers
             );
 
@@ -249,8 +254,9 @@ export default function QuizPage() {
         setQuestionAnswers({});  // reset answers
 
         // Randomize questions and pick questionsPerUser
-        const shuffled = [...filteredQuizzes[expandedQuiz].questions].sort(() => 0.5 - Math.random());
-        const selectedQuestions = shuffled.slice(0, filteredQuizzes[expandedQuiz].questionsPerUser);
+        const expandedQuizIndex = filteredQuizzes.findIndex(q => q.quizIndex === expandedQuiz);
+        const shuffled = [...filteredQuizzes[expandedQuizIndex].questions].sort(() => 0.5 - Math.random());
+        const selectedQuestions = shuffled.slice(0, filteredQuizzes[expandedQuizIndex].questionsPerUser);
         setSelectedQuestions(selectedQuestions);
     }, [expandedQuiz])
 
@@ -353,18 +359,18 @@ export default function QuizPage() {
                                     )}
                                     <button
                                         onClick={() =>
-                                            setExpandedQuiz(expandedQuiz === index ? undefined : index)
+                                            setExpandedQuiz(expandedQuiz === quiz.quizId ? undefined : quiz.quizId)
                                         }
                                         className="bg-primary text-background px-4 py-2 rounded hover:opacity-90"
                                     >
-                                        {expandedQuiz === index ? 'Hide Quiz' : 'Expand Quiz'}
+                                        {expandedQuiz === quiz.quizId ? 'Hide Quiz' : 'Expand Quiz'}
 
                                     </button>
                                 </div>
                             </div>
 
                             {/* Expandable Questions */}
-                            {expandedQuiz === index && (
+                            {expandedQuiz === quiz.quizId && (
                                 <form onSubmit={handleSubmitAnswers} className="mt-4 space-y-4">
                                     {selectedQuestions.map((q, idx) => (
                                         <div key={idx} className="p-3 text-text bg-background border border-muted rounded">
