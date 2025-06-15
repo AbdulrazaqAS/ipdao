@@ -36,6 +36,11 @@ export default function ProposalsPage() {
       return;
     }
 
+    if (userVotingPower <= 0) {
+      handleError(new Error("You have no voting power to cast a vote"));
+      return;
+    }
+
     try {
       setIsLoading(true);
       const txHash = await castVote(selectedProposal!.id, voteChoice!, walletClient);
@@ -117,7 +122,7 @@ export default function ProposalsPage() {
   useEffect(() => {
     if (proposals.length === 0 || hasLoadedDescriptions) return;
 
-    async function fetchProposalsDescriptions(){
+    async function fetchProposalsDescriptions() {
       const descriptions = await getProposalsDescriptions(publicClient!);
       const updatedProposals = proposals.map(p => {
         const description = descriptions.find(desc => p.id === desc.proposalId)?.description || null;
@@ -164,8 +169,8 @@ export default function ProposalsPage() {
             <button
               key={tab}
               className={`px-4 py-2 rounded text-sm font-medium transition ${selectedTab === tab
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                 }`}
               onClick={() => setSelectedTab(tab)}
             >
@@ -178,16 +183,16 @@ export default function ProposalsPage() {
       {/* Proposal cards */}
       {!showNewProposalForm && (
         <div className="grid grid-col-1 gap-6">
-        {filteredProposals.map((proposal) =>
-          <ProposalCard key={proposal.id} proposal={proposal} votingPeriod={Number(votingPeriod)} setSelectedProposal={setSelectedProposal} setShowModal={setShowModal} setVoteChoice={setVoteChoice} />
-        )}
+          {filteredProposals.map((proposal) =>
+            <ProposalCard key={proposal.id} proposal={proposal} votingPeriod={Number(votingPeriod)} setSelectedProposal={setSelectedProposal} setShowModal={setShowModal} setVoteChoice={setVoteChoice} />
+          )}
 
-        {isLoadingProposals ? (
-          <div className="text-center text-gray-500 py-6">Loading proposals...</div>
-        ) : (
-          filteredProposals.length === 0 && (
-          <div className="text-center text-gray-500 py-6">No proposals found.</div>
-        ))}
+          {isLoadingProposals ? (
+            <div className="text-center text-gray-500 py-6">Loading proposals...</div>
+          ) : (
+            filteredProposals.length === 0 && (
+              <div className="text-center text-gray-500 py-6">No proposals found.</div>
+            ))}
         </div>
       )}
 
@@ -211,10 +216,10 @@ export default function ProposalsPage() {
               </button>
               <button
                 className={`px-4 py-2 rounded text-white disabled:cursor-not-allowed ${voteChoice === VoteChoice.For
-                    ? "bg-green-600 hover:bg-green-700"
-                    : voteChoice === VoteChoice.Against
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-yellow-500 hover:bg-yellow-600"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : voteChoice === VoteChoice.Against
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-yellow-500 hover:bg-yellow-600"
                   }`}
                 onClick={handleCastVote}
                 disabled={isLoading}

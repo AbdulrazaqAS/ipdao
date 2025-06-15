@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { handleError, handleSuccess, type AssetMetadata, type ProposalArgs } from '../utils/utils';
 import { usePublicClient, useWalletClient } from 'wagmi';
 import type { AssetInitialMetadata } from './AssetsPage';
-import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAddressERC20s, getAddressNFTs, getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenName, getTokenSymbol, getUserDelegate, getUsersVotingPower, getUserVotingPower, getRoyaltyTokenBalance } from '../scripts/getters';
+import { getAssetsIds, getAssetsMetadata, fetchMetadata, getAssetAPIMetadata, getAddressERC20s, getParticipationThreshold, getAddressNFTs, getAssetsVaultsAddresses, getAssetsVaultsTokens, getClaimableRevenue, getGovernanceTokenHolders, getProposalsCount, getProposalThreshold, getTokenName, getTokenSymbol, getUserDelegate, getUsersVotingPower, getUserVotingPower, getRoyaltyTokenBalance } from '../scripts/getters';
 import { custom, encodeFunctionData, formatEther, type Address, zeroAddress } from 'viem';
 import { claimIPRevenue, delegateVote, propose } from '../scripts/actions';
 import IPAManagerABI from '../assets/abis/IPAManagerABI.json'
@@ -40,6 +40,7 @@ export default function GovernancePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [userVotingPower, setUserVotingPower] = useState(-1n);
   const [proposalThreshold, setProposalThreshold] = useState(0n);
+  const [participationThreshold, setParticipationThreshold] = useState(0n);
   const [assetTransferRecipient, setAssetTransferRecipient] = useState<string>("");
   const [delegateTo, setDelegateTo] = useState('');
   const [currentDelegate, setCurrentDelegate] = useState<string>();
@@ -201,6 +202,14 @@ export default function GovernancePage() {
       return;
     }
 
+    if (userVotingPower < participationThreshold) {
+      // Check if user has enough voting power to delegate votes
+      // This is to increase the user likelihood of trying to get more voting power
+      // But can use this current power to cast votes
+      handleError(new Error(`No enough voting power to delegate votes`));
+      return;
+    }
+
     if (!delegateTo) {
       handleError(new Error("Please enter a valid address to delegate votes"));
       return;
@@ -236,7 +245,13 @@ export default function GovernancePage() {
       return;
     }
 
-    if (!amount || amount <= 0n){
+    // This will only affect claiming revenue for the DAO
+    if (claimer === IPA_MANAGER_ADDRESS && userVotingPower < participationThreshold) {
+      handleError(new Error(`No enough voting power to claim revenue for the DAO`));
+      return;
+    }
+
+    if (!amount || amount <= 0n) {
       handleError(new Error("Amount must be greater than zero"));
       return;
     }
@@ -286,6 +301,7 @@ export default function GovernancePage() {
 
     fetchAssets();
     getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
+    getParticipationThreshold(publicClient!).then(setParticipationThreshold).catch(console.error);
 
     let chainName: "aeneid" | "mainnet";
     if (publicClient?.chain.id === 1315) chainName = "aeneid";
@@ -580,6 +596,7 @@ export default function GovernancePage() {
             <button onClick={handleDelegateVotes} className="w-full px-4 py-2 bg-primary text-white text-sm rounded">Delegate</button>
             {isLoading && <span className="ml-2 spinner-border animate-spin inline-block w-4 h-4 border-2 rounded-full border-current border-t-transparent"></span>}
           </div>
+          <p className='text-muted'>Having Governance tokens doesn't directly gives voting power, you need to delegate them to a wallet address to give it voting power (This can be your own address). You can always change who you delegate to.</p>
         </div>
       </Section>
 

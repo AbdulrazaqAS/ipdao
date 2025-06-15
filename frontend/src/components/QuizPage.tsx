@@ -45,8 +45,8 @@ export default function QuizPage() {
     const publicClient = usePublicClient();
     const { data: walletClient } = useWalletClient();
 
-    function handleAnswerChange(idx: number, i: number): void {
-        const indexInAllQuestions = filteredQuizzes[filteredQuizzes.findIndex(q => q.quizIndex === expandedQuiz)!].questions.findIndex((q) => q.question === selectedQuestions[idx].question);
+    function handleAnswerChange(idx: number, i: number): void {  // idx is the index of the question in selectedQuestions, i is the index of the answer option
+        const indexInAllQuestions = filteredQuizzes[filteredQuizzes.findIndex(q => q.quizId === expandedQuiz)].questions.findIndex((q) => q.question === selectedQuestions[idx].question);
         if (indexInAllQuestions < 0) {
             console.error("Can't find question in expanded quiz questions");
             return;
@@ -275,6 +275,8 @@ export default function QuizPage() {
         });
 
         setFilteredQuizzes(filteredQuizzes);
+        setExpandedQuiz(undefined);  // reset expanded quiz when filtering quizzes
+        setQuestionAnswers({});  // reset answers when filtering quizzes
     }, [quizzes, activeTab]);
 
     return (
@@ -324,10 +326,10 @@ export default function QuizPage() {
                             <div className="flex flex-col sm:flex-row justify-between items-center">
                                 <div>
                                     <h2 className="text-lg font-semibold text-text">{quiz.title}</h2>
-                                    <p className="text-sm text-muted">Prize: {formatEther(quiz.prizeAmount)} {quiz.tokenSymbol}</p>
+                                    <p className="text-sm text-muted">Prize: {formatEther(quiz.prizeAmount)} {quiz.tokenSymbol} | Win Threshold: {quiz.minScore}</p>
                                     <p className="text-sm text-muted">Deadline: {new Date(Number(quiz.deadline) * 1000).toLocaleDateString()} {new Date(Number(quiz.deadline) * 1000).toLocaleTimeString()}</p>
                                     <p className="text-sm text-muted">
-                                        Questions: {quiz.questionsPerUser} | Max Winnings: {quiz.winners}/{quiz.maxWinners} | Trials: {quiz.userTrials !== undefined ? `${quiz.userTrials}/` : ""}{quiz.maxTrials}
+                                        Questions: {quiz.questionsPerUser} | Max Winnings: {quiz.winners}/{quiz.maxWinners} | Your Trials: {quiz.userTrials !== undefined ? `${quiz.userTrials}/` : ""}{quiz.maxTrials}
                                     </p>
                                 </div>
                                 <div className="flex flex-row space-x-2">
