@@ -1,5 +1,5 @@
 module.exports = [
-	"Creator",
-	"CRT",
+	"ChronoForge Token",
+	"CFT",
 	process.env.INITIAL_ADMIN!,
 ];

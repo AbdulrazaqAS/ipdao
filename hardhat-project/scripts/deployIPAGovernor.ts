@@ -3,9 +3,9 @@ import { ethers } from "hardhat";
 // This is for deployment with ERC20 token for voting
 async function main() {
   const governanceToken = process.env.GOVERNANCE_TOKEN!;
-  const name = "CreatorDao"; // governor contract name
-  const votingDelay = 90; // 1.5 minutes
-  const votingPeriod = 5 * 60; // 5 minutes
+  const name = "ChronoForge DAO"; // governor contract name
+  const votingDelay = 60; // 1 minutes
+  const votingPeriod = 3 * 60; // 3 minutes
   const proposalThreshold = ethers.parseEther("100"); // 100 tokens minimum to create a proposal
   const quorum = 4; // 4% of total supply
   const participationThreshold = ethers.parseEther("25"); // 1000 tokens minimum for non-proposal actions

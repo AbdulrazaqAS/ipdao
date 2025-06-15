@@ -3,7 +3,7 @@ import { ethers } from "hardhat";
 async function main() {
   const [initialOwner] = await ethers.getSigners();
   const Token = await ethers.getContractFactory("GovernanceERC20Token");
-  const token = await Token.deploy("Creator", "CRT", initialOwner.address);
+  const token = await Token.deploy("ChronoForge Token", "CFT", initialOwner.address);
 
   await token.waitForDeployment();
   const deploymentTx = token.deploymentTransaction();
