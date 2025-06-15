@@ -1,7 +1,8 @@
 import formidable from 'formidable';
 import CryptoJS from 'crypto-js';
 import dotenv from 'dotenv';
-import { createPublicClient, createWalletClient, privateKeyToAccount, http } from 'viem';
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts'
 import { story, storyAeneid } from 'viem/chains';
 import axios from 'axios';
 
