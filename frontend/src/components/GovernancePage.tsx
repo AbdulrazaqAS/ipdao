@@ -202,8 +202,8 @@ export default function GovernancePage() {
       return;
     }
 
-    if (userVotingPower < participationThreshold) {
-      // Check if user has enough voting power to delegate votes
+    if (walletClient.account.address !== delegateTo && userVotingPower < participationThreshold) {
+      // Check if user has enough voting power to delegate votes to another address (not himself).
       // This is to increase the user likelihood of trying to get more voting power
       // But can use this current power to cast votes
       handleError(new Error(`No enough voting power to delegate votes`));
