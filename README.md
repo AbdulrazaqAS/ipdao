@@ -97,6 +97,15 @@ The airdrop system can be extended to support new task types such as:
 - Token staking or LP contribution
 
 
+### Project Track
+This project is build for the **IP Finance (IPFi)** track which includes DAO as example.
+
+
+### Sponsore Tech Used
+- Tomo SDK (social login & wallet aggregator):
+This project integrates Tomo SDK for login in users through different ways including social media.
+
+
 ### 🔭 Project Vision
 
 Our goal is to build a comprehensive onchain protocol for launching and managing DAOs around IP assets, designed with upgradability and crosschain compatibility at its core.
