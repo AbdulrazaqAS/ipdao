@@ -8,7 +8,6 @@ IPDAO enables creators to launch and manage a decentralized autonomous organizat
 IPDao is built to empower creators, fans, and Web3 communities to co-own, co-create, and co-govern Intellectual Property (IP). The platform is versatile and designed for a wide range of use cases like:
 - Indie creators or teams (e.g., comic books, animations, music)
 - Fan communities wanting to co-own or co-produce IP
-- Web3-native brands launching collaborative stories or games
 
 
 
