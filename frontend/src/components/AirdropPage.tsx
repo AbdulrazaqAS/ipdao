@@ -27,6 +27,12 @@ export default function AirdropPage() {
       </div>
 
       {activeTab === "Quiz" && <QuizPage />}
+      {activeTab === "Art" && (
+        <div className="text-center text-muted">
+          <p className="text-lg">Art section coming soon!</p>
+          <p className="mt-2">Stay tuned for exciting updates!</p>
+        </div>
+      )}
     </div>
   );
 }

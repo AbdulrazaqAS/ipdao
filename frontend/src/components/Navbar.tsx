@@ -66,7 +66,9 @@ export default function Navbar({currentPage, setCurrentPage} : Props) {
             </button>
           ))}
           {/*<ConnectWallet />*/}
-          <TomoConnectButton />
+          <div className="mt-4">
+            <TomoConnectButton />
+          </div>
         </div>
       )}
     </nav>

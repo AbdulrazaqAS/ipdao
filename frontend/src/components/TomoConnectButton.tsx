@@ -4,7 +4,7 @@ import { useAccount } from 'wagmi';
 const TomoConnectButton = () => {
   const { openConnectModal } = useConnectModal();
   const { openAccountModal } = useAccountModal();
-  const { address, isConnected, isDisconnected } = useAccount();
+  const { address, isConnected, isDisconnected, isConnecting } = useAccount();
 
   function handleClick() {
     if (isDisconnected) openConnectModal();
@@ -21,10 +21,12 @@ const TomoConnectButton = () => {
         <span class="block group-hover:hidden">
           {isDisconnected && "Connect Wallet"}
           {isConnected && address && `${address.slice(0,7)}...${address.slice(-4)}`}
+          {isConnecting && "Connecting..."}
         </span>
         <span class="hidden group-hover:block">
           {isDisconnected && "Connect Wallet"}
           {isConnected && address && "Disconnect"}
+          {isConnecting && "Connecting..."}
         </span>
       </button>
     </div>
