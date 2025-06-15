@@ -4,7 +4,7 @@ import { usePublicClient, useWalletClient } from 'wagmi'
 import { handleError, handleSuccess, ProposalState, VoteChoice, type ProposalData } from "../utils/utils";
 import { cancelProposal, executeProposal } from "../scripts/actions";
 import { formatEther } from "viem";
-import { getParticipationThreshold, getUserVotingPower } from "../scripts/getters";
+import { getParticipationThreshold, getUserVotingPower, getProposalThreshold } from "../scripts/getters";
 
 const StatusColor: Record<ProposalState, string> = {
     [ProposalState.Pending]: "bg-yellow-100 text-yellow-800",
@@ -45,6 +45,7 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
     const [isLoading, setIsLoading] = useState(false);
     const [userVotingPower, setUserVotingPower] = useState(-1n);
     const [participationThreshold, setParticipationThreshold] = useState(0n);
+    const [proposalThreshold, setProposalThreshold] = useState(0n);
 
     const totalVotes = Number(proposal.for + proposal.against + proposal.abstain) || 1; // Avoid division by zero
     const forPct = Math.round((Number(proposal.for) / totalVotes) * 100);
@@ -96,6 +97,7 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
         }, 1000);
 
         getParticipationThreshold(publicClient!).then(setParticipationThreshold).catch(console.error);
+        getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
 
         return () => clearInterval(updateTime);
     }, []);
@@ -140,8 +142,8 @@ export default function ProposalCard({ proposal, votingPeriod, setVoteChoice, se
             return;
         }
 
-        if (userVotingPower < participationThreshold) {
-            handleError(new Error(`No enough voting power to participate`));
+        if (userVotingPower < proposalThreshold) {
+            handleError(new Error(`No enough voting power to cancel proposal`));
             return;
         }
 
