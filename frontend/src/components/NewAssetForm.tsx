@@ -257,6 +257,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
     async function handleProposeAddNewAssetFromNFT() {
         try {
+            // TODO: Check whether the contract owns the NFT.
             const collectionAddress = nftFields.collectionAddress.trim();
             const tokenId = nftFields.tokenId.trim();
             if (!collectionAddress || !tokenId) throw new Error("Collection address and token ID are required");

@@ -141,8 +141,8 @@ contract IPAManager is Ownable, ERC721Holder {
         address tokenCollection,
         uint256 tokenId
     ) external onlyOwner returns (address ipId) {
-        // require(IERC721(tokenCollection).ownerOf(tokenId) == address(this), "Contract must own the NFT");
-        ipId = IP_ASSET_REGISTRY.register(block.chainid, address(tokenCollection), tokenId); // Checks for ownership
+        require(IERC721(tokenCollection).ownerOf(tokenId) == address(this), "Contract must own the NFT");
+        ipId = IP_ASSET_REGISTRY.register(block.chainid, address(tokenCollection), tokenId);
         addAsset(ipId);
     }
 
