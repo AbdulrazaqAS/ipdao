@@ -9,6 +9,6 @@ module.exports = [
 	process.env.REGISTRATION_WORKFLOWS!,
 	process.env.DERIVATIVE_WORKFLOWS!,
 	process.env.ROYALTY_MODULE!,
-  	"CreatorDAOSPGNFT",
-  	"CRTSPGNFT",
+  	"ChronoForgeDAOSPGNFT",
+  	"CFTSPGNFT",
 ];

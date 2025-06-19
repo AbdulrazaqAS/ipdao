@@ -12,8 +12,8 @@ async function main() {
   const registrationWorkflows = process.env.REGISTRATION_WORKFLOWS!;
   const royaltyModule = process.env.ROYALTY_MODULE!;
   const daoRoyaltyTokens = 20 * 10 ** 6 // 20% of royalty tokens for each asset will be allocated to DAO
-  const spgNftName = "CreatorDAOSPGNFT";
-  const spgNftSymbol = "CRTSPGNFT";
+  const spgNftName = "ChronoForgeDAOSPGNFT";  // Collection for minting new tokens/assets
+  const spgNftSymbol = "CFTSPGNFT";
 
   const IPAManager = await ethers.getContractFactory("IPAManager");
   const ipaManager = await IPAManager.deploy(

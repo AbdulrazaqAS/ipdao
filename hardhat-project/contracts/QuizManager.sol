@@ -122,7 +122,7 @@ contract QuizManager is AccessControl{
         emit PrizeClaimed(quizId, msg.sender);
     }
 
-    function setIPAManager(address _ipaManager) exernal onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setIPAManager(address _ipaManager) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_ipaManager != address(0), "Invalid address");
         require(ipaManager != _ipaManager, "Same address");
 

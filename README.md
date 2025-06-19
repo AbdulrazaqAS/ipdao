@@ -8,7 +8,6 @@ IPDAO enables creators to launch and manage a decentralized autonomous organizat
 IPDao is built to empower creators, fans, and Web3 communities to co-own, co-create, and co-govern Intellectual Property (IP). The platform is versatile and designed for a wide range of use cases like:
 - Indie creators or teams (e.g., comic books, animations, music)
 - Fan communities wanting to co-own or co-produce IP
-- Web3-native brands launching collaborative stories or games
 
 
 
@@ -96,6 +95,15 @@ The airdrop system can be extended to support new task types such as:
 - Blog or lore articles
 - Short videos or animations
 - Token staking or LP contribution
+
+
+### Project Track
+This project is build for the **IP Finance (IPFi)** track which includes DAO as example.
+
+
+### Sponsore Tech Used
+- Tomo SDK (social login & wallet aggregator):
+This project integrates Tomo SDK for login in users through different ways including social media.
 
 
 ### 🔭 Project Vision

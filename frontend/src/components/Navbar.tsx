@@ -14,7 +14,7 @@ export default function Navbar({currentPage, setCurrentPage} : Props) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="bg-background text-text shadow-md">
+    <nav className="bg-background mb-5 border-b border-secondary text-text shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         {/* Logo */}
         <div className="text-xl font-bold text-primary">IPDAO</div>

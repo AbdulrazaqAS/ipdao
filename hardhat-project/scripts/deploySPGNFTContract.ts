@@ -13,7 +13,7 @@ const main = async function () {
     // you can use it in SPG functions.
     //
     const newCollection = await client.nftClient.createNFTCollection({
-        name: 'ChronoForge SPG NFT',
+        name: 'ChronoForge SPGNFT',
         symbol: 'CFSPG',
         isPublicMinting: true,
         mintOpen: true,
