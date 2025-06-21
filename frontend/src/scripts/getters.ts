@@ -1,7 +1,7 @@
 import { type Address, type PublicClient, getContract, parseEther, parseAbiItem, zeroAddress } from 'viem';
 import { type ProposalDetails, type ProposalVotes, type QuizContractMetadata, type AssetCoreMetadata, type AssetLicenseTerms, type AssetAPIMetadata, type LicenseTermsMetadata } from '../utils/utils';
-import { StoryClient } from '@story-protocol/core-sdk';
-import { storyAeneid, type LicenseTerms } from 'viem/chains';
+import { StoryClient, type LicenseTerms } from '@story-protocol/core-sdk';
+import { storyAeneid } from 'viem/chains';
 import IPAGovernorABI from '../assets/abis/IPAGovernorABI.json';
 import VotesERC20TokenABI from '../assets/abis/VotesERC20TokenABI.json';
 import QuizManagerABI from '../assets/abis/QuizManagerABI.json';
@@ -13,6 +13,7 @@ const IPA_MANAGER_ADDRESS: Address = import.meta.env.VITE_IPA_MANAGER!;
 const IPAGovernorAddress: Address = import.meta.env.VITE_IPA_GOVERNOR!;
 const GovernanceTokenAddress: Address = import.meta.env.VITE_GOVERNANCE_TOKEN!;
 const QuizManagerAddress: Address = import.meta.env.VITE_QUIZ_MANAGER!;
+const LicenseRegistryAddress: Address = import.meta.env.VITE_LicenseRegistry!;
 
 export async function getProposalsCount(client: PublicClient): Promise<bigint> {
     const contract = getContract({
@@ -163,7 +164,7 @@ export async function getProposalsDescriptions(client: PublicClient): Promise<{
         proposalId: log.args.proposalId,
         description: log.args.description
     }))
-    
+
     return proposals
 }
 
@@ -430,7 +431,7 @@ export async function getAssetsVaults(ipIds: Address[], client: PublicClient): P
     });
 
     const vaults = await Promise.all(
-      ipIds.map((ipId) => contract.read.getAssetVault([ipId]))
+        ipIds.map((ipId) => contract.read.getAssetVault([ipId]))
     );
 
     return vaults as Array<Address>;
@@ -448,53 +449,53 @@ export async function getDaoRoyaltyShare(client: PublicClient): Promise<bigint> 
 }
 
 export async function getAssetLicenseTerms(ipId: Address, chainId: number): Promise<AssetLicenseTerms[]> {
-  const options = {
-    method: 'GET',
-    headers: {
-      'X-Api-Key': 'MhBsxkU1z9fG6TofE59KqiiWV-YlYE8Q4awlLQehF3U',
-      'X-Chain': chainId === storyAeneid.id ? "story-aeneid" : 'story'
-    }
-  };
+    const options = {
+        method: 'GET',
+        headers: {
+            'X-Api-Key': 'MhBsxkU1z9fG6TofE59KqiiWV-YlYE8Q4awlLQehF3U',
+            'X-Chain': chainId === storyAeneid.id ? "story-aeneid" : 'story'
+        }
+    };
 
-  const response = await fetch(`https://api.storyapis.com/api/v3/licenses/ip/terms/${ipId.toString()}`, options)
-  if (!response.ok) throw new Error(`Response status: ${response.status}`);
+    const response = await fetch(`https://api.storyapis.com/api/v3/licenses/ip/terms/${ipId.toString()}`, options)
+    if (!response.ok) throw new Error(`Response status: ${response.status}`);
 
-  const terms = await response.json();  // {data, next, prev}
-  return terms.data as AssetLicenseTerms[];
+    const terms = await response.json();  // {data, next, prev}
+    return terms.data as AssetLicenseTerms[];
 }
 
 export async function getAssetAPIMetadata(ipId: Address, chainId: number): Promise<AssetAPIMetadata> {
-  const options = {
-    method: 'GET',
-    headers: {
-      'X-Api-Key': 'MhBsxkU1z9fG6TofE59KqiiWV-YlYE8Q4awlLQehF3U',
-      'X-Chain': chainId === storyAeneid.id ? "story-aeneid" : 'story'
-    }
-  };
+    const options = {
+        method: 'GET',
+        headers: {
+            'X-Api-Key': 'MhBsxkU1z9fG6TofE59KqiiWV-YlYE8Q4awlLQehF3U',
+            'X-Chain': chainId === storyAeneid.id ? "story-aeneid" : 'story'
+        }
+    };
 
-  const response = await fetch(`https://api.storyapis.com/api/v3/assets/${ipId.toString()}`, options);
-  if (!response.ok) throw new Error(`Response status: ${response.status}`);
+    const response = await fetch(`https://api.storyapis.com/api/v3/assets/${ipId.toString()}`, options);
+    if (!response.ok) throw new Error(`Response status: ${response.status}`);
 
-  const terms = await response.json();  // {data, next, prev}
-  return terms.data as AssetAPIMetadata;
+    const terms = await response.json();  // {data, next, prev}
+    return terms.data as AssetAPIMetadata;
 }
 
 export async function getLicenseTerms(licenseTermId: number, chainId: number): Promise<LicenseTermsMetadata> {
-  const options = {
-    method: 'GET',
-    headers: {
-      'X-Api-Key': 'MhBsxkU1z9fG6TofE59KqiiWV-YlYE8Q4awlLQehF3U',
-      'X-Chain': chainId === storyAeneid.id ? "story-aeneid" : 'story'
-    }
-  };
+    const options = {
+        method: 'GET',
+        headers: {
+            'X-Api-Key': 'MhBsxkU1z9fG6TofE59KqiiWV-YlYE8Q4awlLQehF3U',
+            'X-Chain': chainId === storyAeneid.id ? "story-aeneid" : 'story'
+        }
+    };
 
-  const response = await fetch(`https://api.storyapis.com/api/v3/licenses/terms/${licenseTermId}`, options)
-  if (!response.ok) throw new Error(`Response status: ${response.status}`);
+    const response = await fetch(`https://api.storyapis.com/api/v3/licenses/terms/${licenseTermId}`, options)
+    if (!response.ok) throw new Error(`Response status: ${response.status}`);
 
-  const terms = await response.json();  // {data, next, prev}
-  const name = getLicenseTermsName(terms.data.terms);
-  const description = getLicenseTermsDescription(terms.data.terms);
-  return {...terms.data, name, description} as LicenseTermsMetadata;
+    const terms = await response.json();  // {data, next, prev}
+    const name = getLicenseTermsName(terms.data.terms);
+    const description = getLicenseTermsDescription(terms.data.terms);
+    return { ...terms.data, name, description } as LicenseTermsMetadata;
 }
 
 export async function getGovernanceTokenHolders(chain: "aeneid" | "mainnet"): Promise<{ value: string, address: string }[]> {
@@ -543,7 +544,7 @@ export async function getAddressTokens(addr: Address, chain: "aeneid" | "mainnet
     return holdersMetadata.items as any[];
 }
 
-export async function getAddressNFTs(addr: Address, chain: "aeneid" | "mainnet"): Promise<{value: string, address: string, name: string, symbol: string}[]> {
+export async function getAddressNFTs(addr: Address, chain: "aeneid" | "mainnet"): Promise<{ value: string, address: string, name: string, symbol: string }[]> {
     const chainPart = chain === "aeneid" ? "aeneid." : "";
     const url = `https://${chainPart}storyscan.io/api/v2/addresses/${addr}/tokens?type=ERC-721`;
     const response = await fetch(url, {
@@ -561,10 +562,10 @@ export async function getAddressNFTs(addr: Address, chain: "aeneid" | "mainnet")
             name: item.token.name,
             symbol: item.token.symbol,
         }
-    }) as [{value: string, address: string, name: string, symbol: string}];
+    }) as [{ value: string, address: string, name: string, symbol: string }];
 }
 
-export async function getAddressERC20s(addr: Address, chain: "aeneid" | "mainnet"): Promise<{value: string, address: string, name: string, symbol: string, decimals: string}[]> {
+export async function getAddressERC20s(addr: Address, chain: "aeneid" | "mainnet"): Promise<{ value: string, address: string, name: string, symbol: string, decimals: string }[]> {
     const chainPart = chain === "aeneid" ? "aeneid." : "";
     const url = `https://${chainPart}storyscan.io/api/v2/addresses/${addr}/tokens?type=ERC-20`;
     const response = await fetch(url, {
@@ -583,7 +584,7 @@ export async function getAddressERC20s(addr: Address, chain: "aeneid" | "mainnet
             symbol: item.token.symbol,
             decimals: item.token.decimals
         }
-    }) as [{value: string, address: string, name: string, symbol: string, decimals: string}];
+    }) as [{ value: string, address: string, name: string, symbol: string, decimals: string }];
 }
 
 export async function getQuizzesCount(client: PublicClient): Promise<bigint> {
@@ -736,6 +737,72 @@ export async function getRoyaltyTokenBalance(vault: Address, holder: Address, cl
 
     const bal = await contract.read.balanceOf([holder]);
     return bal as bigint;
+}
+
+// This function retrieves the count of children IPs for a given parent IP ID.
+export async function getChildrenCount(parentIpId: Address, publicClient: PublicClient): Promise<bigint> {
+    const childCount = await publicClient.readContract({
+        address: LicenseRegistryAddress,
+        abi: [{
+            "inputs": [{ "name": "parentIpId", "type": "address" }],
+            "name": "getDerivativeIpCount",
+            "outputs": [{ "name": "", "type": "uint256" }],
+            "stateMutability": "view",
+            "type": "function"
+        }],
+        functionName: "getDerivativeIpCount",
+        args: [parentIpId],
+    });
+
+    return childCount;
+}
+
+// This function checks if a given parent IP ID has any children IPs.
+export async function hasChildren(parentIpId: Address, publicClient: PublicClient): Promise<boolean> {
+    const hasChildren = await publicClient.readContract({
+        address: LicenseRegistryAddress,
+        abi: [{
+            "inputs": [{ "name": "parentIpId", "type": "address" }],
+            "name": "hasDerivativeIps",
+            "outputs": [{ "name": "", "type": "bool" }],
+            "stateMutability": "view",
+            "type": "function"
+        }],
+        functionName: "hasDerivativeIps",
+        args: [parentIpId],
+    });
+
+    return hasChildren;
+}
+
+// This function retrieves the children IPs of a given parent IP ID.
+export async function getAssetChildren(parentIpId: Address, publicClient: PublicClient): Promise<Address[]> {
+    const childCount = await getChildrenCount(parentIpId, publicClient);
+    if (childCount === 0n) return [];
+    
+    const contract = getContract({
+        address: LicenseRegistryAddress,
+        abi: [{
+            "inputs": [
+                { "name": "parentIpId", "type": "address" },
+                { "name": "index", "type": "uint256" }
+            ],
+            "name": "getDerivativeIp",
+            "outputs": [{ "name": "childIpId", "type": "address" }],
+            "stateMutability": "view",
+            "type": "function"
+        }],
+        client: publicClient
+    });
+
+    // Fetch all children IPs
+    const childIpIds = await Promise.all(
+        Array.from({ length: Number(childCount) }, (_, i) => i).map(i => {
+            return contract.read.getDerivativeIp([parentIpId, BigInt(i)]);
+        })
+    );
+
+    return childIpIds;
 }
 
 export function getNonCommercialTerms(): LicenseTerms {

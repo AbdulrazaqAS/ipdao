@@ -215,8 +215,8 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             const imageUri = `https://ipfs.io/ipfs/${imageCid}`;
 
             const storyClient = StoryClient.newClient({
-                wallet: walletClient!,
-                transport: custom(walletClient!.transport),
+                wallet: walletClient! as any, // Error without 'any' type
+                transport: custom(walletClient!.transport) as any, // Error without 'any' type
                 chainId: walletClient!.chain.id.toString() as "1315" | "1514",
             })
 
