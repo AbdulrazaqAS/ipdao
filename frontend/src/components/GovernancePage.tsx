@@ -259,8 +259,8 @@ export default function GovernancePage() {
     try {
       setIsLoading(true);
       const storyClient = StoryClient.newClient({
-        wallet: walletClient,
-        transport: custom(walletClient!.transport),
+        wallet: walletClient! as any,
+        transport: custom(walletClient!.transport) as any,
         chainId: publicClient!.chain.id.toString() as "1315" | "1514",
       });
 
@@ -339,7 +339,7 @@ export default function GovernancePage() {
     async function fetchAssetsTokens() {
       const storyClient = StoryClient.newClient({
         account: "0xDaaE14a470e36796ADf9c75766D3d8ADD0a3D94c",  // just an address
-        transport: custom(publicClient!.transport),
+        transport: custom(publicClient!.transport) as any,
         chainId: publicClient!.chain.id.toString() as "1315" | "1514",
       })
 
@@ -379,7 +379,7 @@ export default function GovernancePage() {
     async function fetchIPAccountsRoyaltyTokens() {
       const storyClient = StoryClient.newClient({
         account: "0xDaaE14a470e36796ADf9c75766D3d8ADD0a3D94c",  // just an address
-        transport: custom(publicClient!.transport),
+        transport: custom(publicClient!.transport) as any,
         chainId: publicClient!.chain.id.toString() as "1315" | "1514",
       })
 
@@ -558,7 +558,7 @@ export default function GovernancePage() {
                       <div className="flex gap-2">
                         <button
                           className="px-3 py-1 text-xs rounded bg-secondary text-white hover:bg-secondary/90 hover:cursor-pointer"
-                          onClick={() => handleClaimRevenue(asset.id, token.address as Address, IPA_MANAGER_ADDRESS, token.daoAmount)}
+                          onClick={() => handleClaimRevenue(asset.id, token.address as Address, IPA_MANAGER_ADDRESS, BigInt(token.daoAmount))}
                         >
                           Claim for DAO
                         </button>

@@ -174,10 +174,20 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
                 <p className="text-text font-medium break-words underline"><a href={assetMetadata.mediaUrl} target="_blank">Link</a></p>
               </div>
             </div>
-            <Section title="Asset Derivatives">
-              <AssetDerivatives assetId={assetMetadata.id} />
-            </Section>
+            {/* Hidden in small screens and shown below */}
+            <div className="hidden lg:block">
+              <Section title="Asset Derivatives">
+                <AssetDerivatives assetId={assetMetadata.id} />
+              </Section>
+            </div>
           </div>
+        </div>
+
+        {/* Hidden in large screens and shown above */}
+        <div className="block lg:hidden">
+          <Section title="Asset Derivatives">
+            <AssetDerivatives assetId={assetMetadata.id} />
+          </Section>
         </div>
 
         <Section title="Creators">

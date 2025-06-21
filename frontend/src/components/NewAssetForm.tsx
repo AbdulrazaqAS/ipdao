@@ -314,8 +314,14 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
             const proposalIndex = await getProposalsCount(publicClient!);
 
-            const network = import.meta.env.VITE_STORY_NETWORK!;
-            const protocolExplorer = network === "mainnet" ? MainnetProtocolExplorer : AeniedProtocolExplorer;
+            let chainName: "aeneid" | "mainnet";
+            if (publicClient?.chain.id === 1315) chainName = "aeneid";
+            else if (publicClient?.chain.id === 1514) chainName = "mainnet";
+            else {
+                throw new Error("Unsupported chain ID. Please switch to Story - Aeneid or Mainnet.");
+            }
+
+            const protocolExplorer = chainName === "mainnet" ? MainnetProtocolExplorer : AeniedProtocolExplorer;
             const ipUrl = `${protocolExplorer}/ipa/${ipId}`;
 
             // Added # for splitting the value when in use
