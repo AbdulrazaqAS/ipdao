@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, ChevronLeft, Copy } from "lucide-react";
 import type { AssetAPIMetadata, AssetLicenseTerms, AssetMetadata, LicenseTermsMetadata, NFTMetadata } from "../utils/utils";
-import { fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms, getProposalThreshold, getUserVotingPower } from "../scripts/getters";
+import { fetchMetadata, getAssetAPIMetadata, getAssetChildren, getAssetLicenseTerms, getLicenseTerms, getProposalThreshold, getUserVotingPower } from "../scripts/getters";
 import { useChainId, usePublicClient, useWalletClient } from "wagmi";
 import AttachNewLicenseTermsForm from "./AttachNewLicenseTermsForm";
 import MintLicenseTokenForm from "./MintLicenseTokenForm";
@@ -73,10 +73,11 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   const [isLoadingLicenses, setIsLoadingLicenses] = useState(true);
   const [userVotingPower, setUserVotingPower] = useState(-1n);
   const [proposalThreshold, setProposalThreshold] = useState(0n);
+  const [derivatives, setDerivatives] = useState<AssetMetadata[]>([]);
 
   const chain = useChainId();
   const publicClient = usePublicClient();
-  const {data: walletClient} = useWalletClient();
+  const { data: walletClient } = useWalletClient();
 
   useEffect(() => {
     getAssetAPIMetadata(assetMetadata.id, chain).then((metadata) => {
@@ -97,12 +98,18 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
       console.error("Error fetching NFT metadata:", error);
     });
 
+    getAssetChildren(assetMetadata.id, publicClient!).then((children) => {
+      console.log("Asset children:", children);
+    }).catch((error) => {
+      console.error("Error fetching asset children:", error);
+    });
+
     getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
   }, []);
 
   useEffect(() => {
     if (!walletClient) return;
-    
+
     getUserVotingPower(walletClient.account.address, publicClient!).then(setUserVotingPower).catch(console.error);
   }, [walletClient]);
 
@@ -116,6 +123,7 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
       console.log("Fetched license terms:", termsArray);
     }).catch((error) => {
       console.error("Error fetching all license terms:", error);
+      setIsLoadingLicenses(false);
     }).finally(() => {
       setIsLoadingLicenses(false);
     });
@@ -190,7 +198,7 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
         <Section title="Licenses">
           <div className="flex flex-col">
             {licensesTerms.map((license, index) => (
-              <Section key={index} title={license.name}>
+              <Section key={index} title={license.name || `License #${license.id}`}>
                 <div className="space-y-4">
                   {license.description && (
                     <div className="text-sm text-muted">
@@ -212,12 +220,16 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
                         >
                           Mint License Token
                         </button>
-                        <button
-                          onClick={() => setShowDerivativeForm(index)}
-                          className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
-                        >
-                          Register Derivative
-                        </button>
+
+                        {/* Checks if derivatives are allowed for the license and show a register btn if allowed */}
+                        {license.terms.derivativesAllowed && (
+                          <button
+                            onClick={() => setShowDerivativeForm(index)}
+                            className="bg-primary text-white px-3 py-2 rounded hover:bg-primary/90 disabled:cursor-not-allowed"
+                          >
+                            Register Derivative
+                          </button>
+                        )}
                       </div>
                     )}
 

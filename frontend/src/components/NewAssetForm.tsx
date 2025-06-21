@@ -215,8 +215,8 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
             const imageUri = `https://ipfs.io/ipfs/${imageCid}`;
 
             const storyClient = StoryClient.newClient({
-                wallet: walletClient!,
-                transport: custom(walletClient!.transport),
+                wallet: walletClient! as any, // Error without 'any' type
+                transport: custom(walletClient!.transport) as any, // Error without 'any' type
                 chainId: walletClient!.chain.id.toString() as "1315" | "1514",
             })
 
@@ -257,6 +257,7 @@ export default function NewAssetForm({ setShowNewAssetForm }: Props) {
 
     async function handleProposeAddNewAssetFromNFT() {
         try {
+            // TODO: Check whether the contract owns the NFT.
             const collectionAddress = nftFields.collectionAddress.trim();
             const tokenId = nftFields.tokenId.trim();
             if (!collectionAddress || !tokenId) throw new Error("Collection address and token ID are required");
