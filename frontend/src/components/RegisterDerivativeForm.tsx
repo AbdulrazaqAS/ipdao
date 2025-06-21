@@ -204,8 +204,8 @@ export default function RegisterDerivativeForm({ parentAssetId, parentLicenseTer
             const imageUri = `https://ipfs.io/ipfs/${imageCid}`;
 
             const storyClient = StoryClient.newClient({
-                wallet: walletClient!,
-                transport: custom(walletClient!.transport),
+                wallet: walletClient! as any,
+                transport: custom(walletClient!.transport) as any,
                 chainId: walletClient!.chain.id.toString() as "1315" | "1514",
             })
 
@@ -247,8 +247,8 @@ export default function RegisterDerivativeForm({ parentAssetId, parentLicenseTer
     async function handleRegisterDerivative() {
         try {
             const storyClient = StoryClient.newClient({
-                wallet: walletClient,
-                transport: custom(walletClient!.transport),
+                wallet: walletClient! as any,
+                transport: custom(walletClient!.transport) as any,
                 chainId: walletClient!.chain.id.toString() as "1315" | "1514",
             })
 
@@ -295,8 +295,8 @@ export default function RegisterDerivativeForm({ parentAssetId, parentLicenseTer
             if (!collectionAddress || !tokenId) throw new Error("Collection address and token ID are required");
 
             const storyClient = StoryClient.newClient({
-                wallet: walletClient,
-                transport: custom(walletClient!.transport),
+                wallet: walletClient! as any,
+                transport: custom(walletClient!.transport) as any,
                 chainId: walletClient!.chain.id.toString() as "1315" | "1514",
             })
 
