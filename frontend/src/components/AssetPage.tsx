@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, ChevronLeft, Copy } from "lucide-react";
 import type { AssetAPIMetadata, AssetLicenseTerms, AssetMetadata, LicenseTermsMetadata, NFTMetadata } from "../utils/utils";
-import { fetchMetadata, getAssetAPIMetadata, getAssetChildren, getAssetLicenseTerms, getLicenseTerms, getProposalThreshold, getUserVotingPower } from "../scripts/getters";
+import { fetchMetadata, getAssetAPIMetadata, getAssetLicenseTerms, getLicenseTerms, getProposalThreshold, getUserVotingPower } from "../scripts/getters";
 import { useChainId, usePublicClient, useWalletClient } from "wagmi";
 import AttachNewLicenseTermsForm from "./AttachNewLicenseTermsForm";
 import MintLicenseTokenForm from "./MintLicenseTokenForm";
 import type { Address } from "viem";
 import RegisterDerivativeForm from "./RegisterDerivativeForm";
+import AssetDerivatives from "./AssetDerivatives";
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
@@ -73,7 +74,6 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
   const [isLoadingLicenses, setIsLoadingLicenses] = useState(true);
   const [userVotingPower, setUserVotingPower] = useState(-1n);
   const [proposalThreshold, setProposalThreshold] = useState(0n);
-  const [derivatives, setDerivatives] = useState<AssetMetadata[]>([]);
 
   const chain = useChainId();
   const publicClient = usePublicClient();
@@ -96,12 +96,6 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
       setNftMetadata(metadata);
     }).catch((error) => {
       console.error("Error fetching NFT metadata:", error);
-    });
-
-    getAssetChildren(assetMetadata.id, publicClient!).then((children) => {
-      console.log("Asset children:", children);
-    }).catch((error) => {
-      console.error("Error fetching asset children:", error);
     });
 
     getProposalThreshold(publicClient!).then(setProposalThreshold).catch(console.error);
@@ -180,6 +174,9 @@ export default function AssetPage({ assetMetadata, setSelectedAsset }: Props) {
                 <p className="text-text font-medium break-words underline"><a href={assetMetadata.mediaUrl} target="_blank">Link</a></p>
               </div>
             </div>
+            <Section title="Asset Derivatives">
+              <AssetDerivatives assetId={assetMetadata.id} />
+            </Section>
           </div>
         </div>
 
