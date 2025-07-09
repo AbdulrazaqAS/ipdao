@@ -44,10 +44,9 @@ contract IPAManager is Ownable, ERC721Holder {
     event RoyaltyTokensTransferred(address indexed ipId, address[] recipients, uint256[] amounts);
     event Execute(address indexed target, uint256 value, bytes data);
     event DaoRoyaltyTokensChanged(uint256 _amount);
-
+    
+    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(
-        uint256 _daoRoyaltyTokens,
-        address _initialOwner,
         address _ipAssetRegistry,
         address _licensingModule,
         address _pilTemplate,
@@ -55,8 +54,7 @@ contract IPAManager is Ownable, ERC721Holder {
         address _registrationWorkflows,
         address _derivativeWorkflows,
         address _royaltyModule,
-        string memory _spgName,
-        string memory _spgSymbol
+        address _spgNftContract
     ) Ownable(_initialOwner) {
         IP_ASSET_REGISTRY = IIPAssetRegistry(_ipAssetRegistry);
         LICENSING_MODULE = ILicensingModule(_licensingModule);
@@ -65,25 +63,15 @@ contract IPAManager is Ownable, ERC721Holder {
         REGISTRATION_WORKFLOWS = IRegistrationWorkflows(_registrationWorkflows);
         DERIVATIVE_WORKFLOWS = IDerivativeWorkflows(_derivativeWorkflows);
         ROYALTY_MODULE = IRoyaltyModule(_royaltyModule);
-
-        SPG_NFT = ISPGNFT(
-            REGISTRATION_WORKFLOWS.createCollection(
-                ISPGNFT.InitParams({
-                    name: _spgName,
-                    symbol: _spgSymbol,
-                    baseURI: "",
-                    contractURI: "",
-                    maxSupply: 10000,
-                    mintFee: 0,
-                    mintFeeToken: address(0),
-                    mintFeeRecipient: address(this),
-                    owner: address(this),
-                    mintOpen: true,
-                    isPublicMinting: false
-                })
-            )
-        );
-
+        SPG_NFT = ISPGNFT(_spgNftContract);
+        
+        _disableInitializers();
+    }
+    
+    function initialize(
+        uint256 _daoRoyaltyTokens,
+        address _initialOwner,  // ??
+    ) external initializer {
         daoRoyaltyTokens = _daoRoyaltyTokens;
         emit DaoRoyaltyTokensChanged(_daoRoyaltyTokens);
     }

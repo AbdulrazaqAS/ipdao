@@ -2,20 +2,25 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity ^0.8.26;
 
-import {Governor} from "@openzeppelin/contracts/governance/Governor.sol";
-import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
-import {GovernorSettings} from "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
-import {GovernorStorage} from "@openzeppelin/contracts/governance/extensions/GovernorStorage.sol";
-import {GovernorVotes} from "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import {GovernorVotesQuorumFraction} from "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
-import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
+import {GovernorUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/GovernorUpgradeable.sol";
+import {GovernorCountingSimpleUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorCountingSimpleUpgradeable.sol";
+import {GovernorSettingsUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorSettingsUpgradeable.sol";
+import {GovernorStorageUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorStorageUpgradeable.sol";
+import {GovernorVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorVotesUpgradeable.sol";
+import {GovernorVotesQuorumFractionUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorVotesQuorumFractionUpgradeable.sol";
+import {IVotesUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/utils/IVotesUpgradeable.sol";
 
-contract IPAGovernor is Governor, GovernorSettings, GovernorCountingSimple, GovernorStorage, GovernorVotes, GovernorVotesQuorumFraction {
+contract IPAGovernor is GovernorUpgradeable, GovernorSettingsUpgradeable, GovernorCountingSimpleUpgradeable, GovernorStorage, GovernorVotesUpgradeable, GovernorVotesQuorumFractionUpgradeable {
     uint256 public participationThreshold;  // Minimum participation threshold for non-proposal actions
 
     event ParticipationThresholdUpdated(uint256 newThreshold);
-
-    constructor(
+    
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor () {
+        _disableInitializers();
+    }
+    
+    function initialize(
         string memory name,
         uint48 initialVotingDelay,
         uint32 initialVotingPeriod,
@@ -23,12 +28,12 @@ contract IPAGovernor is Governor, GovernorSettings, GovernorCountingSimple, Gove
         uint256 quorumNumeratorValue,
         uint256 _participationThreshold,
         IVotes _token
-    )
-        Governor(name)
-        GovernorSettings(initialVotingDelay, initialVotingPeriod, initialProposalThreshold)
-        GovernorVotes(_token)
-        GovernorVotesQuorumFraction(quorumNumeratorValue)
-    {
+    ) external initializer {
+        __Governor_init(name);
+        __GovernorSettings_init(initialVotingDelay, initialVotingPeriod, initialProposalThreshold);
+        __GovernorVotes_init(_token);
+        __GovernorVotesQuorumFraction_init(quorumNumeratorValue);
+        
         participationThreshold = _participationThreshold;
         emit ParticipationThresholdUpdated(_participationThreshold);
     }
